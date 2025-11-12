@@ -58,11 +58,6 @@ export async function verifyPayment(signature, expectedRecipient, minAmount) {
       maxSupportedTransactionVersion: 0, // Support versioned transactions
     });
 
-    if (!transaction) {
-      console.error('[Solana] Transaction not found for signature:', signature?.substring(0, 20) + '...');
-      return false;
-    }
-
     if (!transaction.meta) {
       console.error('[Solana] Transaction metadata not available');
       return false;
