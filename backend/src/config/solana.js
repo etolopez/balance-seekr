@@ -8,6 +8,15 @@ const RPC_URL = process.env.SOLANA_RPC_URL || clusterApiUrl(CLUSTER);
 
 export const connection = new Connection(RPC_URL, 'confirmed');
 
+// Log RPC configuration on module load (for debugging)
+if (process.env.NODE_ENV !== 'production' || process.env.LOG_RPC_CONFIG === 'true') {
+  console.log('[Solana] RPC Configuration:', {
+    cluster: CLUSTER,
+    rpcUrl: RPC_URL?.substring(0, 60) + (RPC_URL?.length > 60 ? '...' : ''),
+    hasCustomRpc: !!process.env.SOLANA_RPC_URL,
+  });
+}
+
 /**
  * Verify a Solana transaction signature
  * @param {string} signature - Transaction signature
