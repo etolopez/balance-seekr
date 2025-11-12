@@ -1,0 +1,1687 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, InteractionManager, Modal, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppStore } from '../../state/store';
+import { WalletService } from '../../services/wallet.service';
+import { PaymentService } from '../../services/payment.service';
+import { ApiService } from '../../services/api.service';
+import { detectSeeker } from '../../services/seeker';
+import { PROGRAM_ID } from '../../config/solana';
+import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
+import { PLATFORM_CREATE_FEE, PLATFORM_PAYMENT_ADDRESS, DEFAULT_JOIN_PAYMENT_ADDRESS, PLATFORM_JOIN_FEE_PERCENTAGE } from '../../config/platform';
+import { TESTING_MODE, generateMockSignature } from '../../config/testing';
+
+/**
+ * Groups Screen - Create and manage Mastermind groups
+ * Includes wallet verification functionality for Solana wallet integration
+ */
+export default function GroupsScreen() {
+  const insets = useSafeAreaInsets();
+  const verifiedAddress = useAppStore((s) => s.verifiedAddress);
+  const setVerified = useAppStore((s) => s.setVerified);
+  const disconnectWallet = useAppStore((s) => s.disconnectWallet);
+  const username = useAppStore((s) => s.username);
+  const usernameSet = useAppStore((s) => s.usernameSet);
+  const xHandle = useAppStore((s) => s.xHandle);
+  const verified = useAppStore((s) => s.verified);
+  const setUsername = useAppStore((s) => s.setUsername);
+  const syncXAccount = useAppStore((s) => s.syncXAccount);
+  const groups = useAppStore((s) => s.groups);
+  const publicGroups = useAppStore((s) => s.publicGroups);
+  const createPublicGroup = useAppStore((s) => s.createPublicGroup);
+  const deleteGroup = useAppStore((s) => s.deleteGroup);
+  const fetchPublicGroups = useAppStore((s) => s.fetchPublicGroups);
+  const joinPublicGroup = useAppStore((s) => s.joinPublicGroup);
+  const updateGroupJoinPrice = useAppStore((s) => s.updateGroupJoinPrice);
+  const [manualAddr, setManualAddr] = useState('');
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [tempUsername, setTempUsername] = useState(username || '');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [syncingX, setSyncingX] = useState(false);
+  const [tempXHandle, setTempXHandle] = useState(xHandle || '');
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [showPublicModal, setShowPublicModal] = useState(false);
+  const [publicGroupName, setPublicGroupName] = useState('');
+  const [publicGroupDescription, setPublicGroupDescription] = useState('');
+  const [publicGroupJoinPrice, setPublicGroupJoinPrice] = useState('0');
+  const [publicGroupPaymentAddress, setPublicGroupPaymentAddress] = useState(DEFAULT_JOIN_PAYMENT_ADDRESS);
+  const [isCreatingPublic, setIsCreatingPublic] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [joiningGroupId, setJoiningGroupId] = useState<string | null>(null);
+  type GroupForDisplay = {
+    id: string;
+    name: string;
+    ownerAddress: string;
+    ownerUsername?: string;
+    createdAt: string;
+    joinPrice: number;
+    paymentAddress: string;
+    description?: string;
+    memberCount?: number;
+  };
+  
+  const [selectedGroup, setSelectedGroup] = useState<GroupForDisplay | null>(null);
+  const [showGroupDetail, setShowGroupDetail] = useState(false);
+  const [editingJoinPriceGroupId, setEditingJoinPriceGroupId] = useState<string | null>(null);
+  const [newJoinPrice, setNewJoinPrice] = useState('');
+  const apiService = new ApiService();
+  const seeker = detectSeeker();
+  const useSiws = seeker.isSeeker && (process.env.EXPO_PUBLIC_USE_SIWS === '1' || process.env.EXPO_PUBLIC_USE_SIWS === 'true');
+
+  // Mock Mastermind for demonstration
+  const mockGroup = {
+    id: 'mock-mastermind-1',
+    name: 'Solana Builders',
+    ownerAddress: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+    ownerUsername: 'CryptoDev',
+    createdAt: new Date().toISOString(),
+    joinPrice: 0.1,
+    paymentAddress: 'BWg1ZSZqvmXdUSuuXbssBM9Qjgyo3mzJrQap7KuQ8mZZ',
+    description: 'A community for Solana developers to share knowledge, collaborate on projects, and grow together. Join us to discuss DeFi, NFTs, and the future of blockchain!',
+    memberCount: 42,
+  };
+
+  // Combine mock group with public groups (only show mock if no real groups)
+  const displayGroups = publicGroups.length > 0 ? publicGroups : [mockGroup];
+
+  // Sync tempUsername with store username when it changes
+  useEffect(() => {
+    if (!editingUsername) {
+      setTempUsername(username || '');
+    }
+  }, [username, editingUsername]);
+
+  // Sync tempXHandle with store xHandle when it changes
+  useEffect(() => {
+    if (!syncingX) {
+      setTempXHandle(xHandle || '');
+    }
+  }, [xHandle, syncingX]);
+
+  // Fetch public groups on mount
+  useEffect(() => {
+    if (verifiedAddress) {
+      fetchPublicGroups();
+    }
+  }, [verifiedAddress, fetchPublicGroups]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchPublicGroups();
+    setRefreshing(false);
+  };
+
+  const handleJoinPublicGroup = async (group: typeof publicGroups[0] | typeof mockGroup) => {
+    if (!verifiedAddress) {
+      Alert.alert('Wallet Required', 'Please verify your wallet first.');
+      return;
+    }
+
+    // Check if already a member (skip for mock groups)
+    if (group.id !== mockGroup.id) {
+      // Check local membership first
+      const { dbApi } = await import('../../state/dbApi');
+      const existingMember = await dbApi.getMember(group.id, verifiedAddress);
+      
+      if (existingMember) {
+        // User is already a member - check if they need to pay again
+        const currentJoinPrice = group.joinPrice || 0;
+        
+        // If they joined when it was free, they stay free
+        if (existingMember.joinPricePaid === 0 && currentJoinPrice === 0) {
+          Alert.alert('Already a Member', 'You are already a member of this group.');
+          return;
+        }
+        
+        // If they joined when it was free but group is now paid, they need to pay to rejoin
+        if (existingMember.joinPricePaid === 0 && currentJoinPrice > 0) {
+          // User left and needs to pay to rejoin - continue with payment flow below
+          // Delete their old membership record so they can rejoin with payment
+          const { dbApi } = await import('../../state/dbApi');
+          const { run } = await import('../../db/client');
+          await run('DELETE FROM mastermind_members WHERE groupId=? AND userAddress=?', [group.id, verifiedAddress]);
+          // Continue with payment flow below - don't return
+        } else if (existingMember.joinPricePaid > 0 && existingMember.joinPricePaid === currentJoinPrice) {
+          // They already paid the current price - they're a member
+          Alert.alert('Already a Member', 'You are already a member of this group.');
+          return;
+        } else if (existingMember.joinPricePaid > 0 && existingMember.joinPricePaid !== currentJoinPrice) {
+          // Price changed - they need to pay the new price to rejoin
+          const { run } = await import('../../db/client');
+          await run('DELETE FROM mastermind_members WHERE groupId=? AND userAddress=?', [group.id, verifiedAddress]);
+          // Continue with payment flow below - don't return
+        }
+      } else {
+        // Not a local member, check API
+        const isMember = await apiService.checkMembership(group.id, verifiedAddress);
+        if (isMember) {
+          Alert.alert('Already a Member', 'You are already a member of this group.');
+          return;
+        }
+      }
+    }
+
+    // Confirm join
+    const priceText = group.joinPrice === 0 ? 'free' : `${group.joinPrice} SOL`;
+    Alert.alert(
+      'Join Group',
+      `Join "${group.name}" for ${priceText}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Join',
+          onPress: async () => {
+            setJoiningGroupId(group.id);
+            try {
+              const paymentService = new PaymentService();
+              let paymentSignature = '';
+
+              // If group requires payment, process payment first
+              if (group.joinPrice > 0) {
+                const platformFee = group.joinPrice * PLATFORM_JOIN_FEE_PERCENTAGE;
+                const ownerAmount = group.joinPrice - platformFee;
+                const paymentMessage = TESTING_MODE 
+                  ? `TESTING MODE: You'll need to pay ${group.joinPrice} SOL to join this group.\n\nBreakdown:\n• Group owner: ${ownerAmount.toFixed(4)} SOL\n• Platform fee: ${platformFee.toFixed(4)} SOL (1%)\n\nIn testing mode, payment will be simulated.`
+                  : `You'll need to pay ${group.joinPrice} SOL to join this group.\n\nBreakdown:\n• Group owner: ${ownerAmount.toFixed(4)} SOL\n• Platform fee: ${platformFee.toFixed(4)} SOL (1%)\n\nYour wallet will open to confirm the payment.`;
+                
+                Alert.alert(
+                  'Payment Required',
+                  paymentMessage,
+                  [
+                    { text: 'Cancel', style: 'cancel', onPress: () => setJoiningGroupId(null) },
+                    {
+                      text: TESTING_MODE ? 'Simulate Payment' : 'Pay & Join',
+                      onPress: async () => {
+                        try {
+                          let paymentResult: { platformSignature: string; ownerSignature: string };
+                          
+                          if (TESTING_MODE || group.id === mockGroup.id) {
+                            // Testing mode or mock group: Generate mock signatures
+                            console.log('[Groups] TESTING MODE: Simulating payment');
+                            paymentResult = {
+                              platformSignature: generateMockSignature(),
+                              ownerSignature: generateMockSignature(),
+                            };
+                          } else {
+                            paymentResult = await paymentService.payToJoinGroup(
+                              group.paymentAddress,
+                              group.joinPrice,
+                              PLATFORM_PAYMENT_ADDRESS,
+                              PLATFORM_JOIN_FEE_PERCENTAGE
+                            );
+                          }
+                          console.log('[Groups] Payment signatures:', paymentResult);
+
+                          // Join the group with payment signature (transaction contains both payments)
+                          await joinPublicGroup(group.id, paymentResult.ownerSignature);
+                          
+                          // Add to local groups if not already there
+                          const existingGroup = groups.find(g => g.id === group.id || g.apiGroupId === group.id);
+                          if (!existingGroup) {
+                            const { uid, nowIso } = await import('../../utils/time');
+                            const localGroup = {
+                              id: uid(),
+                              name: group.name,
+                              ownerAddress: group.ownerAddress,
+                              createdAt: nowIso(),
+                              isPublic: true,
+                              joinPrice: group.joinPrice,
+                              paymentAddress: group.paymentAddress,
+                              description: group.description,
+                              apiGroupId: group.id,
+                            };
+                            const { dbApi } = await import('../../state/dbApi');
+                            dbApi.addGroup(localGroup as any);
+                            useAppStore.setState((s) => ({ groups: [localGroup, ...s.groups] }));
+                          }
+                          
+                          Alert.alert('Success', 'You have joined the group!');
+                          setShowGroupDetail(false);
+                          await fetchPublicGroups(); // Refresh list
+                        } catch (error: any) {
+                          Alert.alert('Error', error.message || 'Failed to join group');
+                        } finally {
+                          setJoiningGroupId(null);
+                        }
+                      },
+                    },
+                  ]
+                );
+              } else {
+                // Free group - join without payment
+                try {
+                  await joinPublicGroup(group.id, 'free');
+                  
+                  // Add to local groups if not already there
+                  const existingGroup = groups.find(g => g.id === group.id || g.apiGroupId === group.id);
+                  if (!existingGroup) {
+                    const { uid, nowIso } = await import('../../utils/time');
+                    const localGroup = {
+                      id: uid(),
+                      name: group.name,
+                      ownerAddress: group.ownerAddress,
+                      createdAt: nowIso(),
+                      isPublic: true,
+                      joinPrice: group.joinPrice,
+                      paymentAddress: group.paymentAddress,
+                      description: group.description,
+                      apiGroupId: group.id,
+                    };
+                    const { dbApi } = await import('../../state/dbApi');
+                    dbApi.addGroup(localGroup as any);
+                    useAppStore.setState((s) => ({ groups: [localGroup, ...s.groups] }));
+                  }
+                  
+                  Alert.alert('Success', 'You have joined the group!');
+                  setShowGroupDetail(false);
+                  await fetchPublicGroups(); // Refresh list
+                } catch (error: any) {
+                  Alert.alert('Error', error.message || 'Failed to join group');
+                } finally {
+                  setJoiningGroupId(null);
+                }
+              }
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to join group');
+              setJoiningGroupId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Show verification UI if not verified
+  if (!verifiedAddress) {
+    return (
+      <LinearGradient colors={[colors.background.gradient.start, colors.background.gradient.end]} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <View style={[styles.content, { paddingTop: Math.max(insets.top, spacing.xl) + spacing.lg }]}>
+          <Text style={styles.title}>Masterminds</Text>
+        <View style={styles.verifyCard}>
+          <Text style={styles.verifyTitle}>Verify your identity</Text>
+          <Text style={styles.verifyText}>
+            Verify once with your Solana wallet to create Mastermind groups. This will open your wallet app to authenticate.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
+            <Pressable style={styles.primaryBtn} onPress={async () => {
+              try {
+                console.log('[Groups] Starting wallet verification - will open wallet picker...');
+                const svc = new WalletService();
+                // Use verifyOnce which opens the wallet picker/selector
+                const acc = await svc.verifyOnce();
+                console.log('[Groups] Wallet verification successful:', acc.address);
+                if (acc && acc.address) {
+                  await setVerified(acc.address);
+                } else {
+                  Alert.alert('Wallet verification', 'No address returned from wallet. Please try again.');
+                }
+              } catch (e: any) {
+                console.error('[Groups] Wallet verification error:', e);
+                const errorMsg = e?.message || 'Verification failed. Please try again.';
+                // Provide more helpful error message
+                const displayMsg = errorMsg.includes('cancel') || errorMsg.includes('reject') 
+                  ? 'Connection was cancelled. Make sure to accept the connection in Phantom and wait for it to complete.'
+                  : errorMsg;
+                // Suppress alerts while returning from wallet or when user cancelled
+                if (displayMsg.toLowerCase().includes('cancel') || displayMsg.toLowerCase().includes('interrupted')) {
+                  return;
+                }
+                InteractionManager.runAfterInteractions(() => {
+                  Alert.alert('Wallet verification', displayMsg);
+                });
+              }
+            }}>
+              <Text style={styles.primaryBtnText}>{useSiws ? 'Verify Seeker (SIWS)' : (seeker.isSeeker ? 'Verify with Seeker Wallet' : 'Verify with Solana')}</Text>
+            </Pressable>
+          </View>
+          {seeker.isSeeker && (
+            <Text style={[styles.verifyText, { marginTop: spacing.xs }]}>
+              Tip: When the Seeker wallet opens, complete the prompts and wait for the app to return automatically.
+            </Text>
+          )}
+          <Text style={[styles.verifyText, { marginTop: spacing.sm }]}>No wallet? Set an address manually (temporary).</Text>
+          <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
+            <TextInput placeholder="Your SOL address" placeholderTextColor={colors.text.tertiary} value={manualAddr} onChangeText={setManualAddr} style={styles.input} />
+            <Pressable style={styles.secondaryBtn} onPress={async () => { if (manualAddr.trim()) await setVerified(manualAddr.trim()); }}>
+              <Text style={styles.secondaryBtnText}>Set</Text>
+            </Pressable>
+          </View>
+        </View>
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  return (
+    <LinearGradient colors={[colors.background.gradient.start, colors.background.gradient.end]} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <View style={[styles.content, { paddingTop: Math.max(insets.top, spacing.xl) + spacing.lg }]}>
+        <Text style={styles.title}>Masterminds</Text>
+        {/* Profile Section - Username */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <Text style={styles.profileLabel}>Your Profile</Text>
+            <Pressable
+              style={styles.editProfileBtn}
+              onPress={() => setShowEditModal(true)}
+            >
+              <Ionicons name="settings-outline" size={16} color={colors.primary.main} />
+              <Text style={styles.editProfileBtnText}>Edit</Text>
+            </Pressable>
+          </View>
+          <View style={styles.profileRow}>
+            <View style={{ flex: 1 }}>
+              <View style={styles.usernameRow}>
+                <Text style={styles.profileValue}>
+                  {username || 'No username set'}
+                </Text>
+                {verified && (
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark-circle" size={16} color={colors.success.main} />
+                    <Text style={styles.verifiedText}>Verified</Text>
+                  </View>
+                )}
+              </View>
+              {xHandle && (
+                <Text style={styles.xHandleText}>@{xHandle}</Text>
+              )}
+              {verifiedAddress && (
+                <Text style={styles.addressText}>
+                  {verifiedAddress.slice(0, 6)}...{verifiedAddress.slice(-4)}
+                </Text>
+              )}
+            </View>
+          </View>
+          {!usernameSet && (
+            <Pressable
+              style={styles.setUsernameBtn}
+              onPress={() => {
+                setTempUsername('');
+                setEditingUsername(true);
+                setUsernameError(null);
+              }}
+            >
+              <Ionicons name="person-add-outline" size={16} color={colors.primary.main} />
+              <Text style={styles.setUsernameBtnText}>Set Username</Text>
+            </Pressable>
+          )}
+        </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Discover Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Discover</Text>
+          <Text style={styles.sectionSubtitle}>
+            {TESTING_MODE ? 'Testing Mode: Browse public Masterminds (local only)' : 'Browse public Masterminds from around the world'}
+          </Text>
+          {TESTING_MODE && (
+            <View style={styles.testingBanner}>
+              <Text style={styles.testingBannerText}>
+                ⚠️ Testing Mode Active: Groups created locally, no backend required
+              </Text>
+            </View>
+          )}
+          {displayGroups.length > 0 ? (
+            <FlatList
+              data={displayGroups}
+              keyExtractor={(g) => g.id}
+              scrollEnabled={false}
+              ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  tintColor={colors.text.primary}
+                />
+              }
+              renderItem={({ item }) => {
+                // Generate gradient colors based on the group name for visual variety
+                const colorIndex = item.name.charCodeAt(0) % 5;
+                const gradientColors = [
+                  { start: '#7BA3D4', end: '#5B8BB4' }, // Blue
+                  { start: '#8BC34A', end: '#6BA03A' }, // Green
+                  { start: '#FF9800', end: '#DF7800' }, // Orange
+                  { start: '#9C27B0', end: '#7C1790' }, // Purple
+                  { start: '#E91E63', end: '#C90E43' }, // Pink
+                ];
+                const gradient = gradientColors[colorIndex];
+                const creatorName = item.ownerUsername || `${item.ownerAddress.slice(0, 6)}...${item.ownerAddress.slice(-4)}`;
+                const memberText = item.memberCount !== undefined 
+                  ? `${item.memberCount} ${item.memberCount === 1 ? 'member' : 'members'}`
+                  : 'New group';
+                
+                return (
+                  <Pressable
+                    onPress={() => {
+                      setSelectedGroup(item as GroupForDisplay);
+                      setShowGroupDetail(true);
+                    }}
+                    style={styles.discoverCardWrapper}
+                  >
+                    <LinearGradient
+                      colors={[gradient.start, gradient.end]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.discoverCardGradient}
+                    >
+                      <View style={styles.discoverCardContent}>
+                        <Text style={styles.discoverCardTitle}>{item.name}</Text>
+                        <View style={styles.discoverCardMeta}>
+                          <Text style={styles.discoverCardMetaText}>by {creatorName}</Text>
+                          <Text style={styles.discoverCardMetaText}>•</Text>
+                          <Text style={styles.discoverCardMetaText}>{memberText}</Text>
+                        </View>
+                      </View>
+                    </LinearGradient>
+                  </Pressable>
+                );
+              }}
+            />
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No public groups available yet.</Text>
+              <Text style={styles.emptySubtext}>Be the first to create one!</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Create Mastermind Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Create Mastermind</Text>
+          <Pressable 
+            style={styles.primaryBtn} 
+            onPress={() => setShowPublicModal(true)}
+          >
+            <Text style={styles.primaryBtnText}>Create Public Group</Text>
+          </Pressable>
+          <Text style={styles.feeNote}>
+            Public groups require a {PLATFORM_CREATE_FEE} SOL creation fee
+          </Text>
+        </View>
+
+        {/* My Masterminds Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>My Masterminds</Text>
+          {groups.filter(g => g.isPublic).length > 0 ? (
+            <FlatList
+              data={groups.filter(g => g.isPublic)}
+              keyExtractor={(g) => g.id}
+              scrollEnabled={false}
+              ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+              renderItem={({ item }) => {
+                // Show username if owner is the current user, otherwise show wallet address
+                const isOwner = item.ownerAddress === verifiedAddress;
+                const ownerDisplay = isOwner && username 
+                  ? username 
+                  : item.ownerAddress 
+                    ? `${item.ownerAddress.slice(0,4)}…${item.ownerAddress.slice(-4)}`
+                    : 'You';
+                return (
+                  <View style={styles.card}>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle}>{item.name}</Text>
+                        <View style={styles.publicBadge}>
+                          <Text style={styles.publicBadgeText}>Public</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.cardSub}>Owner: {ownerDisplay}</Text>
+                      {item.description && (
+                        <Text style={styles.cardDescription} numberOfLines={1}>
+                          {item.description}
+                        </Text>
+                      )}
+                      {item.joinPrice !== undefined && item.joinPrice > 0 && (
+                        <Text style={styles.cardSub}>Join Price: {item.joinPrice} SOL</Text>
+                      )}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+                      <Link href={`/masterminds/${item.id}`} asChild>
+                        <Pressable style={styles.secondaryBtn}><Text style={styles.secondaryBtnText}>Open</Text></Pressable>
+                      </Link>
+                      {isOwner && (
+                        <Pressable 
+                          style={styles.secondaryBtn} 
+                          onPress={() => {
+                            setEditingJoinPriceGroupId(item.id);
+                            setNewJoinPrice(String(item.joinPrice || 0));
+                          }}
+                        >
+                          <Text style={styles.secondaryBtnText}>Update Price</Text>
+                        </Pressable>
+                      )}
+                      <Pressable style={styles.secondaryBtn} onPress={() => deleteGroup(item.id)}><Text style={styles.secondaryBtnText}>Delete</Text></Pressable>
+                    </View>
+                  </View>
+                );
+              }}
+            />
+          ) : (
+            <Text style={styles.info}>No Masterminds yet. Create one above.</Text>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Group Detail Modal */}
+      <Modal
+        visible={showGroupDetail}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {
+          setShowGroupDetail(false);
+          setSelectedGroup(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {selectedGroup ? (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{selectedGroup.name}</Text>
+                  <Pressable
+                    style={styles.modalCloseBtn}
+                    onPress={() => {
+                      setShowGroupDetail(false);
+                      setSelectedGroup(null);
+                    }}
+                  >
+                    <Text style={styles.modalCloseText}>✕</Text>
+                  </Pressable>
+                </View>
+                
+                <Text style={styles.modalSubtitle}>Mastermind Details</Text>
+
+                {/* Creator Info */}
+                <View style={styles.detailSection}>
+                  <Text style={styles.label}>Created by</Text>
+                  <View style={styles.detailValueContainer}>
+                    <Text style={styles.detailValue}>
+                      {selectedGroup.ownerUsername || (selectedGroup.ownerAddress ? `${selectedGroup.ownerAddress.slice(0, 6)}...${selectedGroup.ownerAddress.slice(-4)}` : 'Unknown')}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Member Count */}
+                {selectedGroup.memberCount !== undefined && selectedGroup.memberCount !== null && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.label}>Members</Text>
+                    <View style={styles.detailValueContainer}>
+                      <Text style={styles.detailValue}>
+                        {selectedGroup.memberCount} {selectedGroup.memberCount === 1 ? 'member' : 'members'}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Description */}
+                {selectedGroup.description && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.label}>Description</Text>
+                    <View style={styles.detailTextContainer}>
+                      <Text style={styles.detailText}>{selectedGroup.description}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Action Button */}
+                <View style={styles.modalButtons}>
+                  <Pressable
+                    style={[styles.modalBtn, styles.modalBtnPrimary, { width: '100%' }, joiningGroupId === selectedGroup.id && styles.modalBtnDisabled]}
+                    onPress={() => handleJoinPublicGroup(selectedGroup)}
+                    disabled={joiningGroupId === selectedGroup.id}
+                  >
+                    {joiningGroupId === selectedGroup.id ? (
+                      <ActivityIndicator color={colors.text.primary} size="small" />
+                    ) : (
+                      <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>
+                        {selectedGroup.joinPrice === 0 ? 'Join Free' : `Join for ${selectedGroup.joinPrice} SOL`}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              </ScrollView>
+            ) : (
+              <View style={{ padding: spacing.lg }}>
+                <Text style={{ color: colors.text.primary }}>No group selected</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Update Join Price Modal */}
+      <Modal
+        visible={editingJoinPriceGroupId !== null}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {
+          setEditingJoinPriceGroupId(null);
+          setNewJoinPrice('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Update Join Price</Text>
+            <Text style={styles.modalSubtitle}>
+              Members who joined when it was free will remain free. New members will pay the updated price. If someone leaves and rejoins, they'll need to pay the current price.
+            </Text>
+
+            <Text style={styles.label}>New Join Price (SOL) *</Text>
+            <TextInput
+              value={newJoinPrice}
+              onChangeText={setNewJoinPrice}
+              placeholder="0 for free groups"
+              placeholderTextColor={colors.text.tertiary}
+              style={styles.input}
+              keyboardType="decimal-pad"
+            />
+            <Text style={styles.hint}>Set to 0 to make the group free</Text>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => {
+                  setEditingJoinPriceGroupId(null);
+                  setNewJoinPrice('');
+                }}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtn, styles.primaryBtn]}
+                onPress={async () => {
+                  if (!editingJoinPriceGroupId) return;
+                  
+                  const price = parseFloat(newJoinPrice);
+                  if (isNaN(price) || price < 0) {
+                    Alert.alert('Error', 'Please enter a valid join price (0 or greater)');
+                    return;
+                  }
+
+                  try {
+                    await updateGroupJoinPrice(editingJoinPriceGroupId, price);
+                    Alert.alert('Success', 'Join price updated successfully');
+                    setEditingJoinPriceGroupId(null);
+                    setNewJoinPrice('');
+                  } catch (error: any) {
+                    Alert.alert('Error', error.message || 'Failed to update join price');
+                  }
+                }}
+              >
+                <Text style={styles.primaryBtnText}>Update Price</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Public Group Creation Modal */}
+      <Modal
+        visible={showPublicModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowPublicModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView>
+              <Text style={styles.modalTitle}>Create Public Mastermind</Text>
+              <Text style={styles.modalSubtitle}>
+                Public groups are discoverable by everyone. You'll pay {PLATFORM_CREATE_FEE} SOL to create.
+              </Text>
+
+              <Text style={styles.label}>Group Name *</Text>
+              <TextInput
+                value={publicGroupName}
+                onChangeText={setPublicGroupName}
+                placeholder="Enter group name"
+                placeholderTextColor={colors.text.tertiary}
+                style={styles.input}
+              />
+
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                value={publicGroupDescription}
+                onChangeText={setPublicGroupDescription}
+                placeholder="What is this group about?"
+                placeholderTextColor={colors.text.tertiary}
+                style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]}
+                multiline
+              />
+
+              <Text style={styles.label}>Join Price (SOL) *</Text>
+              <TextInput
+                value={publicGroupJoinPrice}
+                onChangeText={setPublicGroupJoinPrice}
+                placeholder="0 for free groups"
+                placeholderTextColor={colors.text.tertiary}
+                style={styles.input}
+                keyboardType="decimal-pad"
+              />
+              <Text style={styles.hint}>Set to 0 for free-to-join groups</Text>
+
+              <Text style={styles.label}>Payment Address (for join fees) *</Text>
+              <TextInput
+                value={publicGroupPaymentAddress}
+                onChangeText={setPublicGroupPaymentAddress}
+                placeholder="Your SOL address to receive payments"
+                placeholderTextColor={colors.text.tertiary}
+                style={styles.input}
+              />
+              <Text style={styles.hint}>Required: Address where you'll receive join payments</Text>
+
+              <View style={styles.modalButtons}>
+                <Pressable
+                  style={[styles.modalBtn, styles.cancelBtn]}
+                  onPress={() => {
+                    setShowPublicModal(false);
+                    setPublicGroupName('');
+                    setPublicGroupDescription('');
+                    setPublicGroupJoinPrice('0');
+                    setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
+                  }}
+                  disabled={isCreatingPublic}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalBtn, styles.primaryBtn]}
+                  onPress={async () => {
+                    if (!publicGroupName.trim()) {
+                      Alert.alert('Error', 'Please enter a group name');
+                      return;
+                    }
+                    const joinPrice = parseFloat(publicGroupJoinPrice);
+                    if (isNaN(joinPrice) || joinPrice < 0) {
+                      Alert.alert('Error', 'Please enter a valid join price (0 or greater)');
+                      return;
+                    }
+                    if (!PLATFORM_PAYMENT_ADDRESS) {
+                      Alert.alert('Error', 'Platform payment address not configured');
+                      return;
+                    }
+                    if (!publicGroupPaymentAddress.trim()) {
+                      Alert.alert('Error', 'Payment address is required');
+                      return;
+                    }
+
+                    setIsCreatingPublic(true);
+                    try {
+                      const createMessage = TESTING_MODE 
+                        ? 'TESTING MODE: Public group will be created locally without backend. Payment will be simulated.'
+                        : 'Public group created! You can find it in the Discover tab.';
+                      
+                      await createPublicGroup(
+                        publicGroupName.trim(),
+                        joinPrice,
+                        publicGroupPaymentAddress.trim(),
+                        publicGroupDescription.trim() || undefined,
+                        PLATFORM_CREATE_FEE
+                      );
+                      Alert.alert('Success', createMessage);
+                      setShowPublicModal(false);
+                      setPublicGroupName('');
+                      setPublicGroupDescription('');
+                      setPublicGroupJoinPrice('0');
+                      setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
+                    } catch (error: any) {
+                      Alert.alert('Error', error.message || 'Failed to create public group');
+                    } finally {
+                      setIsCreatingPublic(false);
+                    }
+                  }}
+                  disabled={isCreatingPublic}
+                >
+                  {isCreatingPublic ? (
+                    <ActivityIndicator color={colors.text.primary} />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Create & Pay {PLATFORM_CREATE_FEE} SOL</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+          </View>
+        </Modal>
+
+      {/* Set Username Modal */}
+      <Modal
+        visible={editingUsername}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setEditingUsername(false);
+          setTempUsername(username || '');
+          setUsernameError(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+                <Ionicons name="person-outline" size={24} color={colors.primary.main} />
+                <Text style={styles.modalTitle}>Set Username</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => {
+                  setEditingUsername(false);
+                  setTempUsername(username || '');
+                  setUsernameError(null);
+                }}
+              >
+                <Ionicons name="close" size={20} color={colors.text.primary} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Choose a unique username for your wallet. This cannot be changed once set.
+            </Text>
+
+            <View style={styles.detailSection}>
+              <Text style={styles.label}>Username *</Text>
+              <TextInput
+                value={tempUsername}
+                onChangeText={(text) => {
+                  setTempUsername(text);
+                  setUsernameError(null);
+                }}
+                placeholder="Enter username (3-20 chars)"
+                placeholderTextColor={colors.text.tertiary}
+                style={[
+                  styles.modalInputField,
+                  usernameError && styles.inputError
+                ]}
+                autoFocus
+                editable={!checkingUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                selectionColor={colors.primary.main}
+              />
+              <Text style={styles.hint}>
+                Username can only contain letters, numbers, and underscores
+              </Text>
+              {usernameError && (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle-outline" size={16} color={colors.error.main} />
+                  <Text style={styles.errorText}>{usernameError}</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => {
+                  setEditingUsername(false);
+                  setTempUsername(username || '');
+                  setUsernameError(null);
+                }}
+                disabled={checkingUsername}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtn, styles.modalBtnPrimary, checkingUsername && styles.modalBtnDisabled]}
+                onPress={async () => {
+                  if (!tempUsername.trim()) {
+                    setUsernameError('Username cannot be empty');
+                    return;
+                  }
+                  setCheckingUsername(true);
+                  setUsernameError(null);
+                  try {
+                    await setUsername(tempUsername.trim());
+                    setEditingUsername(false);
+                    setTempUsername('');
+                    Alert.alert('Success', 'Username set successfully!');
+                  } catch (error: any) {
+                    setUsernameError(error.message || 'Failed to set username');
+                  } finally {
+                    setCheckingUsername(false);
+                  }
+                }}
+                disabled={checkingUsername}
+              >
+                {checkingUsername ? (
+                  <ActivityIndicator size="small" color={colors.text.primary} />
+                ) : (
+                  <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>Set Username</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Profile</Text>
+                <Pressable
+                  style={styles.modalCloseBtn}
+                  onPress={() => setShowEditModal(false)}
+                >
+                  <Text style={styles.modalCloseText}>✕</Text>
+                </Pressable>
+              </View>
+
+              {/* Wallet Address */}
+              {verifiedAddress && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.label}>Wallet Address</Text>
+                  <View style={styles.detailValueContainer}>
+                    <Text style={styles.detailValue}>{verifiedAddress}</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* X Account Sync */}
+              <View style={styles.detailSection}>
+                <Text style={styles.label}>X (Twitter) Account</Text>
+                <Text style={styles.hint}>
+                  Sync your X account to get a verified badge on your username
+                </Text>
+                <View style={styles.row}>
+                  <TextInput
+                    value={tempXHandle}
+                    onChangeText={setTempXHandle}
+                    placeholder="@username"
+                    placeholderTextColor={colors.text.tertiary}
+                    style={[styles.input, { flex: 1 }]}
+                    editable={!syncingX}
+                  />
+                  <Pressable
+                    style={[styles.saveBtn, syncingX && styles.saveBtnDisabled]}
+                    onPress={async () => {
+                      if (!tempXHandle.trim()) {
+                        Alert.alert('Error', 'Please enter your X handle');
+                        return;
+                      }
+                      setSyncingX(true);
+                      try {
+                        await syncXAccount(tempXHandle.trim());
+                        Alert.alert('Success', 'X account synced successfully!');
+                        setShowEditModal(false);
+                      } catch (error: any) {
+                        Alert.alert('Error', error.message || 'Failed to sync X account');
+                      } finally {
+                        setSyncingX(false);
+                      }
+                    }}
+                    disabled={syncingX}
+                  >
+                    {syncingX ? (
+                      <ActivityIndicator size="small" color={colors.primary.main} />
+                    ) : (
+                      <Text style={styles.saveBtnText}>Sync</Text>
+                    )}
+                  </Pressable>
+                </View>
+                {xHandle && (
+                  <Text style={styles.hint}>
+                    Currently synced: @{xHandle} {verified && '✓ Verified'}
+                  </Text>
+                )}
+              </View>
+
+              {/* Disconnect Wallet */}
+              <View style={styles.detailSection}>
+                <Text style={styles.label}>Wallet Connection</Text>
+                <Text style={styles.hint}>
+                  Disconnect your wallet to connect a different one. Your username will change if you connect a different wallet.
+                </Text>
+                <Pressable
+                  style={styles.disconnectBtn}
+                  onPress={() => {
+                    Alert.alert(
+                      'Disconnect Wallet',
+                      'Are you sure you want to disconnect your wallet? You will need to reconnect to use Mastermind features.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Disconnect',
+                          style: 'destructive',
+                          onPress: () => {
+                            disconnectWallet();
+                            setShowEditModal(false);
+                            Alert.alert('Disconnected', 'Wallet has been disconnected.');
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Ionicons name="log-out-outline" size={18} color={colors.error.main} />
+                  <Text style={styles.disconnectBtnText}>Disconnect Wallet</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.modalButtons}>
+                <Pressable
+                  style={[styles.modalBtn, styles.cancelBtn]}
+                  onPress={() => setShowEditModal(false)}
+                >
+                  <Text style={styles.cancelBtnText}>Close</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      </View>
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  content: { flex: 1, padding: spacing.lg, gap: spacing.md },
+  title: {
+    fontSize: typography.sizes['3xl'],
+    fontWeight: typography.weights.bold,
+    marginBottom: spacing.xl,
+    textAlign: 'center',
+    color: colors.text.primary,
+  },
+  row: { flexDirection: 'row', gap: spacing.sm },
+  input: { 
+    ...components.input, 
+    flex: 1,
+    color: colors.text.primary, // Explicitly set text color
+  },
+  primaryBtn: {
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    overflow: 'hidden',
+    ...shadows.sm,
+  },
+  primaryBtnText: {
+    color: colors.text.primary,
+    fontWeight: typography.weights.bold,
+  },
+  card: { ...components.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.xs,
+  },
+  cardTitle: { fontWeight: typography.weights.semibold, color: colors.text.primary, flex: 1, marginRight: spacing.sm },
+  cardSub: { color: colors.text.secondary, fontSize: typography.sizes.sm },
+  secondaryBtn: { borderWidth: 2, borderColor: colors.primary.main, borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: 'rgba(255, 255, 255, 0.15)' },
+  secondaryBtnText: { color: colors.primary.main, fontWeight: typography.weights.semibold },
+  info: { textAlign: 'center', color: colors.text.secondary },
+  verifyCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 480,
+    overflow: 'hidden',
+    marginTop: spacing.md,
+  },
+  verifyTitle: { fontWeight: typography.weights.bold, color: colors.text.primary, fontSize: typography.sizes.lg },
+  verifyText: { color: colors.text.secondary, marginTop: spacing.xs },
+  profileCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  profileLabel: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.secondary,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  profileValue: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.primary,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.4)',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+  },
+  verifiedText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    color: colors.success.main,
+  },
+  xHandleText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+  },
+  addressText: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.tertiary,
+    marginTop: spacing.xs,
+    fontFamily: 'monospace',
+  },
+  setUsernameBtn: {
+    marginTop: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderWidth: 1.5,
+    borderColor: colors.primary.main,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: 'rgba(123, 163, 212, 0.2)',
+    alignSelf: 'flex-start',
+  },
+  setUsernameBtnText: {
+    color: colors.primary.main,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  modalInput: {
+    width: '100%',
+    marginTop: spacing.xs,
+    color: colors.text.primary, // Ensure text is visible
+  },
+  modalInputField: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    color: colors.text.primary,
+    fontSize: typography.sizes.base,
+    minHeight: 48,
+    width: '100%',
+    marginTop: spacing.xs,
+  },
+  inputError: {
+    borderColor: colors.error.main,
+    borderWidth: 2,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+    padding: spacing.sm,
+    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 67, 54, 0.3)',
+  },
+  errorText: {
+    fontSize: typography.sizes.sm,
+    color: colors.error.main,
+    flex: 1,
+  },
+  saveBtnDisabled: {
+    opacity: 0.5,
+  },
+  disconnectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.error.main,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+    marginTop: spacing.sm,
+  },
+  disconnectBtnText: {
+    color: colors.error.main,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.base,
+  },
+  editProfileBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.primary.main,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: 'rgba(123, 163, 212, 0.2)',
+  },
+  editProfileBtnText: {
+    color: colors.primary.main,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  saveBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.primary.main,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: 'rgba(123, 163, 212, 0.2)',
+  },
+  saveBtnText: {
+    color: colors.primary.main,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  cancelBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.text.tertiary,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  cancelBtnText: {
+    color: colors.text.tertiary,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  section: {
+    marginBottom: spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  sectionSubtitle: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginBottom: spacing.md,
+  },
+  discoverCard: {
+    ...components.card,
+    padding: spacing.md,
+  },
+  discoverCardWrapper: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  discoverCardGradient: {
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    minHeight: 120,
+    justifyContent: 'center',
+  },
+  discoverCardContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  discoverCardTitle: {
+    fontSize: typography.sizes['2xl'],
+    fontWeight: typography.weights.bold,
+    color: '#FFFFFF',
+    marginBottom: spacing.md,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  discoverCardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  discoverCardMetaText: {
+    fontSize: typography.sizes.sm,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: typography.weights.medium,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  priceBadge: {
+    backgroundColor: 'rgba(123, 163, 212, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(123, 163, 212, 0.5)',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  freeBadge: {
+    backgroundColor: 'rgba(76, 175, 80, 0.3)',
+    borderColor: 'rgba(76, 175, 80, 0.5)',
+  },
+  priceText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+  },
+  priceBadgeColored: {
+    backgroundColor: 'rgba(123, 163, 212, 0.4)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(123, 163, 212, 0.7)',
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+  },
+  freeBadgeColored: {
+    backgroundColor: 'rgba(139, 195, 74, 0.4)',
+    borderColor: 'rgba(139, 195, 74, 0.7)',
+  },
+  priceTextColored: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+  },
+  cardDescription: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+  },
+  cardMetaText: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.tertiary,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  viewBtn: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: colors.primary.main,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: 'rgba(123, 163, 212, 0.2)',
+    alignItems: 'center',
+  },
+  viewBtnText: {
+    color: colors.primary.main,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  joinBtn: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: colors.primary.main,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: 'rgba(123, 163, 212, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  joinBtnDisabled: {
+    opacity: 0.5,
+  },
+  joinBtnText: {
+    color: colors.text.primary,
+    fontWeight: typography.weights.bold,
+    fontSize: typography.sizes.sm,
+  },
+  publicBadge: {
+    backgroundColor: 'rgba(123, 163, 212, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(123, 163, 212, 0.4)',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+  },
+  publicBadgeText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    color: colors.primary.main,
+  },
+  emptyState: {
+    padding: spacing.lg,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: typography.sizes.base,
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
+  },
+  emptySubtext: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.tertiary,
+  },
+  testingBanner: {
+    backgroundColor: 'rgba(255, 193, 7, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 7, 0.4)',
+    borderRadius: borderRadius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  testingBannerText: {
+    fontSize: typography.sizes.xs,
+    color: '#FFC107',
+    fontWeight: typography.weights.semibold,
+    textAlign: 'center',
+  },
+  feeNote: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: colors.background.gradient.end,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: typography.sizes['2xl'],
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    flex: 1,
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.sm,
+  },
+  modalCloseText: {
+    fontSize: typography.sizes.lg,
+    color: colors.text.primary,
+    fontWeight: typography.weights.bold,
+  },
+  detailSection: {
+    marginBottom: spacing.lg,
+  },
+  detailLabel: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.tertiary,
+    marginBottom: spacing.xs,
+    fontWeight: typography.weights.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  label: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.primary,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  detailValueContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginTop: spacing.xs,
+  },
+  detailValue: {
+    fontSize: typography.sizes.base,
+    color: colors.text.primary,
+    fontWeight: typography.weights.semibold,
+  },
+  detailTextContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginTop: spacing.xs,
+  },
+  detailText: {
+    fontSize: typography.sizes.base,
+    color: colors.text.secondary,
+    lineHeight: typography.sizes.base * 1.6,
+  },
+  priceBadgeLarge: {
+    backgroundColor: 'rgba(123, 163, 212, 0.3)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(123, 163, 212, 0.5)',
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    alignSelf: 'flex-start',
+  },
+  freeBadgeLarge: {
+    backgroundColor: 'rgba(139, 195, 74, 0.3)',
+    borderColor: 'rgba(139, 195, 74, 0.5)',
+  },
+  priceTextLarge: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+  },
+  modalBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnPrimary: {
+    backgroundColor: 'rgba(123, 163, 212, 0.3)',
+    borderColor: 'rgba(123, 163, 212, 0.5)',
+  },
+  modalBtnText: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.secondary,
+  },
+  modalBtnPrimaryText: {
+    color: colors.text.primary,
+  },
+  modalBtnDisabled: {
+    opacity: 0.5,
+  },
+  modalSubtitle: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginBottom: spacing.lg,
+  },
+  label: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.primary,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  hint: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.tertiary,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
