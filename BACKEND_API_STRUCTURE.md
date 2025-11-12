@@ -421,10 +421,11 @@ async function verifyJoinPayment(signature, groupJoinPrice, groupOwnerAddress) {
 
 ```bash
 # API Configuration
-EXPO_PUBLIC_API_URL=https://api.solanaseeker.app
+EXPO_PUBLIC_API_URL=ghcr.io/railwayapp-templates/postgres-ssl:17
+↗
 
 # Platform Configuration
-EXPO_PUBLIC_PLATFORM_ADDRESS=BWg1ZSZqvmXdUSuuXbssBM9Qjgyo3mzJrQap7KuQ8mZZ
+EXPO_PUBLIC_PLATFORM_ADDRESS=EmjvdwMwS5WnAgHZaEdTQL3gpzbG3c9d3NryRj5En37e
 PLATFORM_CREATE_FEE=0.01
 PLATFORM_JOIN_FEE_PERCENTAGE=0.01  # 1%
 
@@ -433,7 +434,8 @@ SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 SOLANA_CLUSTER=mainnet-beta
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/solanaseeker
+DATABASE_URL=ghcr.io/railwayapp-templates/postgres-ssl:17
+↗
 
 # Optional: JWT Secret (if using JWT auth)
 JWT_SECRET=your-secret-key
