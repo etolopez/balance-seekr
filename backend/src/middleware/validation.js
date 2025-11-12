@@ -1,15 +1,33 @@
 /**
  * Validate wallet address format
+ * Checks both req.body and req.params for wallet addresses
  */
 export function validateWalletAddress(req, res, next) {
+  // Check req.body first (for POST/PUT requests)
   const { userAddress, ownerAddress, senderAddress } = req.body;
-  const address = userAddress || ownerAddress || senderAddress;
+  let address = userAddress || ownerAddress || senderAddress;
+  
+  // If not in body, check req.params (for GET requests with :address param)
+  if (!address && req.params && req.params.address) {
+    address = req.params.address;
+  }
 
-  if (address && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Invalid wallet address format' 
-    });
+  // Only validate if address is present
+  if (address) {
+    // Solana addresses are base58 encoded, 32-44 characters
+    // Regex: no 0, O, I, l (base58 alphabet)
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
+      console.error('[Validation] Invalid wallet address format:', {
+        address: address?.substring(0, 10) + '...',
+        length: address?.length,
+        method: req.method,
+        path: req.path
+      });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid wallet address format' 
+      });
+    }
   }
 
   next();
