@@ -60,10 +60,15 @@ export function validateUsername(req, res, next) {
 
 /**
  * Validate required fields
+ * Allows 0 and false as valid values (only checks for undefined/null)
  */
 export function validateRequired(fields) {
   return (req, res, next) => {
-    const missing = fields.filter(field => !req.body[field]);
+    const missing = fields.filter(field => {
+      const value = req.body[field];
+      // Check if field is missing (undefined or null), but allow 0, false, and empty string
+      return value === undefined || value === null;
+    });
     
     if (missing.length > 0) {
       return res.status(400).json({ 
