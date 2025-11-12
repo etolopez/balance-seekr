@@ -10,7 +10,7 @@ const router = express.Router();
  * GET /api/groups/:groupId/messages
  * Get messages for a group
  */
-router.get('/:groupId', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { groupId } = req.params;
     const limit = parseInt(req.query.limit) || 100;
@@ -39,12 +39,12 @@ router.get('/:groupId', async (req, res) => {
  * POST /api/groups/:groupId/messages
  * Send a message to a group
  */
-router.post('/:groupId',
+router.post('/',
   validateRequired(['senderAddress', 'content']),
   validateWalletAddress,
   async (req, res) => {
     try {
-      const { groupId } = req.params;
+      const { groupId } = req.params; // groupId comes from parent route
       const { senderAddress, content, username } = req.body;
 
       // Verify group exists

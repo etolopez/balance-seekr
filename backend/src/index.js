@@ -31,6 +31,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/groups', groupRoutes);
+// Messages routes are nested under groups - groupId is available in req.params
 app.use('/api/groups/:groupId/messages', messageRoutes);
 
 // Error handling middleware
