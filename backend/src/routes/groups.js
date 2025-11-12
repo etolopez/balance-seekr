@@ -60,24 +60,45 @@ router.post('/',
       }
 
       // Verify payment with retry (RPC nodes may need time to index)
+      // Use exponential backoff to avoid rate limiting
       let paymentValid = false;
-      const maxRetries = 3;
-      const retryDelay = 2000; // 2 seconds between retries
+      const maxRetries = 5; // Increased retries
+      const baseDelay = 3000; // Start with 3 seconds
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         console.log(`[Groups] Payment verification attempt ${attempt}/${maxRetries}`);
-        paymentValid = await verifyPayment(
-          createPaymentSignature,
-          PLATFORM_PAYMENT_ADDRESS,
-          parseFloat(createPrice)
-        );
         
-        if (paymentValid) {
-          console.log('[Groups] Payment verified successfully');
-          break;
+        try {
+          paymentValid = await verifyPayment(
+            createPaymentSignature,
+            PLATFORM_PAYMENT_ADDRESS,
+            parseFloat(createPrice)
+          );
+          
+          if (paymentValid) {
+            console.log('[Groups] Payment verified successfully');
+            break;
+          }
+        } catch (error) {
+          // Check if it's a rate limit error
+          const errorMsg = error?.message || String(error);
+          if (errorMsg.includes('429') || errorMsg.includes('Too Many Requests')) {
+            console.warn(`[Groups] Rate limited on attempt ${attempt}, using longer backoff...`);
+            // Use longer delay for rate limits
+            const rateLimitDelay = baseDelay * Math.pow(2, attempt) * 2; // Exponential backoff with extra multiplier
+            if (attempt < maxRetries) {
+              console.log(`[Groups] Waiting ${rateLimitDelay}ms before retry...`);
+              await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+              continue; // Retry without counting this as a failed attempt
+            }
+          }
+          // For other errors, log and continue with normal retry
+          console.error(`[Groups] Payment verification error on attempt ${attempt}:`, error?.message);
         }
         
-        if (attempt < maxRetries) {
+        if (!paymentValid && attempt < maxRetries) {
+          // Exponential backoff: 3s, 6s, 12s, 24s
+          const retryDelay = baseDelay * Math.pow(2, attempt - 1);
           console.log(`[Groups] Payment verification failed, retrying in ${retryDelay}ms...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
         }

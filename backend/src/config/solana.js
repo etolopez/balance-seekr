@@ -144,6 +144,14 @@ export async function verifyPayment(signature, expectedRecipient, minAmount) {
     console.log('[Solana] Payment verified successfully');
     return true;
   } catch (error) {
+    const errorMsg = error?.message || String(error);
+    
+    // Check if it's a rate limit error - rethrow so retry logic can handle it
+    if (errorMsg.includes('429') || errorMsg.includes('Too Many Requests')) {
+      console.warn('[Solana] Rate limited by RPC endpoint');
+      throw error; // Re-throw so retry logic can handle with longer backoff
+    }
+    
     console.error('[Solana] Error verifying payment:', error);
     console.error('[Solana] Error details:', {
       message: error?.message,
