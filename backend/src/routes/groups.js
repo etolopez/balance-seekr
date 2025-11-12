@@ -59,16 +59,35 @@ router.post('/',
         });
       }
 
-      const paymentValid = await verifyPayment(
-        createPaymentSignature,
-        PLATFORM_PAYMENT_ADDRESS,
-        parseFloat(createPrice)
-      );
+      // Verify payment with retry (RPC nodes may need time to index)
+      let paymentValid = false;
+      const maxRetries = 3;
+      const retryDelay = 2000; // 2 seconds between retries
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        console.log(`[Groups] Payment verification attempt ${attempt}/${maxRetries}`);
+        paymentValid = await verifyPayment(
+          createPaymentSignature,
+          PLATFORM_PAYMENT_ADDRESS,
+          parseFloat(createPrice)
+        );
+        
+        if (paymentValid) {
+          console.log('[Groups] Payment verified successfully');
+          break;
+        }
+        
+        if (attempt < maxRetries) {
+          console.log(`[Groups] Payment verification failed, retrying in ${retryDelay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
 
       if (!paymentValid) {
+        console.error('[Groups] Payment verification failed after all retries');
         return res.status(400).json({ 
           success: false, 
-          message: 'Invalid or insufficient payment for group creation' 
+          message: 'Invalid or insufficient payment for group creation. Please check the transaction signature and ensure the payment was successful.' 
         });
       }
 

@@ -78,14 +78,35 @@ export async function verifyPayment(signature, expectedRecipient, minAmount) {
 
     // Handle both legacy and versioned transactions
     let accountKeys;
-    if (transaction.transaction.message && 'accountKeys' in transaction.transaction.message) {
-      // Legacy transaction
-      accountKeys = transaction.transaction.message.accountKeys;
-    } else if (transaction.transaction && 'staticAccountKeys' in transaction.transaction.message) {
-      // Versioned transaction
-      accountKeys = transaction.transaction.message.staticAccountKeys;
-    } else {
+    if (transaction.transaction && transaction.transaction.message) {
+      // Try legacy transaction format first
+      if ('accountKeys' in transaction.transaction.message) {
+        accountKeys = transaction.transaction.message.accountKeys;
+      } 
+      // Try versioned transaction format
+      else if ('staticAccountKeys' in transaction.transaction.message) {
+        accountKeys = transaction.transaction.message.staticAccountKeys;
+      }
+      // Try accessing via compiledMessage (for versioned transactions)
+      else if (transaction.transaction.message.compiledInstructions) {
+        // For versioned transactions, we might need to reconstruct account keys
+        // Try to get from the transaction structure
+        const msg = transaction.transaction.message;
+        if (msg.addressTableLookups && msg.staticAccountKeys) {
+          accountKeys = msg.staticAccountKeys;
+        } else if (msg.accountKeys) {
+          accountKeys = msg.accountKeys;
+        }
+      }
+    }
+    
+    if (!accountKeys || accountKeys.length === 0) {
       console.error('[Solana] Could not extract account keys from transaction');
+      console.error('[Solana] Transaction structure:', JSON.stringify({
+        hasTransaction: !!transaction.transaction,
+        hasMessage: !!(transaction.transaction && transaction.transaction.message),
+        messageKeys: transaction.transaction?.message ? Object.keys(transaction.transaction.message) : [],
+      }, null, 2));
       return false;
     }
 
