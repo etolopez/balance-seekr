@@ -53,13 +53,42 @@ export async function verifyPayment(signature, expectedRecipient, minAmount) {
     });
 
     // Try to get transaction with versioned transaction support
-    const transaction = await connection.getTransaction(signature, {
-      commitment: 'confirmed',
-      maxSupportedTransactionVersion: 0, // Support versioned transactions
-    });
+    let transaction = null;
+    try {
+      transaction = await connection.getTransaction(signature, {
+        commitment: 'confirmed',
+        maxSupportedTransactionVersion: 0, // Support versioned transactions (v0)
+      });
+    } catch (rpcError) {
+      // RPC errors (like rate limiting) should be re-thrown for retry logic
+      const errorMsg = rpcError?.message || String(rpcError);
+      if (errorMsg.includes('429') || errorMsg.includes('Too Many Requests')) {
+        throw rpcError; // Re-throw for retry logic
+      }
+      console.error('[Solana] RPC error fetching transaction:', rpcError?.message);
+      return false;
+    }
+    
+    // If transaction not found, it might not be indexed yet or wrong cluster
+    if (!transaction) {
+      console.error('[Solana] Transaction not found for signature:', signature?.substring(0, 20) + '...');
+      console.error('[Solana] Possible reasons:');
+      console.error('  - Transaction not indexed yet (wait and retry)');
+      console.error('  - Wrong cluster (frontend on devnet, backend on mainnet or vice versa)');
+      console.error('  - Invalid signature');
+      console.error('[Solana] Current RPC URL:', RPC_URL?.substring(0, 50) + '...');
+      // Return false so retry logic can try again
+      return false;
+    }
 
     if (!transaction.meta) {
       console.error('[Solana] Transaction metadata not available');
+      console.error('[Solana] Transaction structure:', {
+        hasTransaction: !!transaction,
+        hasMeta: !!transaction.meta,
+        slot: transaction.slot,
+        blockTime: transaction.blockTime,
+      });
       return false;
     }
 
