@@ -1,9 +1,12 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 
-// Defaults (easy mode): hardcode devnet + placeholder Program ID.
+// Defaults: Use mainnet for production (real payments)
 // You can override these via Expo env vars if desired.
-export const SOLANA_RPC = process.env.EXPO_PUBLIC_SOLANA_RPC || 'https://api.devnet.solana.com';
-export const CLUSTER: 'devnet' | 'mainnet-beta' = (process.env.EXPO_PUBLIC_SOLANA_CLUSTER as any) || 'devnet';
+// For testing, set EXPO_PUBLIC_SOLANA_CLUSTER=devnet and EXPO_PUBLIC_SOLANA_RPC=https://api.devnet.solana.com
+export const CLUSTER: 'devnet' | 'mainnet-beta' = (process.env.EXPO_PUBLIC_SOLANA_CLUSTER as any) || 'mainnet-beta';
+export const SOLANA_RPC = process.env.EXPO_PUBLIC_SOLANA_RPC || (CLUSTER === 'devnet' 
+  ? 'https://api.devnet.solana.com' 
+  : 'https://api.mainnet-beta.solana.com');
 // On-chain verification is OFF by default. Set EXPO_PUBLIC_VERIFY_PROGRAM_ID
 // to your deployed program ID to enable verifyOnChain().
 export const PROGRAM_ID_STR = process.env.EXPO_PUBLIC_VERIFY_PROGRAM_ID || '';
