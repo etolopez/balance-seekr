@@ -146,19 +146,28 @@ export async function updateGroupJoinPrice(groupId, newJoinPrice) {
  * @returns {Promise<boolean>} True if deleted, false if not found or not owner
  */
 export async function deleteGroup(groupId, ownerAddress) {
-  // First verify the requester is the owner
-  const group = await getGroupById(groupId);
-  if (!group) {
-    return false;
-  }
+  try {
+    // First verify the requester is the owner
+    const group = await getGroupById(groupId);
+    if (!group) {
+      console.log(`[Group] Group not found: ${groupId}`);
+      return false;
+    }
 
-  if (group.owner_address !== ownerAddress) {
-    throw new Error('Only the group owner can delete the group');
-  }
+    if (group.owner_address !== ownerAddress) {
+      console.log(`[Group] Owner mismatch: expected ${group.owner_address}, got ${ownerAddress}`);
+      throw new Error('Only the group owner can delete the group');
+    }
 
-  // Delete group (cascade will delete members and messages)
-  await query('DELETE FROM groups WHERE id = $1', [groupId]);
-  return true;
+    // Delete group (cascade will delete members and messages)
+    // Note: PostgreSQL CASCADE will automatically delete related records
+    const result = await query('DELETE FROM groups WHERE id = $1', [groupId]);
+    console.log(`[Group] Deleted group ${groupId}, rows affected: ${result.rowCount}`);
+    return true;
+  } catch (error) {
+    console.error('[Group] Error in deleteGroup:', error);
+    throw error;
+  }
 }
 
 /**

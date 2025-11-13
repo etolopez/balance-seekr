@@ -375,15 +375,25 @@ router.delete('/:groupId',
       });
     } catch (error) {
       console.error('[Groups] Error deleting group:', error);
+      console.error('[Groups] Error stack:', error.stack);
+      console.error('[Groups] Request params:', req.params);
+      console.error('[Groups] Request body:', req.body);
+      
       if (error.message?.includes('owner')) {
         return res.status(403).json({
           success: false,
           message: error.message
         });
       }
+      
+      // Return more detailed error message in development
+      const errorMessage = process.env.NODE_ENV === 'production' 
+        ? 'Internal server error' 
+        : error.message || 'Internal server error';
+      
       res.status(500).json({
         success: false,
-        message: 'Internal server error'
+        message: errorMessage
       });
     }
   }

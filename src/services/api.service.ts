@@ -495,7 +495,13 @@ export class ApiService {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ message: response.statusText }));
-        throw new Error(error.message || `Failed to delete group: ${response.statusText}`);
+        const errorMessage = error.message || `Failed to delete group: ${response.statusText}`;
+        console.error('[ApiService] Delete group error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: error
+        });
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
