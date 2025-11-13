@@ -422,5 +422,38 @@ export class ApiService {
       throw error;
     }
   }
+
+  /**
+   * Update group background image (owner only)
+   */
+  async updateGroupBackgroundImage(groupId: string, ownerAddress: string, backgroundImage: string | null): Promise<PublicGroup> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/groups/${groupId}/background-image`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ownerAddress,
+          backgroundImage,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(error.message || `Failed to update background image: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return this.transformGroup(data.group);
+    } catch (error: any) {
+      const errorMsg = error?.message || String(error);
+      if (errorMsg.includes('Network request failed') || errorMsg.includes('Failed to fetch')) {
+        throw new Error('Backend API is not available. Please set up the backend API first.');
+      }
+      console.error('[ApiService] Error updating background image:', error);
+      throw error;
+    }
+  }
 }
 

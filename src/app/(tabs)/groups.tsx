@@ -936,12 +936,19 @@ export default function GroupsScreen() {
               <Pressable
                 style={[styles.modalBtn, styles.modalBtnPrimary]}
                 onPress={async () => {
-                  if (!editingGroupId) return;
+                  if (!editingGroupId || !verifiedAddress) return;
                   
                   try {
-                    // TODO: Add API endpoint to update group background image
-                    // For now, we'll update local state and refresh
+                    // Update background image via API
+                    await apiService.updateGroupBackgroundImage(
+                      editingGroupId,
+                      verifiedAddress,
+                      editingGroupImage || null
+                    );
+                    
+                    // Refresh groups to show updated image
                     await fetchPublicGroups();
+                    
                     Alert.alert('Success', 'Group image updated successfully');
                     setEditingGroupId(null);
                     setEditingGroupImage(null);

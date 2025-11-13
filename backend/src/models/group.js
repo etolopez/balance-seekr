@@ -40,8 +40,8 @@ export async function createGroup(groupData) {
   const result = await query(
     `INSERT INTO groups (
       name, owner_address, owner_username, is_public, join_price, 
-      payment_address, description, create_price, create_payment_signature
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      payment_address, description, create_price, create_payment_signature, background_image
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING *`,
     [
       groupData.name,
@@ -53,6 +53,7 @@ export async function createGroup(groupData) {
       groupData.description || null,
       groupData.createPrice,
       groupData.createPaymentSignature || null,
+      groupData.backgroundImage || null,
     ]
   );
   return result.rows[0];
@@ -98,6 +99,27 @@ export async function updateGroupJoinPrice(groupId, newJoinPrice) {
   const result = await query(
     `UPDATE groups SET join_price = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
     [newJoinPrice, groupId]
+  );
+  return result.rows[0] || null;
+}
+
+/**
+ * Update group background image
+ */
+export async function updateGroupBackgroundImage(groupId, backgroundImage, ownerAddress) {
+  // Verify the requester is the owner
+  const group = await getGroupById(groupId);
+  if (!group) {
+    return null;
+  }
+  
+  if (group.owner_address !== ownerAddress) {
+    throw new Error('Only the group owner can update the background image');
+  }
+
+  const result = await query(
+    `UPDATE groups SET background_image = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+    [backgroundImage || null, groupId]
   );
   return result.rows[0] || null;
 }

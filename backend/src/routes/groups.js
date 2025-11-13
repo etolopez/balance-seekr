@@ -5,7 +5,8 @@ import {
   createGroup, 
   isGroupMember, 
   addGroupMember,
-  updateGroupJoinPrice 
+  updateGroupJoinPrice,
+  updateGroupBackgroundImage
 } from '../models/group.js';
 import { verifyPayment } from '../config/solana.js';
 import { validateWalletAddress, validateRequired } from '../middleware/validation.js';
@@ -129,6 +130,7 @@ router.post('/',
         description,
         createPrice: parseFloat(createPrice),
         createPaymentSignature,
+        backgroundImage: req.body.backgroundImage || null,
       });
 
       res.json({ group });
@@ -262,6 +264,47 @@ router.patch('/:groupId/join-price',
       });
     } catch (error) {
       console.error('[Groups] Error updating join price:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error' 
+      });
+    }
+  }
+);
+
+/**
+ * PATCH /api/groups/:groupId/background-image
+ * Update group background image (owner only)
+ */
+router.patch('/:groupId/background-image',
+  validateRequired(['ownerAddress', 'backgroundImage']),
+  validateWalletAddress,
+  async (req, res) => {
+    try {
+      const { groupId } = req.params;
+      const { ownerAddress, backgroundImage } = req.body;
+
+      const group = await updateGroupBackgroundImage(groupId, backgroundImage, ownerAddress);
+      if (!group) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Group not found or you are not the owner' 
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        group,
+        message: 'Background image updated successfully' 
+      });
+    } catch (error) {
+      console.error('[Groups] Error updating background image:', error);
+      if (error.message?.includes('owner')) {
+        return res.status(403).json({ 
+          success: false, 
+          message: error.message 
+        });
+      }
       res.status(500).json({ 
         success: false, 
         message: 'Internal server error' 

@@ -766,6 +766,9 @@ export const useAppStore = create<State>((set, get) => ({
       dbApi.addGroup(g as any);
       
       set((s) => ({ groups: [g, ...s.groups] }));
+      
+      // Step 4: Refresh public groups to show the new group with image
+      await get().fetchPublicGroups();
     } catch (error) {
       console.error('[Store] Error creating public group:', error);
       throw error;

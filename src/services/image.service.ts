@@ -19,6 +19,14 @@ const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESE
  * @returns Public URL of uploaded image
  */
 export async function uploadImageToCloudinary(imageUri: string): Promise<string> {
+  // Debug: Log configuration (without exposing sensitive data)
+  console.log('[ImageService] Cloudinary config check:', {
+    hasCloudName: !!CLOUDINARY_CLOUD_NAME,
+    cloudNameLength: CLOUDINARY_CLOUD_NAME?.length || 0,
+    hasUploadPreset: !!CLOUDINARY_UPLOAD_PRESET,
+    uploadPresetLength: CLOUDINARY_UPLOAD_PRESET?.length || 0,
+  });
+
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
     throw new Error(
       'Cloudinary not configured. Please set EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME and EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET in your .env file. See IMAGE_UPLOAD_GUIDE.md for setup instructions.'
@@ -31,6 +39,7 @@ export async function uploadImageToCloudinary(imageUri: string): Promise<string>
   const type = match ? `image/${match[1]}` : 'image/jpeg';
 
   // Convert local URI to FormData for upload
+  // Note: cloud_name should NOT be in FormData - it's already in the URL
   const formData = new FormData();
   formData.append('file', {
     uri: imageUri,
@@ -38,7 +47,6 @@ export async function uploadImageToCloudinary(imageUri: string): Promise<string>
     name: filename,
   } as any);
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-  formData.append('cloud_name', CLOUDINARY_CLOUD_NAME);
   // Optional: Add folder organization
   formData.append('folder', 'mastermind-groups');
 
@@ -48,26 +56,62 @@ export async function uploadImageToCloudinary(imageUri: string): Promise<string>
       {
         method: 'POST',
         body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        // Don't set Content-Type header - let fetch set it with boundary
+        // React Native FormData will automatically set the correct multipart/form-data header
       }
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[ImageService] Cloudinary error response:', errorText);
-      throw new Error(`Cloudinary upload failed: ${response.status} ${response.statusText}`);
+      // Try to get detailed error message from Cloudinary
+      let errorMessage = `Cloudinary upload failed: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error?.message) {
+          errorMessage = `Cloudinary error: ${errorData.error.message}`;
+        } else if (errorData.message) {
+          errorMessage = `Cloudinary error: ${errorData.message}`;
+        }
+        console.error('[ImageService] Cloudinary error details:', JSON.stringify(errorData, null, 2));
+      } catch (parseError) {
+        // If JSON parsing fails, try text
+        const errorText = await response.text();
+        console.error('[ImageService] Cloudinary error response (text):', errorText);
+        if (errorText) {
+          errorMessage = `Cloudinary error: ${errorText}`;
+        }
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
+    
+    // Validate response has secure_url
+    if (!data.secure_url) {
+      console.error('[ImageService] Invalid Cloudinary response:', JSON.stringify(data, null, 2));
+      throw new Error('Invalid response from Cloudinary: missing secure_url');
+    }
+    
     // Return the secure URL (HTTPS)
     return data.secure_url;
   } catch (error: any) {
     console.error('[ImageService] Upload error:', error);
-    if (error.message?.includes('Network request failed')) {
+    
+    // Check for configuration errors
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+      throw new Error(
+        'Cloudinary not configured. Please set EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME and EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET in your .env file.'
+      );
+    }
+    
+    if (error.message?.includes('Network request failed') || error.message?.includes('NetworkError')) {
       throw new Error('Network error. Please check your internet connection and try again.');
     }
+    
+    // Re-throw if it's already a formatted error
+    if (error.message?.includes('Cloudinary')) {
+      throw error;
+    }
+    
     throw new Error(`Failed to upload image: ${error.message || 'Unknown error'}`);
   }
 }

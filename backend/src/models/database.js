@@ -44,9 +44,16 @@ export async function initializeDatabase() {
         description TEXT,
         create_price DECIMAL(18, 9) NOT NULL,
         create_payment_signature VARCHAR(200),
+        background_image TEXT,
         member_count INTEGER DEFAULT 0,
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
+    `);
+
+    // Add background_image column if it doesn't exist (for existing databases)
+    await query(`
+      ALTER TABLE groups 
+      ADD COLUMN IF NOT EXISTS background_image TEXT
     `);
 
     // Create indexes for groups
