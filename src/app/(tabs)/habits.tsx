@@ -528,59 +528,59 @@ export default function HabitsScreen() {
             });
           
           return recentLogsArray.length > 0 ? (
-            <>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="time-outline" size={20} color={colors.text.primary} />
+          <>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="time-outline" size={20} color={colors.text.primary} />
                 <Text style={styles.section}>Recent</Text>
-              </View>
-              <View style={styles.historyContainer}>
+            </View>
+            <View style={styles.historyContainer}>
                 {recentLogsArray.map((item) => {
-                  const h = habits.find(h => h.id === item.habitId);
+                const h = habits.find(h => h.id === item.habitId);
                   const isToday = item.date === today;
-                  return (
-                    <Pressable
-                      key={item.id}
-                      style={styles.logRow}
-                      onPress={() => {
-                        if (item.note) {
-                          setSelectedNote({ habitName: h?.name ?? 'Habit', note: item.note, date: item.date });
-                          setNoteModalVisible(true);
-                        }
-                      }}
-                      disabled={!item.note}
-                    >
-                      <View style={styles.logLeft}>
-                        <View style={[styles.logDot, item.completed && styles.logDotCompleted]} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.logName}>{h?.name ?? 'Habit'}</Text>
+                return (
+                  <Pressable
+                    key={item.id}
+                    style={styles.logRow}
+                    onPress={() => {
+                      if (item.note) {
+                        setSelectedNote({ habitName: h?.name ?? 'Habit', note: item.note, date: item.date });
+                        setNoteModalVisible(true);
+                      }
+                    }}
+                    disabled={!item.note}
+                  >
+                    <View style={styles.logLeft}>
+                      <View style={[styles.logDot, item.completed && styles.logDotCompleted]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.logName}>{h?.name ?? 'Habit'}</Text>
                           <Text style={styles.logDate}>
                             {isToday ? 'Today' : 'Yesterday'}
                           </Text>
-                          {item.note && (
-                            <Text style={styles.logNotePreview} numberOfLines={1}>
-                              {item.note}
-                            </Text>
-                          )}
-                        </View>
+                        {item.note && (
+                          <Text style={styles.logNotePreview} numberOfLines={1}>
+                            {item.note}
+                          </Text>
+                        )}
                       </View>
-                      <View style={[styles.logBadge, item.completed && styles.logBadgeCompleted]}>
-                        <Ionicons
-                          name={item.completed ? "checkmark-circle" : "close-circle"}
-                          size={14}
-                          color={item.completed ? colors.success.main : colors.error.main}
-                        />
-                        <Text style={[styles.logStatus, { color: item.completed ? colors.success.main : colors.error.main }]}>
-                          {item.completed ? 'Done' : 'Missed'}
-                        </Text>
-                      </View>
-                      {item.note && (
-                        <Ionicons name="document-text-outline" size={16} color={colors.text.tertiary} style={{ marginLeft: spacing.sm }} />
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </>
+                    </View>
+                    <View style={[styles.logBadge, item.completed && styles.logBadgeCompleted]}>
+                      <Ionicons
+                        name={item.completed ? "checkmark-circle" : "close-circle"}
+                        size={14}
+                        color={item.completed ? colors.success.main : colors.error.main}
+                      />
+                      <Text style={[styles.logStatus, { color: item.completed ? colors.success.main : colors.error.main }]}>
+                        {item.completed ? 'Done' : 'Missed'}
+                      </Text>
+                    </View>
+                    {item.note && (
+                      <Ionicons name="document-text-outline" size={16} color={colors.text.tertiary} style={{ marginLeft: spacing.sm }} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
           ) : null;
         }, [logs, habits])}
 

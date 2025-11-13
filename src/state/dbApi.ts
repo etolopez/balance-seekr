@@ -43,7 +43,7 @@ export const dbApi = {
       // Insert new log
       await run(
         'INSERT INTO habit_logs (id,habitId,date,completed,note) VALUES (?,?,?,?,?)',
-        [log.id, log.habitId, log.date, log.completed ? 1 : 0, log.note ?? null]
+      [log.id, log.habitId, log.date, log.completed ? 1 : 0, log.note ?? null]
       );
     }
   },

@@ -5,11 +5,15 @@
     "version": "1.0.0",
     "scheme": "solanaseeker",
     "orientation": "portrait",
+    "extra": {
+      "apiUrl": "https://balance-seekr-production.up.railway.app"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.solanaseeker"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,11 +23,20 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "category": ["BROWSABLE", "DEFAULT"],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": [
-            { "scheme": "solanaseeker" }
+            {
+              "scheme": "solanaseeker"
+            }
           ]
         }
+      ],
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -34,7 +47,13 @@
       "expo-asset",
       "expo-sqlite",
       "expo-secure-store",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you set background images for your Mastermind groups."
+        }
+      ]
     ]
   }
 }

@@ -3,6 +3,8 @@
  * This service manages public groups, messages, and payment verification
  */
 
+import Constants from 'expo-constants';
+
 export type PublicGroup = {
   id: string;
   name: string;
@@ -15,6 +17,7 @@ export type PublicGroup = {
   paymentAddress: string; // Address to receive payments
   memberCount?: number;
   description?: string;
+  backgroundImage?: string; // URI to background image (local or remote)
 };
 
 export type PublicMessage = {
@@ -35,6 +38,7 @@ export type CreatePublicGroupRequest = {
   description?: string;
   createPaymentSignature: string; // Transaction signature for platform creation fee (always required)
   createPrice: number; // Platform fee for creating a group (always required, even for free groups)
+  backgroundImage?: string; // Cloudinary URL for background image
 };
 
 export type JoinGroupRequest = {
@@ -50,9 +54,34 @@ export class ApiService {
   private baseUrl: string;
 
   constructor() {
-    // TODO: Set this to your backend API URL
-    // For now, using a placeholder that you'll need to configure
-    this.baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://api.solanaseeker.app';
+    // Get API URL from environment variable (EXPO_PUBLIC_ prefix is required for Expo)
+    // Try multiple sources: process.env, Constants.expoConfig.extra, or fallback
+    const envUrl = process.env.EXPO_PUBLIC_API_URL;
+    const constantsUrl = Constants.expoConfig?.extra?.apiUrl;
+    const defaultUrl = 'https://api.solanaseeker.app';
+    
+    this.baseUrl = envUrl || constantsUrl || defaultUrl;
+  }
+
+  /**
+   * Transform backend group data from snake_case to camelCase
+   * Handles both single group objects and arrays of groups
+   */
+  private transformGroup(group: any): PublicGroup {
+    return {
+      id: group.id || group.group_id,
+      name: group.name,
+      ownerAddress: group.ownerAddress || group.owner_address || '',
+      ownerUsername: group.ownerUsername || group.owner_username,
+      createdAt: group.createdAt || group.created_at,
+      isPublic: group.isPublic ?? group.is_public ?? true,
+      createPrice: group.createPrice || group.create_price,
+      joinPrice: group.joinPrice ?? group.join_price ?? 0,
+      paymentAddress: group.paymentAddress || group.payment_address || '',
+      memberCount: group.memberCount ?? group.member_count,
+      description: group.description,
+      backgroundImage: group.backgroundImage || group.background_image,
+    };
   }
 
   /**
@@ -72,7 +101,9 @@ export class ApiService {
       }
 
       const data = await response.json();
-      return data.groups || [];
+      const groups = data.groups || [];
+      // Transform snake_case to camelCase for frontend consistency
+      return groups.map((group: any) => this.transformGroup(group));
     } catch (error: any) {
       // Silently handle network errors when backend is not available
       // This is expected during development when backend hasn't been set up yet
@@ -93,6 +124,14 @@ export class ApiService {
    */
   async createPublicGroup(request: CreatePublicGroupRequest): Promise<PublicGroup> {
     try {
+      console.log('[ApiService] Creating public group with request:', {
+        name: request.name,
+        ownerAddress: request.ownerAddress?.substring(0, 10) + '...',
+        joinPrice: request.joinPrice,
+        createPrice: request.createPrice,
+        signatureLength: request.createPaymentSignature?.length || 0,
+      });
+      
       const response = await fetch(`${this.baseUrl}/api/groups`, {
         method: 'POST',
         headers: {
@@ -101,13 +140,24 @@ export class ApiService {
         body: JSON.stringify(request),
       });
 
+      const responseText = await response.text();
+      console.log('[ApiService] Backend response status:', response.status);
+      console.log('[ApiService] Backend response:', responseText.substring(0, 200));
+
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: response.statusText }));
+        let error;
+        try {
+          error = JSON.parse(responseText);
+        } catch {
+          error = { message: response.statusText || responseText };
+        }
         throw new Error(error.message || `Failed to create group: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return data.group;
+      const data = JSON.parse(responseText);
+      console.log('[ApiService] Group created successfully:', data.group?.id);
+      // Transform snake_case to camelCase for frontend consistency
+      return this.transformGroup(data.group || data);
     } catch (error: any) {
       const errorMsg = error?.message || String(error);
       if (errorMsg.includes('Network request failed') || errorMsg.includes('Failed to fetch')) {
@@ -252,7 +302,7 @@ export class ApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userAddress,
+          userAddress: userAddress?.trim(), // Trim whitespace
           username,
         }),
       });

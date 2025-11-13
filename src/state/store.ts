@@ -357,7 +357,7 @@ type State = {
   groups: { id: string; name: string; ownerAddress?: string | null; createdAt: string; isPublic?: boolean; joinPrice?: number; paymentAddress?: string; description?: string; apiGroupId?: string }[];
   messages: { id: string; groupId: string; senderAddress?: string | null; content: string; createdAt: string }[];
   createGroup: (name: string) => void;
-  createPublicGroup: (name: string, joinPrice: number, paymentAddress: string, description?: string, createPrice?: number) => Promise<void>;
+  createPublicGroup: (name: string, joinPrice: number, paymentAddress: string, description?: string, createPrice?: number, backgroundImage?: string) => Promise<void>;
   deleteGroup: (id: string) => void;
   sendMessage: (groupId: string, content: string) => void;
   joinPublicGroup: (groupId: string, paymentSignature: string) => Promise<void>;
@@ -533,12 +533,29 @@ export const useAppStore = create<State>((set, get) => ({
   verifiedAddress: null,
   verifiedAt: null,
   setVerified: async (address) => {
-    dbApi.upsertPref('verified.address', address);
+    // Validate and normalize the address to base58 format
+    // The address should already be in base58 from WalletService, but double-check
+    if (!address || typeof address !== 'string') {
+      throw new Error('Invalid wallet address: address is required');
+    }
+    
+    // Basic validation: Solana addresses are base58, 32-44 characters
+    const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    if (!base58Regex.test(address.trim())) {
+      console.error('[Store] Invalid address format:', address.substring(0, 10) + '...', 'length:', address.length);
+      throw new Error('Invalid wallet address format. Please reconnect your wallet.');
+    }
+    
+    const normalizedAddress = address.trim();
+    console.log('[Store] Setting verified address (base58):', normalizedAddress.substring(0, 10) + '...');
+    
+    dbApi.upsertPref('verified.address', normalizedAddress);
     dbApi.upsertPref('verified.at', nowIso());
-    set(() => ({ verifiedAddress: address, verifiedAt: nowIso() }));
+    set(() => ({ verifiedAddress: normalizedAddress, verifiedAt: nowIso() }));
+    
     // Fetch user profile from backend when wallet is connected
     const { fetchUserProfile } = get();
-    await fetchUserProfile(address);
+    await fetchUserProfile(normalizedAddress);
   },
   disconnectWallet: () => {
     dbApi.upsertPref('verified.address', '');
@@ -682,7 +699,7 @@ export const useAppStore = create<State>((set, get) => ({
     dbApi.addGroup(g as any);
     return { groups: [g, ...s.groups] };
   }),
-  createPublicGroup: async (name, joinPrice, paymentAddress, description, createPrice) => {
+  createPublicGroup: async (name, joinPrice, paymentAddress, description, createPrice, backgroundImage) => {
     const apiService = new ApiService();
     const paymentService = new PaymentService();
     const state = get();
@@ -703,11 +720,23 @@ export const useAppStore = create<State>((set, get) => ({
 
     try {
       // Step 1: Pay creation fee to platform
-      console.log('[Store] Paying platform creation fee:', fee, 'SOL to', PLATFORM_PAYMENT_ADDRESS);
-      const paymentSignature = await paymentService.payToCreateGroup(PLATFORM_PAYMENT_ADDRESS, fee);
-      console.log('[Store] Creation fee payment signature:', paymentSignature);
+      // Use the already-connected wallet address (no need to re-authorize)
+      console.log('[Store] Starting payment for group creation...');
+      const paymentSignature = await paymentService.payToCreateGroup(
+        PLATFORM_PAYMENT_ADDRESS, 
+        fee,
+        state.verifiedAddress // Pass the already-connected wallet address
+      );
+      console.log('[Store] Payment successful, signature:', paymentSignature?.substring(0, 20) + '...');
+
+      // Delay to ensure transaction is fully confirmed and indexed on RPC nodes
+      // The payment service already confirms, but backend verification might need more time
+      // RPC nodes can take 2-5 seconds to index transactions, especially on mainnet
+      console.log('[Store] Waiting for transaction to be indexed on RPC nodes...');
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Increased to 3 seconds
 
       // Step 2: Create the group on the backend API with payment signature
+      console.log('[Store] Creating group on backend...');
       const publicGroup = await apiService.createPublicGroup({
         name,
         ownerAddress: state.verifiedAddress,
@@ -717,7 +746,9 @@ export const useAppStore = create<State>((set, get) => ({
         description,
         createPaymentSignature: paymentSignature,
         createPrice: fee,
+        backgroundImage, // Cloudinary URL for background image
       });
+      console.log('[Store] Group created on backend:', publicGroup.id);
 
       // Step 3: Save to local database
       const localId = uid();

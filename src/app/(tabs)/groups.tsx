@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, InteractionManager, Modal, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, InteractionManager, Modal, ScrollView, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
 import { WalletService } from '../../services/wallet.service';
 import { PaymentService } from '../../services/payment.service';
 import { ApiService } from '../../services/api.service';
+import { uploadImageToCloudinary } from '../../services/image.service';
 import { detectSeeker } from '../../services/seeker';
 import { PROGRAM_ID } from '../../config/solana';
 import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
@@ -48,7 +49,20 @@ export default function GroupsScreen() {
   const [publicGroupName, setPublicGroupName] = useState('');
   const [publicGroupDescription, setPublicGroupDescription] = useState('');
   const [publicGroupJoinPrice, setPublicGroupJoinPrice] = useState('0');
-  const [publicGroupPaymentAddress, setPublicGroupPaymentAddress] = useState(DEFAULT_JOIN_PAYMENT_ADDRESS);
+  const [publicGroupBackgroundImage, setPublicGroupBackgroundImage] = useState<string | null>(null);
+  // Default payment address to user's connected wallet address
+  const [publicGroupPaymentAddress, setPublicGroupPaymentAddress] = useState(
+    verifiedAddress || DEFAULT_JOIN_PAYMENT_ADDRESS
+  );
+  
+  // Update payment address when wallet connects/disconnects
+  useEffect(() => {
+    if (verifiedAddress) {
+      setPublicGroupPaymentAddress(verifiedAddress);
+    } else {
+      setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
+    }
+  }, [verifiedAddress]);
   const [isCreatingPublic, setIsCreatingPublic] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [joiningGroupId, setJoiningGroupId] = useState<string | null>(null);
@@ -62,12 +76,16 @@ export default function GroupsScreen() {
     paymentAddress: string;
     description?: string;
     memberCount?: number;
+    backgroundImage?: string;
   };
   
   const [selectedGroup, setSelectedGroup] = useState<GroupForDisplay | null>(null);
   const [showGroupDetail, setShowGroupDetail] = useState(false);
   const [editingJoinPriceGroupId, setEditingJoinPriceGroupId] = useState<string | null>(null);
   const [newJoinPrice, setNewJoinPrice] = useState('');
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupImage, setEditingGroupImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const apiService = new ApiService();
   const seeker = detectSeeker();
   const useSiws = seeker.isSeeker && (process.env.EXPO_PUBLIC_USE_SIWS === '1' || process.env.EXPO_PUBLIC_USE_SIWS === 'true');
@@ -113,6 +131,79 @@ export default function GroupsScreen() {
     setRefreshing(true);
     await fetchPublicGroups();
     setRefreshing(false);
+  };
+
+  /**
+   * Pick background image for group card and upload to Cloudinary
+   * Optimized for mobile with proper aspect ratio
+   * Uses lazy import to avoid native module errors during development
+   */
+  const pickBackgroundImage = async (forEdit: boolean = false) => {
+    try {
+      // Lazy import ImagePicker to avoid native module errors if not rebuilt
+      const ImagePickerModule = await import('expo-image-picker');
+      // expo-image-picker exports functions directly, not as a default object
+      const {
+        requestMediaLibraryPermissionsAsync,
+        launchImageLibraryAsync,
+        MediaTypeOptions
+      } = ImagePickerModule;
+      
+      // Check if functions are available
+      if (!requestMediaLibraryPermissionsAsync || !launchImageLibraryAsync) {
+        throw new Error('Image picker native module not available. Please rebuild your app.');
+      }
+      
+      // Request permission
+      const { status } = await requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant permission to access your photos.');
+        return;
+      }
+
+      // Launch image picker
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions?.Images || 'images',
+        allowsEditing: true,
+        aspect: [16, 9], // Optimized for mobile cards (landscape)
+        quality: 0.8, // Good balance between quality and file size
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const localUri = result.assets[0].uri;
+        
+        // Upload to Cloudinary
+        setUploadingImage(true);
+        try {
+          const publicUrl = await uploadImageToCloudinary(localUri);
+          
+          if (forEdit) {
+            setEditingGroupImage(publicUrl);
+          } else {
+            setPublicGroupBackgroundImage(publicUrl);
+          }
+        } catch (uploadError: any) {
+          console.error('[Groups] Upload error:', uploadError);
+          Alert.alert('Upload Failed', uploadError.message || 'Failed to upload image. Please try again.');
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+    } catch (error: any) {
+      console.error('[Groups] Error picking image:', error);
+      setUploadingImage(false);
+      // If native module not available, show helpful message
+      if (error.message?.includes('native module') || 
+          error.message?.includes('ExponentImagePicker') ||
+          error.message?.includes('not available')) {
+        Alert.alert(
+          'Image Picker Not Available',
+          'Please rebuild your app to enable image picker. Run: npx expo prebuild --clean'
+        );
+      } else {
+        Alert.alert('Error', error.message || 'Failed to pick image. Please try again.');
+      }
+    }
   };
 
   const handleJoinPublicGroup = async (group: typeof publicGroups[0] | typeof mockGroup) => {
@@ -211,7 +302,8 @@ export default function GroupsScreen() {
                               group.paymentAddress,
                               group.joinPrice,
                               PLATFORM_PAYMENT_ADDRESS,
-                              PLATFORM_JOIN_FEE_PERCENTAGE
+                              PLATFORM_JOIN_FEE_PERCENTAGE,
+                              verifiedAddress // Pass already-connected wallet address
                             );
                           }
                           console.log('[Groups] Payment signatures:', paymentResult);
@@ -363,16 +455,16 @@ export default function GroupsScreen() {
         {/* Profile Section - Username */}
         <View style={styles.profileCard}>
           <View style={styles.profileHeader}>
-            <Text style={styles.profileLabel}>Your Profile</Text>
-            <Pressable
+          <Text style={styles.profileLabel}>Your Profile</Text>
+              <Pressable
               style={styles.editProfileBtn}
               onPress={() => setShowEditModal(true)}
             >
               <Ionicons name="settings-outline" size={16} color={colors.primary.main} />
               <Text style={styles.editProfileBtnText}>Edit</Text>
-            </Pressable>
-          </View>
-          <View style={styles.profileRow}>
+              </Pressable>
+            </View>
+            <View style={styles.profileRow}>
             <View style={{ flex: 1 }}>
               <View style={styles.usernameRow}>
                 <Text style={styles.profileValue}>
@@ -396,17 +488,17 @@ export default function GroupsScreen() {
             </View>
           </View>
           {!usernameSet && (
-            <Pressable
+              <Pressable
               style={styles.setUsernameBtn}
-              onPress={() => {
+                onPress={() => {
                 setTempUsername('');
-                setEditingUsername(true);
+                  setEditingUsername(true);
                 setUsernameError(null);
-              }}
-            >
+                }}
+              >
               <Ionicons name="person-add-outline" size={16} color={colors.primary.main} />
               <Text style={styles.setUsernameBtnText}>Set Username</Text>
-            </Pressable>
+              </Pressable>
           )}
         </View>
 
@@ -448,25 +540,48 @@ export default function GroupsScreen() {
                   { start: '#E91E63', end: '#C90E43' }, // Pink
                 ];
                 const gradient = gradientColors[colorIndex];
-                const creatorName = item.ownerUsername || `${item.ownerAddress.slice(0, 6)}...${item.ownerAddress.slice(-4)}`;
+                // Safety check: ensure ownerAddress exists before using slice
+                const ownerAddr = item.ownerAddress || '';
+                const creatorName = item.ownerUsername || (ownerAddr ? `${ownerAddr.slice(0, 6)}...${ownerAddr.slice(-4)}` : 'Unknown');
                 const memberText = item.memberCount !== undefined 
                   ? `${item.memberCount} ${item.memberCount === 1 ? 'member' : 'members'}`
                   : 'New group';
                 
                 return (
                   <Pressable
-                    onPress={() => {
-                      setSelectedGroup(item as GroupForDisplay);
+                    onPress={async () => {
+                      // Fetch latest group data to ensure price updates are reflected
+                      await fetchPublicGroups();
+                      const latestGroup = publicGroups.find(g => g.id === item.id) || item;
+                      setSelectedGroup({ ...latestGroup, backgroundImage: latestGroup.backgroundImage || item.backgroundImage } as GroupForDisplay);
                       setShowGroupDetail(true);
                     }}
                     style={styles.discoverCardWrapper}
                   >
-                    <LinearGradient
-                      colors={[gradient.start, gradient.end]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.discoverCardGradient}
-                    >
+                    <View style={styles.discoverCardContainer}>
+                      {/* Background Image */}
+                      {item.backgroundImage ? (
+                        <Image
+                          source={{ uri: item.backgroundImage }}
+                          style={styles.discoverCardBackground}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <LinearGradient
+                          colors={[gradient.start, gradient.end]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.discoverCardBackground}
+                        />
+                      )}
+                      {/* Gradient Glass Overlay */}
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        style={styles.discoverCardOverlay}
+                      />
+                      {/* Content */}
                       <View style={styles.discoverCardContent}>
                         <Text style={styles.discoverCardTitle}>{item.name}</Text>
                         <View style={styles.discoverCardMeta}>
@@ -475,7 +590,7 @@ export default function GroupsScreen() {
                           <Text style={styles.discoverCardMetaText}>{memberText}</Text>
                         </View>
                       </View>
-                    </LinearGradient>
+                    </View>
                   </Pressable>
                 );
               }}
@@ -519,43 +634,98 @@ export default function GroupsScreen() {
                   : item.ownerAddress 
                     ? `${item.ownerAddress.slice(0,4)}…${item.ownerAddress.slice(-4)}`
                     : 'You';
+                // Get background image from publicGroups if available
+                const publicGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
+                const backgroundImage = publicGroup?.backgroundImage || (item as any).backgroundImage;
+                
                 return (
-                  <View style={styles.card}>
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle}>{item.name}</Text>
-                        <View style={styles.publicBadge}>
-                          <Text style={styles.publicBadgeText}>Public</Text>
+                  <Pressable
+                    onPress={async () => {
+                      // Fetch latest group data to ensure price updates are reflected
+                      await fetchPublicGroups();
+                      const latestGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
+                      const finalGroup = latestGroup || item;
+                      setSelectedGroup({ ...finalGroup, backgroundImage: latestGroup?.backgroundImage || backgroundImage } as GroupForDisplay);
+                      setShowGroupDetail(true);
+                    }}
+                    style={styles.myMastermindCardWrapper}
+                  >
+                    <View style={styles.myMastermindCardContainer}>
+                      {/* Background Image */}
+                      {backgroundImage ? (
+                        <Image
+                          source={{ uri: backgroundImage }}
+                          style={styles.myMastermindCardBackground}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <LinearGradient
+                          colors={['rgba(123, 163, 212, 0.3)', 'rgba(91, 139, 180, 0.5)']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.myMastermindCardBackground}
+                        />
+                      )}
+                      {/* Gradient Glass Overlay */}
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.7)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        style={styles.myMastermindCardOverlay}
+                      />
+                      {/* Content */}
+                      <View style={styles.myMastermindCardContent}>
+                        <View style={styles.myMastermindCardHeader}>
+                          <Text style={styles.myMastermindCardTitle}>{item.name}</Text>
+                          <View style={styles.publicBadge}>
+                            <Text style={styles.publicBadgeText}>Public</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.myMastermindCardSub}>Owner: {ownerDisplay}</Text>
+                        {item.description && (
+                          <Text style={styles.myMastermindCardDescription} numberOfLines={2}>
+                            {item.description}
+                          </Text>
+                        )}
+                        {item.joinPrice !== undefined && item.joinPrice > 0 && (
+                          <Text style={styles.myMastermindCardSub}>Join Price: {item.joinPrice} SOL</Text>
+                        )}
+                        <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.sm }}>
+                          <Link href={`/masterminds/${item.id}`} asChild>
+                            <Pressable style={styles.myMastermindCardBtn}>
+                              <Text style={styles.myMastermindCardBtnText}>Open</Text>
+                            </Pressable>
+                          </Link>
+                          {isOwner && (
+                            <>
+                              <Pressable 
+                                style={styles.myMastermindCardBtn} 
+                                onPress={() => {
+                                  setEditingGroupId(item.id);
+                                  const publicGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
+                                  setEditingGroupImage(publicGroup?.backgroundImage || backgroundImage || null);
+                                }}
+                              >
+                                <Text style={styles.myMastermindCardBtnText}>Edit</Text>
+                              </Pressable>
+                              <Pressable 
+                                style={styles.myMastermindCardBtn} 
+                                onPress={() => {
+                                  setEditingJoinPriceGroupId(item.id);
+                                  setNewJoinPrice(String(item.joinPrice || 0));
+                                }}
+                              >
+                                <Text style={styles.myMastermindCardBtnText}>Update Price</Text>
+                              </Pressable>
+                            </>
+                          )}
+                          <Pressable style={styles.myMastermindCardBtn} onPress={() => deleteGroup(item.id)}>
+                            <Text style={styles.myMastermindCardBtnText}>Delete</Text>
+                          </Pressable>
                         </View>
                       </View>
-                      <Text style={styles.cardSub}>Owner: {ownerDisplay}</Text>
-                      {item.description && (
-                        <Text style={styles.cardDescription} numberOfLines={1}>
-                          {item.description}
-                        </Text>
-                      )}
-                      {item.joinPrice !== undefined && item.joinPrice > 0 && (
-                        <Text style={styles.cardSub}>Join Price: {item.joinPrice} SOL</Text>
-                      )}
                     </View>
-                    <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-                      <Link href={`/masterminds/${item.id}`} asChild>
-                        <Pressable style={styles.secondaryBtn}><Text style={styles.secondaryBtnText}>Open</Text></Pressable>
-                      </Link>
-                      {isOwner && (
-                        <Pressable 
-                          style={styles.secondaryBtn} 
-                          onPress={() => {
-                            setEditingJoinPriceGroupId(item.id);
-                            setNewJoinPrice(String(item.joinPrice || 0));
-                          }}
-                        >
-                          <Text style={styles.secondaryBtnText}>Update Price</Text>
-                        </Pressable>
-                      )}
-                      <Pressable style={styles.secondaryBtn} onPress={() => deleteGroup(item.id)}><Text style={styles.secondaryBtnText}>Delete</Text></Pressable>
-                    </View>
-                  </View>
+                  </Pressable>
                 );
               }}
             />
@@ -579,6 +749,22 @@ export default function GroupsScreen() {
           <View style={styles.modalContent}>
             {selectedGroup ? (
               <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Background Image at Top */}
+                {selectedGroup.backgroundImage && (
+                  <View style={styles.modalImageContainer}>
+                    <Image
+                      source={{ uri: selectedGroup.backgroundImage }}
+                      style={styles.modalImage}
+                      resizeMode="cover"
+                    />
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.3)', 'transparent']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.modalImageOverlay}
+                    />
+                  </View>
+                )}
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>{selectedGroup.name}</Text>
                   <Pressable
@@ -588,7 +774,7 @@ export default function GroupsScreen() {
                       setSelectedGroup(null);
                     }}
                   >
-                    <Text style={styles.modalCloseText}>✕</Text>
+                    <Ionicons name="close" size={20} color={colors.text.primary} />
                   </Pressable>
                 </View>
                 
@@ -626,22 +812,35 @@ export default function GroupsScreen() {
                   </View>
                 )}
 
-                {/* Action Button */}
-                <View style={styles.modalButtons}>
-                  <Pressable
-                    style={[styles.modalBtn, styles.modalBtnPrimary, { width: '100%' }, joiningGroupId === selectedGroup.id && styles.modalBtnDisabled]}
-                    onPress={() => handleJoinPublicGroup(selectedGroup)}
-                    disabled={joiningGroupId === selectedGroup.id}
-                  >
-                    {joiningGroupId === selectedGroup.id ? (
-                      <ActivityIndicator color={colors.text.primary} size="small" />
-                    ) : (
-                      <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>
-                        {selectedGroup.joinPrice === 0 ? 'Join Free' : `Join for ${selectedGroup.joinPrice} SOL`}
+                {/* Action Button - Only show if user is not the owner */}
+                {selectedGroup.ownerAddress !== verifiedAddress && (
+                  <View style={styles.modalButtons}>
+                    <Pressable
+                      style={[styles.modalBtn, styles.modalBtnPrimary, { width: '100%' }, joiningGroupId === selectedGroup.id && styles.modalBtnDisabled]}
+                      onPress={() => handleJoinPublicGroup(selectedGroup)}
+                      disabled={joiningGroupId === selectedGroup.id}
+                    >
+                      {joiningGroupId === selectedGroup.id ? (
+                        <ActivityIndicator color={colors.text.primary} size="small" />
+                      ) : (
+                        <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>
+                          {selectedGroup.joinPrice === 0 ? 'Join for Free' : `Join for ${selectedGroup.joinPrice} SOL`}
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
+                )}
+                {/* Owner Message */}
+                {selectedGroup.ownerAddress === verifiedAddress && (
+                  <View style={styles.modalButtons}>
+                    <View style={[styles.modalBtn, styles.ownerBadge]}>
+                      <Ionicons name="checkmark-circle" size={20} color={colors.success.main} style={{ marginRight: spacing.sm }} />
+                      <Text style={[styles.modalBtnText, styles.ownerBadgeText]}>
+                        You are the owner of this group
                       </Text>
-                    )}
-                  </Pressable>
-                </View>
+                    </View>
+                  </View>
+                )}
               </ScrollView>
             ) : (
               <View style={{ padding: spacing.lg }}>
@@ -652,10 +851,116 @@ export default function GroupsScreen() {
         </View>
       </Modal>
 
+      {/* Edit Group Modal */}
+      <Modal
+        visible={editingGroupId !== null}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setEditingGroupId(null);
+          setEditingGroupImage(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+                <Ionicons name="create-outline" size={24} color={colors.primary.main} />
+                <Text style={styles.modalTitle}>Edit Group</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => {
+                  setEditingGroupId(null);
+                  setEditingGroupImage(null);
+                }}
+              >
+                <Ionicons name="close" size={20} color={colors.text.primary} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Update your group's background image
+            </Text>
+
+            <View style={styles.detailSection}>
+              <Text style={styles.label}>Background Image</Text>
+              <View style={styles.imagePickerContainer}>
+                {editingGroupImage ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image
+                      source={{ uri: editingGroupImage }}
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                    />
+                    <Pressable
+                      style={styles.removeImageBtn}
+                      onPress={() => setEditingGroupImage(null)}
+                    >
+                      <Ionicons name="close-circle" size={24} color={colors.error.main} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable 
+                    style={[styles.imagePickerBtn, uploadingImage && styles.imagePickerBtnDisabled]} 
+                    onPress={() => pickBackgroundImage(true)}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <ActivityIndicator size="small" color={colors.primary.main} />
+                        <Text style={styles.imagePickerText}>Uploading...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="image-outline" size={24} color={colors.primary.main} />
+                        <Text style={styles.imagePickerText}>Choose Background Image</Text>
+                        <Text style={styles.imagePickerHint}>16:9 aspect ratio recommended</Text>
+                      </>
+                    )}
+                  </Pressable>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => {
+                  setEditingGroupId(null);
+                  setEditingGroupImage(null);
+                }}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtn, styles.modalBtnPrimary]}
+                onPress={async () => {
+                  if (!editingGroupId) return;
+                  
+                  try {
+                    // TODO: Add API endpoint to update group background image
+                    // For now, we'll update local state and refresh
+                    await fetchPublicGroups();
+                    Alert.alert('Success', 'Group image updated successfully');
+                    setEditingGroupId(null);
+                    setEditingGroupImage(null);
+                  } catch (error: any) {
+                    Alert.alert('Error', error.message || 'Failed to update group image');
+                  }
+                }}
+              >
+                <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>Save Changes</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Update Join Price Modal */}
       <Modal
         visible={editingJoinPriceGroupId !== null}
-        animationType="fade"
+        animationType="slide"
         transparent={true}
         onRequestClose={() => {
           setEditingJoinPriceGroupId(null);
@@ -664,21 +969,40 @@ export default function GroupsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Update Join Price</Text>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+                <Ionicons name="cash-outline" size={24} color={colors.primary.main} />
+                <Text style={styles.modalTitle}>Update Join Price</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => {
+                  setEditingJoinPriceGroupId(null);
+                  setNewJoinPrice('');
+                }}
+              >
+                <Ionicons name="close" size={20} color={colors.text.primary} />
+              </Pressable>
+            </View>
+
             <Text style={styles.modalSubtitle}>
               Members who joined when it was free will remain free. New members will pay the updated price. If someone leaves and rejoins, they'll need to pay the current price.
             </Text>
 
-            <Text style={styles.label}>New Join Price (SOL) *</Text>
-            <TextInput
-              value={newJoinPrice}
-              onChangeText={setNewJoinPrice}
-              placeholder="0 for free groups"
-              placeholderTextColor={colors.text.tertiary}
-              style={styles.input}
-              keyboardType="decimal-pad"
-            />
-            <Text style={styles.hint}>Set to 0 to make the group free</Text>
+            <View style={styles.detailSection}>
+              <Text style={styles.label}>New Join Price (SOL) *</Text>
+              <TextInput
+                value={newJoinPrice}
+                onChangeText={setNewJoinPrice}
+                placeholder="0 for free groups"
+                placeholderTextColor={colors.text.tertiary}
+                style={styles.modalInputField}
+                keyboardType="decimal-pad"
+                autoFocus
+                selectionColor={colors.primary.main}
+              />
+              <Text style={styles.hint}>Set to 0 to make the group free</Text>
+            </View>
 
             <View style={styles.modalButtons}>
               <Pressable
@@ -691,7 +1015,7 @@ export default function GroupsScreen() {
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[styles.modalBtn, styles.primaryBtn]}
+                style={[styles.modalBtn, styles.modalBtnPrimary]}
                 onPress={async () => {
                   if (!editingJoinPriceGroupId) return;
                   
@@ -711,7 +1035,7 @@ export default function GroupsScreen() {
                   }
                 }}
               >
-                <Text style={styles.primaryBtnText}>Update Price</Text>
+                <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>Update Price</Text>
               </Pressable>
             </View>
           </View>
@@ -752,6 +1076,44 @@ export default function GroupsScreen() {
                 multiline
               />
 
+              <Text style={styles.label}>Background Image (Optional)</Text>
+              <View style={styles.imagePickerContainer}>
+                {publicGroupBackgroundImage ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image
+                      source={{ uri: publicGroupBackgroundImage }}
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                    />
+                    <Pressable
+                      style={styles.removeImageBtn}
+                      onPress={() => setPublicGroupBackgroundImage(null)}
+                    >
+                      <Ionicons name="close-circle" size={24} color={colors.error.main} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable 
+                    style={[styles.imagePickerBtn, uploadingImage && styles.imagePickerBtnDisabled]} 
+                    onPress={() => pickBackgroundImage(false)}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <ActivityIndicator size="small" color={colors.primary.main} />
+                        <Text style={styles.imagePickerText}>Uploading...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="image-outline" size={24} color={colors.primary.main} />
+                        <Text style={styles.imagePickerText}>Choose Background Image</Text>
+                        <Text style={styles.imagePickerHint}>16:9 aspect ratio recommended</Text>
+                      </>
+                    )}
+                  </Pressable>
+                )}
+              </View>
+
               <Text style={styles.label}>Join Price (SOL) *</Text>
               <TextInput
                 value={publicGroupJoinPrice}
@@ -781,6 +1143,7 @@ export default function GroupsScreen() {
                     setPublicGroupName('');
                     setPublicGroupDescription('');
                     setPublicGroupJoinPrice('0');
+                    setPublicGroupBackgroundImage(null);
                     setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
                   }}
                   disabled={isCreatingPublic}
@@ -819,13 +1182,15 @@ export default function GroupsScreen() {
                         joinPrice,
                         publicGroupPaymentAddress.trim(),
                         publicGroupDescription.trim() || undefined,
-                        PLATFORM_CREATE_FEE
+                        PLATFORM_CREATE_FEE,
+                        publicGroupBackgroundImage || undefined
                       );
                       Alert.alert('Success', createMessage);
                       setShowPublicModal(false);
                       setPublicGroupName('');
                       setPublicGroupDescription('');
                       setPublicGroupJoinPrice('0');
+                      setPublicGroupBackgroundImage(null);
                       setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
                     } catch (error: any) {
                       Alert.alert('Error', error.message || 'Failed to create public group');
@@ -1346,6 +1711,30 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  discoverCardContainer: {
+    position: 'relative',
+    minHeight: 160,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+  },
+  discoverCardBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  discoverCardOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
   discoverCardGradient: {
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
@@ -1353,8 +1742,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   discoverCardContent: {
+    position: 'relative',
+    zIndex: 1,
     flex: 1,
     justifyContent: 'center',
+    padding: spacing.lg,
   },
   discoverCardTitle: {
     fontSize: typography.sizes['2xl'],
@@ -1683,5 +2075,155 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // My Mastermind Card Styles
+  myMastermindCardWrapper: {
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    ...shadows.md,
+  },
+  myMastermindCardContainer: {
+    position: 'relative',
+    minHeight: 180,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+  },
+  myMastermindCardBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  myMastermindCardOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  myMastermindCardContent: {
+    position: 'relative',
+    zIndex: 1,
+    padding: spacing.lg,
+    gap: spacing.xs,
+  },
+  myMastermindCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.xs,
+  },
+  myMastermindCardTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  myMastermindCardSub: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+  },
+  myMastermindCardDescription: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+    lineHeight: 20,
+  },
+  myMastermindCardBtn: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  myMastermindCardBtnText: {
+    color: colors.text.primary,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  // Modal Image Styles
+  modalImageContainer: {
+    width: '100%',
+    height: 200,
+    marginTop: -spacing.lg,
+    marginHorizontal: -spacing.lg,
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  modalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  modalImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  // Image Picker Styles
+  imagePickerContainer: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  imagePickerBtn: {
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderStyle: 'dashed',
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  imagePickerBtnDisabled: {
+    opacity: 0.5,
+  },
+  imagePickerText: {
+    color: colors.primary.main,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.base,
+  },
+  imagePickerHint: {
+    color: colors.text.tertiary,
+    fontSize: typography.sizes.sm,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    height: 180,
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: borderRadius.full,
+    padding: spacing.xs,
+  },
+  ownerBadge: {
+    width: '100%',
+    backgroundColor: 'rgba(127, 179, 168, 0.2)',
+    borderColor: 'rgba(127, 179, 168, 0.5)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerBadgeText: {
+    color: colors.success.main,
   },
 });

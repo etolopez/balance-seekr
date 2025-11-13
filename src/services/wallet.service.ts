@@ -90,13 +90,24 @@ export class WalletService {
           
           const account = accounts[0];
           // Extract address - handle both string and object formats
-          const address = typeof account === 'string' 
+          let address = typeof account === 'string' 
             ? account 
             : (account?.address || account?.publicKey || account);
           
           if (!address || typeof address !== 'string') {
             console.error('[WalletService] Invalid account format:', account);
             throw new Error('Invalid account format returned from wallet');
+          }
+          
+          // Convert address to base58 format (standard Solana address format)
+          // This ensures the address is always in the format expected by the backend
+          try {
+            const publicKey = addressToPublicKey(address);
+            address = publicKey.toBase58(); // Always use base58 format
+            console.log('[WalletService] Address converted to base58:', address.substring(0, 10) + '...');
+          } catch (error) {
+            console.error('[WalletService] Failed to convert address to base58:', error);
+            throw new Error('Invalid wallet address format. Please try connecting again.');
           }
           
           return { address };
