@@ -1240,8 +1240,28 @@ export default function GroupsScreen() {
                     // The backend will verify that this address matches the group owner
                     const verificationSignature = verifiedAddr;
                     
+                    // Find the correct group ID (could be apiGroupId or local id)
+                    // Check if this is a public group with a backend ID
+                    const groupToDelete = publicGroups.find(g => 
+                      g.id === deletingGroupId || 
+                      (g as any).apiGroupId === deletingGroupId ||
+                      g.id === (groups.find(lg => lg.id === deletingGroupId)?.apiGroupId)
+                    );
+                    
+                    // Use the backend ID if available, otherwise use the local ID
+                    const backendGroupId = groupToDelete?.id || 
+                                         (groups.find(g => g.id === deletingGroupId)?.apiGroupId) || 
+                                         deletingGroupId;
+                    
+                    console.log('[Groups] Deleting group:', {
+                      deletingGroupId,
+                      backendGroupId,
+                      groupToDelete: groupToDelete?.name,
+                      verifiedAddr
+                    });
+                    
                     // Delete the group
-                    await deletePublicGroup(deletingGroupId, verificationSignature);
+                    await deletePublicGroup(backendGroupId, verificationSignature);
                     
                     Alert.alert('Success', 'Group deleted successfully');
                     setShowDeleteConfirm(false);
