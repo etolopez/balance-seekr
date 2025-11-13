@@ -976,12 +976,29 @@ export default function GroupsScreen() {
                           <Pressable 
                             style={styles.myMastermindCardBtn} 
                             onPress={() => {
-                              // Find the group name for the confirmation modal
+                              // Find the group name and backend ID for the confirmation modal
+                              // item.id is the local ID, we need the backend UUID (apiGroupId)
                               const groupName = item.name;
-                              const groupToDelete = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
+                              const localApiGroupId = (item as any).apiGroupId; // Backend UUID stored in local group
+                              const groupToDelete = publicGroups.find(g => 
+                                g.id === localApiGroupId || 
+                                g.id === item.id || 
+                                (g as any).apiGroupId === item.id
+                              );
+                              
+                              // Use backend UUID if available, otherwise fallback to local ID
+                              const backendId = localApiGroupId || groupToDelete?.id || item.id;
                               const finalGroupName = groupToDelete?.name || groupName;
                               
-                              setDeletingGroupId(item.id);
+                              console.log('[Groups] Delete button pressed:', {
+                                localId: item.id,
+                                apiGroupId: localApiGroupId,
+                                backendId,
+                                groupToDelete: groupToDelete?.id,
+                                name: finalGroupName
+                              });
+                              
+                              setDeletingGroupId(backendId); // Use backend UUID for deletion
                               setDeletingGroupName(finalGroupName);
                               setShowDeleteConfirm(true);
                             }}
