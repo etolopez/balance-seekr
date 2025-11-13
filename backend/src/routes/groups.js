@@ -275,16 +275,21 @@ router.patch('/:groupId/join-price',
 /**
  * PATCH /api/groups/:groupId/background-image
  * Update group background image (owner only)
+ * backgroundImage can be null to remove the image
  */
 router.patch('/:groupId/background-image',
-  validateRequired(['ownerAddress', 'backgroundImage']),
+  validateRequired(['ownerAddress']), // Only ownerAddress is required, backgroundImage can be null
   validateWalletAddress,
   async (req, res) => {
     try {
       const { groupId } = req.params;
       const { ownerAddress, backgroundImage } = req.body;
+      
+      // Allow backgroundImage to be null, undefined, or a string
+      // If not provided, default to null (removes image)
+      const imageUrl = backgroundImage !== undefined ? backgroundImage : null;
 
-      const group = await updateGroupBackgroundImage(groupId, backgroundImage, ownerAddress);
+      const group = await updateGroupBackgroundImage(groupId, imageUrl, ownerAddress);
       if (!group) {
         return res.status(404).json({ 
           success: false, 
