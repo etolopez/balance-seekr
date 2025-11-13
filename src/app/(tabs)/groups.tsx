@@ -233,14 +233,15 @@ export default function GroupsScreen() {
     }
   };
 
-  const handleJoinPublicGroup = async (group: typeof publicGroups[0] | typeof mockGroup) => {
+  const handleJoinPublicGroup = async (group: typeof publicGroups[0]) => {
     if (!verifiedAddress) {
       Alert.alert('Wallet Required', 'Please verify your wallet first.');
       return;
     }
 
     // Check if already a member (skip for mock groups)
-    if (group.id !== mockGroup.id) {
+    // Always check local membership for real groups
+    {
       // Check local membership first
       const { dbApi } = await import('../../state/dbApi');
       const existingMember = await dbApi.getMember(group.id, verifiedAddress);
