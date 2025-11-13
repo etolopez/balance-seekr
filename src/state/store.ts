@@ -782,9 +782,22 @@ export const useAppStore = create<State>((set, get) => ({
         backgroundImage: backgroundImage || undefined,
         category,
       };
-      set((s) => ({ 
-        publicGroups: [transformedGroup, ...s.publicGroups] 
-      }));
+      set((s) => {
+        // Check if group already exists to prevent duplicates
+        const exists = s.publicGroups.some(g => g.id === transformedGroup.id);
+        if (exists) {
+          // Update existing group instead of adding duplicate
+          return {
+            publicGroups: s.publicGroups.map(g => 
+              g.id === transformedGroup.id ? transformedGroup : g
+            )
+          };
+        }
+        // Add new group
+        return { 
+          publicGroups: [transformedGroup, ...s.publicGroups] 
+        };
+      });
       
       // Step 5: Refresh from backend to get latest data (in background)
       // Note: We don't pass category here because we want to refresh all groups
@@ -903,7 +916,12 @@ export const useAppStore = create<State>((set, get) => ({
         const preservedOptimistic = existingCategoryGroups.filter(g => !fetchedGroupIds.has(g.id));
         
         // Combine: other categories + fetched groups + preserved optimistic updates
-        set({ publicGroups: [...otherGroups, ...groups, ...preservedOptimistic] });
+        // Deduplicate by ID to prevent duplicate keys
+        const merged = [...otherGroups, ...groups, ...preservedOptimistic];
+        const uniqueGroups = Array.from(
+          new Map(merged.map(g => [g.id, g])).values()
+        );
+        set({ publicGroups: uniqueGroups });
       } else {
         // Fetching all groups - replace entire list
         set({ publicGroups: groups });

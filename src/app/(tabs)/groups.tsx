@@ -109,22 +109,26 @@ export default function GroupsScreen() {
   };
 
   // Combine mock group with public groups (only show mock if no real groups)
-  // Filter groups by selected category
+  // Filter groups by selected category and deduplicate by ID
+  const allGroups = Array.from(
+    new Map(publicGroups.map(g => [g.id, g])).values()
+  );
+  
   const filteredGroups = selectedCategory 
-    ? publicGroups.filter(g => g.category === selectedCategory)
-    : publicGroups;
+    ? allGroups.filter(g => g.category === selectedCategory)
+    : allGroups;
   
   // Debug logging to help diagnose category filter issues
   // Only log once to avoid spam
   useEffect(() => {
-    if (selectedCategory && filteredGroups.length === 0 && publicGroups.length > 0) {
+    if (selectedCategory && filteredGroups.length === 0 && allGroups.length > 0) {
       console.log('[Groups] Category filter issue - groups have undefined category:', {
         selectedCategory,
-        totalGroups: publicGroups.length,
-        groupsWithCategories: publicGroups.map(g => ({ id: g.id, name: g.name, category: g.category }))
+        totalGroups: allGroups.length,
+        groupsWithCategories: allGroups.map(g => ({ id: g.id, name: g.name, category: g.category }))
       });
     }
-  }, [selectedCategory, filteredGroups.length, publicGroups.length]);
+  }, [selectedCategory, filteredGroups.length, allGroups.length]);
   
   const displayGroups = filteredGroups.length > 0 ? filteredGroups : (selectedCategory ? [] : [mockGroup]);
 
