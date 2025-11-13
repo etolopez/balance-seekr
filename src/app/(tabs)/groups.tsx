@@ -100,20 +100,6 @@ export default function GroupsScreen() {
   const seeker = detectSeeker();
   const useSiws = seeker.isSeeker && (process.env.EXPO_PUBLIC_USE_SIWS === '1' || process.env.EXPO_PUBLIC_USE_SIWS === 'true');
 
-  // Mock Mastermind for demonstration
-  const mockGroup = {
-    id: 'mock-mastermind-1',
-    name: 'Solana Builders',
-    ownerAddress: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
-    ownerUsername: 'CryptoDev',
-    createdAt: new Date().toISOString(),
-    joinPrice: 0.1,
-    paymentAddress: 'BWg1ZSZqvmXdUSuuXbssBM9Qjgyo3mzJrQap7KuQ8mZZ',
-    description: 'A community for Solana developers to share knowledge, collaborate on projects, and grow together. Join us to discuss DeFi, NFTs, and the future of blockchain!',
-    memberCount: 42,
-  };
-
-  // Combine mock group with public groups (only show mock if no real groups)
   // Filter groups by selected category and deduplicate by ID
   const allGroups = Array.from(
     new Map(publicGroups.map(g => [g.id, g])).values()
@@ -135,7 +121,7 @@ export default function GroupsScreen() {
     }
   }, [selectedCategory, filteredGroups.length, allGroups.length]);
   
-  const displayGroups = filteredGroups.length > 0 ? filteredGroups : (selectedCategory ? [] : [mockGroup]);
+  const displayGroups = filteredGroups;
 
   // Sync tempUsername with store username when it changes
   useEffect(() => {
