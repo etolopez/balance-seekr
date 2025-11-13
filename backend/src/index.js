@@ -39,7 +39,8 @@ app.get('/', (req, res) => {
         create: 'POST /api/groups',
         join: 'POST /api/groups/:groupId/join',
         checkMembership: 'GET /api/groups/:groupId/members/:address',
-        updateJoinPrice: 'PATCH /api/groups/:groupId/join-price'
+        updateJoinPrice: 'PATCH /api/groups/:groupId/join-price',
+        updateBackgroundImage: 'PATCH /api/groups/:groupId/background-image'
       },
       messages: {
         list: 'GET /api/groups/:groupId/messages',
