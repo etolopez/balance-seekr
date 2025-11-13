@@ -521,15 +521,8 @@ export default function GroupsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Discover</Text>
           <Text style={styles.sectionSubtitle}>
-            {TESTING_MODE ? 'Testing Mode: Browse public Masterminds (local only)' : 'Browse public Masterminds from around the world'}
+            Browse public Masterminds from around the world
           </Text>
-          {TESTING_MODE && (
-            <View style={styles.testingBanner}>
-              <Text style={styles.testingBannerText}>
-                ⚠️ Testing Mode Active: Groups created locally, no backend required
-              </Text>
-            </View>
-          )}
           
           {/* Category Filters */}
           <View style={styles.categoryFilterContainer}>
