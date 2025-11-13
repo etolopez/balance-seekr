@@ -1263,17 +1263,21 @@ export default function GroupsScreen() {
                     // Delete the group
                     await deletePublicGroup(backendGroupId, verificationSignature);
                     
-                    Alert.alert('Success', 'Group deleted successfully');
-                    setShowDeleteConfirm(false);
-                    setDeletingGroupId(null);
-                    setDeletingGroupName('');
-                    
-                    // Refresh groups list
+                    // Force refresh groups list from backend to ensure deleted groups are removed
+                    // This is important because the backend has the source of truth
                     if (selectedCategory) {
                       await fetchPublicGroups(selectedCategory);
                     } else {
                       await fetchPublicGroups();
                     }
+                    
+                    // Also refresh all groups to ensure consistency across categories
+                    await fetchPublicGroups();
+                    
+                    Alert.alert('Success', 'Group deleted successfully');
+                    setShowDeleteConfirm(false);
+                    setDeletingGroupId(null);
+                    setDeletingGroupName('');
                   } catch (error: any) {
                     console.error('[Groups] Error deleting group:', error);
                     Alert.alert('Error', error.message || 'Failed to delete group. Please try again.');

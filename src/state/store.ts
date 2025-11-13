@@ -900,6 +900,8 @@ export const useAppStore = create<State>((set, get) => ({
       // Debug: Log what we received from backend
       if (category) {
         console.log(`[Store] Fetched ${groups.length} groups for category "${category}" from backend`);
+      } else {
+        console.log(`[Store] Fetched ${groups.length} groups (all categories) from backend`);
       }
       
       // Merge with existing groups to preserve optimistic updates
@@ -924,7 +926,9 @@ export const useAppStore = create<State>((set, get) => ({
         );
         set({ publicGroups: uniqueGroups });
       } else {
-        // Fetching all groups - replace entire list
+        // Fetching all groups - replace entire list with backend data
+        // This ensures deleted groups are removed
+        console.log(`[Store] Replacing all ${state.publicGroups.length} groups with ${groups.length} from backend`);
         set({ publicGroups: groups });
       }
     } catch (error) {
@@ -983,16 +987,35 @@ export const useAppStore = create<State>((set, get) => ({
     try {
       await apiService.deletePublicGroup(groupId, state.verifiedAddress, verificationSignature);
       
-      // Remove from local state
+      // Remove from local state immediately (optimistic update)
+      // Match by both id and apiGroupId to catch all variations
       set((s) => ({
-        groups: s.groups.filter(g => g.id !== groupId && g.apiGroupId !== groupId),
+        groups: s.groups.filter(g => {
+          const groupIdMatch = g.id === groupId || g.apiGroupId === groupId;
+          const apiGroupIdMatch = (g as any).apiGroupId === groupId;
+          return !groupIdMatch && !apiGroupIdMatch;
+        }),
         messages: s.messages.filter(m => m.groupId !== groupId),
-        publicGroups: s.publicGroups.filter(g => g.id !== groupId),
+        publicGroups: s.publicGroups.filter(g => {
+          // Match by id, apiGroupId, or if the group's apiGroupId matches
+          const groupIdMatch = g.id === groupId;
+          const apiGroupIdMatch = (g as any).apiGroupId === groupId;
+          const nestedMatch = g.id === (state.groups.find(lg => lg.id === groupId)?.apiGroupId);
+          return !groupIdMatch && !apiGroupIdMatch && !nestedMatch;
+        }),
       }));
       
       // Also delete from local database
       const { dbApi } = await import('./dbApi');
       await dbApi.deleteGroup(groupId);
+      
+      // Force refresh from backend to ensure consistency
+      // This ensures any groups deleted on the backend are removed from the frontend
+      // We refresh without category filter to get all groups
+      get().fetchPublicGroups().catch((err) => {
+        console.error('[Store] Error refreshing groups after delete:', err);
+        // Don't throw - deletion was successful, refresh is just for consistency
+      });
     } catch (error) {
       console.error('[Store] Error deleting public group:', error);
       throw error;
