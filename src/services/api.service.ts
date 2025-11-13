@@ -473,5 +473,43 @@ export class ApiService {
       throw error;
     }
   }
+
+  /**
+   * Delete a public group (owner only, requires wallet verification)
+   * @param groupId - Group ID to delete
+   * @param ownerAddress - Owner's wallet address (for verification)
+   * @param verificationSignature - Wallet signature proving ownership
+   */
+  async deletePublicGroup(groupId: string, ownerAddress: string, verificationSignature: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/groups/${groupId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ownerAddress,
+          verificationSignature,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(error.message || `Failed to delete group: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to delete group');
+      }
+    } catch (error: any) {
+      const errorMsg = error?.message || String(error);
+      if (errorMsg.includes('Network request failed') || errorMsg.includes('Failed to fetch')) {
+        throw new Error('Backend API is not available. Please set up the backend API first.');
+      }
+      console.error('[ApiService] Error deleting group:', error);
+      throw error;
+    }
+  }
 }
 

@@ -359,6 +359,7 @@ type State = {
   createGroup: (name: string) => void;
   createPublicGroup: (name: string, joinPrice: number, paymentAddress: string, category: string, description?: string, createPrice?: number, backgroundImage?: string) => Promise<void>;
   deleteGroup: (id: string) => void;
+  deletePublicGroup: (groupId: string, verificationSignature: string) => Promise<void>;
   sendMessage: (groupId: string, content: string) => void;
   joinPublicGroup: (groupId: string, paymentSignature: string) => Promise<void>;
   publicGroups: { id: string; name: string; ownerAddress: string; ownerUsername?: string; createdAt: string; joinPrice: number; paymentAddress: string; description?: string; memberCount?: number; category?: string; backgroundImage?: string }[];
@@ -971,6 +972,32 @@ export const useAppStore = create<State>((set, get) => ({
     // await apiService.updateGroupJoinPrice(groupId, newJoinPrice);
   },
   deleteGroup: (id) => set((s) => { dbApi.deleteGroup(id); return { groups: s.groups.filter(g => g.id !== id), messages: s.messages.filter(m => m.groupId !== id) }; }),
+  deletePublicGroup: async (groupId, verificationSignature) => {
+    const apiService = new ApiService();
+    const state = get();
+    
+    if (!state.verifiedAddress) {
+      throw new Error('Wallet not verified. Please verify your wallet first.');
+    }
+
+    try {
+      await apiService.deletePublicGroup(groupId, state.verifiedAddress, verificationSignature);
+      
+      // Remove from local state
+      set((s) => ({
+        groups: s.groups.filter(g => g.id !== groupId && g.apiGroupId !== groupId),
+        messages: s.messages.filter(m => m.groupId !== groupId),
+        publicGroups: s.publicGroups.filter(g => g.id !== groupId),
+      }));
+      
+      // Also delete from local database
+      const { dbApi } = await import('./dbApi');
+      await dbApi.deleteGroup(groupId);
+    } catch (error) {
+      console.error('[Store] Error deleting public group:', error);
+      throw error;
+    }
+  },
   sendMessage: (groupId, content) => set((s) => {
     const m = { id: uid(), groupId, senderAddress: s.verifiedAddress ?? null, content, createdAt: nowIso() };
     dbApi.addMessage(m as any);

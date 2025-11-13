@@ -34,6 +34,7 @@ export default function GroupsScreen() {
   const publicGroups = useAppStore((s) => s.publicGroups);
   const createPublicGroup = useAppStore((s) => s.createPublicGroup);
   const deleteGroup = useAppStore((s) => s.deleteGroup);
+  const deletePublicGroup = useAppStore((s) => s.deletePublicGroup);
   const fetchPublicGroups = useAppStore((s) => s.fetchPublicGroups);
   const joinPublicGroup = useAppStore((s) => s.joinPublicGroup);
   const updateGroupJoinPrice = useAppStore((s) => s.updateGroupJoinPrice);
@@ -91,6 +92,10 @@ export default function GroupsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isMemberOfSelectedGroup, setIsMemberOfSelectedGroup] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  const [deletingGroupName, setDeletingGroupName] = useState<string>('');
+  const [verifyingDelete, setVerifyingDelete] = useState(false);
   const apiService = new ApiService();
   const seeker = detectSeeker();
   const useSiws = seeker.isSeeker && (process.env.EXPO_PUBLIC_USE_SIWS === '1' || process.env.EXPO_PUBLIC_USE_SIWS === 'true');
@@ -968,7 +973,19 @@ export default function GroupsScreen() {
                               </Pressable>
                             </>
                           )}
-                          <Pressable style={styles.myMastermindCardBtn} onPress={() => deleteGroup(item.id)}>
+                          <Pressable 
+                            style={styles.myMastermindCardBtn} 
+                            onPress={() => {
+                              // Find the group name for the confirmation modal
+                              const groupName = item.name;
+                              const groupToDelete = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
+                              const finalGroupName = groupToDelete?.name || groupName;
+                              
+                              setDeletingGroupId(item.id);
+                              setDeletingGroupName(finalGroupName);
+                              setShowDeleteConfirm(true);
+                            }}
+                          >
                             <Text style={styles.myMastermindCardBtnText}>Delete</Text>
                           </Pressable>
                         </View>
@@ -1125,6 +1142,140 @@ export default function GroupsScreen() {
                 <Text style={{ color: colors.text.primary }}>No group selected</Text>
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteConfirm}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          if (!verifyingDelete) {
+            setShowDeleteConfirm(false);
+            setDeletingGroupId(null);
+            setDeletingGroupName('');
+          }
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+                <Ionicons name="warning" size={24} color={colors.error.main} />
+                <Text style={styles.modalTitle}>Delete Group</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => {
+                  if (!verifyingDelete) {
+                    setShowDeleteConfirm(false);
+                    setDeletingGroupId(null);
+                    setDeletingGroupName('');
+                  }
+                }}
+                disabled={verifyingDelete}
+              >
+                <Ionicons name="close" size={20} color={colors.text.primary} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Are you sure you want to delete "{deletingGroupName}"?
+            </Text>
+
+            <View style={styles.detailSection}>
+              <Text style={styles.detailText}>
+                This action cannot be undone. The group, all messages, and member data will be permanently deleted.
+              </Text>
+            </View>
+
+            <View style={styles.detailSection}>
+              <Text style={styles.label}>Verification Required</Text>
+              <Text style={styles.hint}>
+                You'll need to verify with your wallet to confirm deletion. This ensures only the group owner can delete it.
+              </Text>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => {
+                  if (!verifyingDelete) {
+                    setShowDeleteConfirm(false);
+                    setDeletingGroupId(null);
+                    setDeletingGroupName('');
+                  }
+                }}
+                disabled={verifyingDelete}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtn, styles.modalBtnDanger, verifyingDelete && styles.modalBtnDisabled]}
+                onPress={async () => {
+                  if (!deletingGroupId || !verifiedAddress) {
+                    Alert.alert('Error', 'Wallet not verified. Please verify your wallet first.');
+                    return;
+                  }
+
+                  setVerifyingDelete(true);
+                  try {
+                    // Verify wallet ownership - this will prompt the wallet
+                    const walletService = new WalletService();
+                    const walletAccount = await walletService.verifyOnce();
+                    
+                    // Convert address to base58 format for consistency
+                    const verifiedAddr = walletAccount.address;
+                    
+                    // Check if the verified address matches the connected wallet
+                    if (verifiedAddr !== verifiedAddress) {
+                      Alert.alert('Error', 'Wallet address mismatch. Please use the wallet that created this group.');
+                      setVerifyingDelete(false);
+                      return;
+                    }
+
+                    // Use the wallet address as verification signature
+                    // The backend will verify that this address matches the group owner
+                    const verificationSignature = verifiedAddr;
+                    
+                    // Delete the group
+                    await deletePublicGroup(deletingGroupId, verificationSignature);
+                    
+                    Alert.alert('Success', 'Group deleted successfully');
+                    setShowDeleteConfirm(false);
+                    setDeletingGroupId(null);
+                    setDeletingGroupName('');
+                    
+                    // Refresh groups list
+                    if (selectedCategory) {
+                      await fetchPublicGroups(selectedCategory);
+                    } else {
+                      await fetchPublicGroups();
+                    }
+                  } catch (error: any) {
+                    console.error('[Groups] Error deleting group:', error);
+                    Alert.alert('Error', error.message || 'Failed to delete group. Please try again.');
+                  } finally {
+                    setVerifyingDelete(false);
+                  }
+                }}
+                disabled={verifyingDelete}
+              >
+                {verifyingDelete ? (
+                  <>
+                    <ActivityIndicator size="small" color={colors.text.primary} style={{ marginRight: spacing.sm }} />
+                    <Text style={[styles.modalBtnText, styles.modalBtnDangerText]}>Verifying...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="trash" size={20} color={colors.text.primary} style={{ marginRight: spacing.sm }} />
+                    <Text style={[styles.modalBtnText, styles.modalBtnDangerText]}>Delete Group</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -2715,5 +2866,14 @@ const styles = StyleSheet.create({
   },
   discoverCardContainerCarousel: {
     minHeight: 200,
+  },
+  // Delete Modal Styles
+  modalBtnDanger: {
+    backgroundColor: 'rgba(244, 67, 54, 0.3)',
+    borderColor: colors.error.main,
+    borderWidth: 2,
+  },
+  modalBtnDangerText: {
+    color: colors.error.main,
   },
 });

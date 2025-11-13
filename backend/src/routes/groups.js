@@ -6,7 +6,8 @@ import {
   isGroupMember, 
   addGroupMember,
   updateGroupJoinPrice,
-  updateGroupBackgroundImage
+  updateGroupBackgroundImage,
+  deleteGroup
 } from '../models/group.js';
 import { verifyPayment } from '../config/solana.js';
 import { validateWalletAddress, validateRequired } from '../middleware/validation.js';
@@ -334,6 +335,55 @@ router.patch('/:groupId/background-image',
       res.status(500).json({ 
         success: false, 
         message: 'Internal server error' 
+      });
+    }
+  }
+);
+
+/**
+ * DELETE /api/groups/:groupId
+ * Delete a group (owner only, requires wallet verification)
+ */
+router.delete('/:groupId',
+  validateRequired(['ownerAddress', 'verificationSignature']),
+  validateWalletAddress,
+  async (req, res) => {
+    try {
+      const { groupId } = req.params;
+      const { ownerAddress, verificationSignature } = req.body;
+
+      // Verify that the verification signature matches the owner address
+      // This ensures the user actually verified with their wallet
+      if (verificationSignature !== ownerAddress) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid verification signature'
+        });
+      }
+
+      const deleted = await deleteGroup(groupId, ownerAddress);
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          message: 'Group not found or you are not the owner'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Group deleted successfully'
+      });
+    } catch (error) {
+      console.error('[Groups] Error deleting group:', error);
+      if (error.message?.includes('owner')) {
+        return res.status(403).json({
+          success: false,
+          message: error.message
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
       });
     }
   }

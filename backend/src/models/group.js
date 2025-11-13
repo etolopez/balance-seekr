@@ -140,6 +140,28 @@ export async function updateGroupJoinPrice(groupId, newJoinPrice) {
 }
 
 /**
+ * Delete a group (owner only)
+ * @param {string} groupId - Group ID to delete
+ * @param {string} ownerAddress - Address of the owner (for verification)
+ * @returns {Promise<boolean>} True if deleted, false if not found or not owner
+ */
+export async function deleteGroup(groupId, ownerAddress) {
+  // First verify the requester is the owner
+  const group = await getGroupById(groupId);
+  if (!group) {
+    return false;
+  }
+
+  if (group.owner_address !== ownerAddress) {
+    throw new Error('Only the group owner can delete the group');
+  }
+
+  // Delete group (cascade will delete members and messages)
+  await query('DELETE FROM groups WHERE id = $1', [groupId]);
+  return true;
+}
+
+/**
  * Update group background image
  */
 export async function updateGroupBackgroundImage(groupId, backgroundImage, ownerAddress) {
