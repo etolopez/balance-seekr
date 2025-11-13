@@ -26,11 +26,9 @@ export async function getPublicGroups(category = null) {
   const result = await query(queryText, params);
   
   // Debug: Log what we're returning
-  if (category) {
-    console.log(`[Group Model] Query returned ${result.rows.length} groups for category "${category}":`, 
-      result.rows.map(g => ({ id: g.id, name: g.name, category: g.category, categoryType: typeof g.category }))
-    );
-  }
+  console.log(`[Group Model] Query returned ${result.rows.length} groups${category ? ` for category "${category}"` : ' (all categories)'}:`, 
+    result.rows.map(g => ({ id: g.id, name: g.name, category: g.category, owner_address: g.owner_address }))
+  );
   
   return result.rows;
 }
@@ -161,9 +159,23 @@ export async function deleteGroup(groupId, ownerAddress) {
 
     // Delete group (cascade will delete members and messages)
     // Note: PostgreSQL CASCADE will automatically delete related records
+    console.log(`[Group] Attempting to delete group ${groupId} (owner: ${ownerAddress})`);
     const result = await query('DELETE FROM groups WHERE id = $1', [groupId]);
-    console.log(`[Group] Deleted group ${groupId}, rows affected: ${result.rowCount}`);
-    return true;
+    console.log(`[Group] Delete query executed, rows affected: ${result.rowCount}`);
+    
+    if (result.rowCount === 0) {
+      console.warn(`[Group] WARNING: Delete query affected 0 rows for group ${groupId}`);
+    }
+    
+    // Verify deletion by trying to fetch the group
+    const verifyGroup = await getGroupById(groupId);
+    if (verifyGroup) {
+      console.error(`[Group] ERROR: Group ${groupId} still exists after delete!`);
+    } else {
+      console.log(`[Group] Verified: Group ${groupId} successfully deleted`);
+    }
+    
+    return result.rowCount > 0;
   } catch (error) {
     console.error('[Group] Error in deleteGroup:', error);
     throw error;

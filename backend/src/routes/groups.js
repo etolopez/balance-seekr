@@ -25,12 +25,10 @@ router.get('/public', async (req, res) => {
     const { category } = req.query;
     const groups = await getPublicGroups(category);
     
-    // Debug: Log what we're returning to help diagnose category issues
-    if (category) {
-      console.log(`[Groups] Returning ${groups.length} groups for category "${category}":`, 
-        groups.map(g => ({ id: g.id, name: g.name, category: g.category }))
-      );
-    }
+    // Debug: Log what we're returning
+    console.log(`[Groups Route] Returning ${groups.length} groups${category ? ` for category "${category}"` : ' (all categories)'}:`, 
+      groups.map(g => ({ id: g.id, name: g.name, category: g.category }))
+    );
     
     res.json({ groups });
   } catch (error) {

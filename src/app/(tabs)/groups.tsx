@@ -1257,7 +1257,9 @@ export default function GroupsScreen() {
                       deletingGroupId,
                       backendGroupId,
                       groupToDelete: groupToDelete?.name,
-                      verifiedAddr
+                      groupToDeleteId: groupToDelete?.id,
+                      verifiedAddr,
+                      allPublicGroups: publicGroups.map(g => ({ id: g.id, name: g.name }))
                     });
                     
                     // Delete the group
