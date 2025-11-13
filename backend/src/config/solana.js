@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const CLUSTER = process.env.SOLANA_CLUSTER || 'mainnet-beta';
+const CLUSTER = process.env.SOLANA_CLUSTER || 'devnet';
 const RPC_URL = process.env.SOLANA_RPC_URL || clusterApiUrl(CLUSTER);
 
 export const connection = new Connection(RPC_URL, 'confirmed');

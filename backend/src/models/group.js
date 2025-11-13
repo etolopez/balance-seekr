@@ -2,18 +2,36 @@ import { query } from '../config/database.js';
 import { updateGroupMemberCount } from './database.js';
 
 /**
- * Get all public groups
+ * Get all public groups (optionally filtered by category)
+ * @param {string} category - Optional category filter (Health, Financial, Personal Growth, Relationship)
  */
-export async function getPublicGroups() {
-  const result = await query(
-    `SELECT 
+export async function getPublicGroups(category = null) {
+  let queryText = `
+    SELECT 
       g.*,
       u.username as owner_username
      FROM groups g
      LEFT JOIN users u ON g.owner_address = u.wallet_address
      WHERE g.is_public = true
-     ORDER BY g.created_at DESC`
-  );
+  `;
+  
+  const params = [];
+  if (category) {
+    queryText += ` AND g.category = $1`;
+    params.push(category);
+  }
+  
+  queryText += ` ORDER BY g.created_at DESC`;
+  
+  const result = await query(queryText, params);
+  
+  // Debug: Log what we're returning
+  if (category) {
+    console.log(`[Group Model] Query returned ${result.rows.length} groups for category "${category}":`, 
+      result.rows.map(g => ({ id: g.id, name: g.name, category: g.category, categoryType: typeof g.category }))
+    );
+  }
+  
   return result.rows;
 }
 
@@ -37,11 +55,18 @@ export async function getGroupById(groupId) {
  * Create a new group
  */
 export async function createGroup(groupData) {
+  // Debug: Log what we're inserting
+  console.log('[Group Model] Creating group with category:', {
+    name: groupData.name,
+    category: groupData.category,
+    hasCategory: !!groupData.category
+  });
+  
   const result = await query(
     `INSERT INTO groups (
       name, owner_address, owner_username, is_public, join_price, 
-      payment_address, description, create_price, create_payment_signature, background_image
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      payment_address, description, create_price, create_payment_signature, background_image, category
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *`,
     [
       groupData.name,
@@ -54,9 +79,20 @@ export async function createGroup(groupData) {
       groupData.createPrice,
       groupData.createPaymentSignature || null,
       groupData.backgroundImage || null,
+      groupData.category || null,
     ]
   );
-  return result.rows[0];
+  
+  // Debug: Log what was actually saved
+  const created = result.rows[0];
+  console.log('[Group Model] Group created, category in DB:', {
+    id: created.id,
+    name: created.name,
+    category: created.category,
+    categoryType: typeof created.category
+  });
+  
+  return created;
 }
 
 /**

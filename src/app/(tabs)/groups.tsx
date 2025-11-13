@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, InteractionManager, Modal, ScrollView, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,6 +49,7 @@ export default function GroupsScreen() {
   const [publicGroupName, setPublicGroupName] = useState('');
   const [publicGroupDescription, setPublicGroupDescription] = useState('');
   const [publicGroupJoinPrice, setPublicGroupJoinPrice] = useState('0');
+  const [publicGroupCategory, setPublicGroupCategory] = useState<string>('');
   const [publicGroupBackgroundImage, setPublicGroupBackgroundImage] = useState<string | null>(null);
   // Default payment address to user's connected wallet address
   const [publicGroupPaymentAddress, setPublicGroupPaymentAddress] = useState(
@@ -77,6 +78,7 @@ export default function GroupsScreen() {
     description?: string;
     memberCount?: number;
     backgroundImage?: string;
+    category?: string;
   };
   
   const [selectedGroup, setSelectedGroup] = useState<GroupForDisplay | null>(null);
@@ -86,6 +88,9 @@ export default function GroupsScreen() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupImage, setEditingGroupImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isMemberOfSelectedGroup, setIsMemberOfSelectedGroup] = useState(false);
+  const [checkingMembership, setCheckingMembership] = useState(false);
   const apiService = new ApiService();
   const seeker = detectSeeker();
   const useSiws = seeker.isSeeker && (process.env.EXPO_PUBLIC_USE_SIWS === '1' || process.env.EXPO_PUBLIC_USE_SIWS === 'true');
@@ -104,7 +109,24 @@ export default function GroupsScreen() {
   };
 
   // Combine mock group with public groups (only show mock if no real groups)
-  const displayGroups = publicGroups.length > 0 ? publicGroups : [mockGroup];
+  // Filter groups by selected category
+  const filteredGroups = selectedCategory 
+    ? publicGroups.filter(g => g.category === selectedCategory)
+    : publicGroups;
+  
+  // Debug logging to help diagnose category filter issues
+  // Only log once to avoid spam
+  useEffect(() => {
+    if (selectedCategory && filteredGroups.length === 0 && publicGroups.length > 0) {
+      console.log('[Groups] Category filter issue - groups have undefined category:', {
+        selectedCategory,
+        totalGroups: publicGroups.length,
+        groupsWithCategories: publicGroups.map(g => ({ id: g.id, name: g.name, category: g.category }))
+      });
+    }
+  }, [selectedCategory, filteredGroups.length, publicGroups.length]);
+  
+  const displayGroups = filteredGroups.length > 0 ? filteredGroups : (selectedCategory ? [] : [mockGroup]);
 
   // Sync tempUsername with store username when it changes
   useEffect(() => {
@@ -123,13 +145,23 @@ export default function GroupsScreen() {
   // Fetch public groups on mount
   useEffect(() => {
     if (verifiedAddress) {
-      fetchPublicGroups();
+      // Fetch groups with current category filter if active
+      if (selectedCategory) {
+        fetchPublicGroups(selectedCategory);
+      } else {
+        fetchPublicGroups();
+      }
     }
-  }, [verifiedAddress, fetchPublicGroups]);
+  }, [verifiedAddress, fetchPublicGroups, selectedCategory]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchPublicGroups();
+    // Refresh with current category filter if active
+    if (selectedCategory) {
+      await fetchPublicGroups(selectedCategory);
+    } else {
+      await fetchPublicGroups();
+    }
     setRefreshing(false);
   };
 
@@ -332,7 +364,7 @@ export default function GroupsScreen() {
                           }
                           
                           Alert.alert('Success', 'You have joined the group!');
-                          setShowGroupDetail(false);
+                          setIsMemberOfSelectedGroup(true); // Update membership state
                           await fetchPublicGroups(); // Refresh list
                         } catch (error: any) {
                           Alert.alert('Error', error.message || 'Failed to join group');
@@ -369,7 +401,7 @@ export default function GroupsScreen() {
                   }
                   
                   Alert.alert('Success', 'You have joined the group!');
-                  setShowGroupDetail(false);
+                  setIsMemberOfSelectedGroup(true); // Update membership state
                   await fetchPublicGroups(); // Refresh list
                 } catch (error: any) {
                   Alert.alert('Error', error.message || 'Failed to join group');
@@ -516,49 +548,113 @@ export default function GroupsScreen() {
               </Text>
             </View>
           )}
+          
+          {/* Category Filters */}
+          <View style={styles.categoryFilterContainer}>
+            <Pressable
+              style={[
+                styles.categoryFilterButton,
+                selectedCategory === null && styles.categoryFilterButtonActive
+              ]}
+              onPress={() => {
+                setSelectedCategory(null);
+                fetchPublicGroups();
+              }}
+            >
+              <Text style={[
+                styles.categoryFilterText,
+                selectedCategory === null && styles.categoryFilterTextActive
+              ]}>
+                All
+              </Text>
+            </Pressable>
+            {['Health', 'Financial', 'Personal Growth', 'Relationship'].map((cat) => (
+              <Pressable
+                key={cat}
+                style={[
+                  styles.categoryFilterButton,
+                  selectedCategory === cat && styles.categoryFilterButtonActive
+                ]}
+                onPress={async () => {
+                  setSelectedCategory(cat);
+                  await fetchPublicGroups(cat);
+                }}
+              >
+                <Text style={[
+                  styles.categoryFilterText,
+                  selectedCategory === cat && styles.categoryFilterTextActive
+                ]}>
+                  {cat}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          
           {displayGroups.length > 0 ? (
-            <FlatList
-              data={displayGroups}
-              keyExtractor={(g) => g.id}
-              scrollEnabled={false}
-              ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  tintColor={colors.text.primary}
-                />
-              }
-              renderItem={({ item }) => {
-                // Generate gradient colors based on the group name for visual variety
-                const colorIndex = item.name.charCodeAt(0) % 5;
-                const gradientColors = [
-                  { start: '#7BA3D4', end: '#5B8BB4' }, // Blue
-                  { start: '#8BC34A', end: '#6BA03A' }, // Green
-                  { start: '#FF9800', end: '#DF7800' }, // Orange
-                  { start: '#9C27B0', end: '#7C1790' }, // Purple
-                  { start: '#E91E63', end: '#C90E43' }, // Pink
-                ];
-                const gradient = gradientColors[colorIndex];
-                // Safety check: ensure ownerAddress exists before using slice
-                const ownerAddr = item.ownerAddress || '';
-                const creatorName = item.ownerUsername || (ownerAddr ? `${ownerAddr.slice(0, 6)}...${ownerAddr.slice(-4)}` : 'Unknown');
-                const memberText = item.memberCount !== undefined 
-                  ? `${item.memberCount} ${item.memberCount === 1 ? 'member' : 'members'}`
-                  : 'New group';
-                
-                return (
-                  <Pressable
-                    onPress={async () => {
+            displayGroups.length > 3 ? (
+              // Horizontal carousel for more than 3 groups
+              <View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.carouselContainer}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={handleRefresh}
+                      tintColor={colors.text.primary}
+                    />
+                  }
+                >
+                  {displayGroups.map((item) => {
+                    // Generate gradient colors based on the group name for visual variety
+                    const colorIndex = item.name.charCodeAt(0) % 5;
+                    const gradientColors = [
+                      { start: '#7BA3D4', end: '#5B8BB4' }, // Blue
+                      { start: '#8BC34A', end: '#6BA03A' }, // Green
+                      { start: '#FF9800', end: '#DF7800' }, // Orange
+                      { start: '#9C27B0', end: '#7C1790' }, // Purple
+                      { start: '#E91E63', end: '#C90E43' }, // Pink
+                    ];
+                    const gradient = gradientColors[colorIndex];
+                    // Safety check: ensure ownerAddress exists before using slice
+                    const ownerAddr = item.ownerAddress || '';
+                    const creatorName = item.ownerUsername || (ownerAddr ? `${ownerAddr.slice(0, 6)}...${ownerAddr.slice(-4)}` : 'Unknown');
+                    const memberText = item.memberCount !== undefined 
+                      ? `${item.memberCount} ${item.memberCount === 1 ? 'member' : 'members'}`
+                      : 'New group';
+                    
+                    return (
+                      <Pressable
+                        key={item.id}
+                        onPress={async () => {
                       // Fetch latest group data to ensure price updates are reflected
-                      await fetchPublicGroups();
+                      await fetchPublicGroups(selectedCategory || undefined);
                       const latestGroup = publicGroups.find(g => g.id === item.id) || item;
-                      setSelectedGroup({ ...latestGroup, backgroundImage: latestGroup.backgroundImage || item.backgroundImage } as GroupForDisplay);
+                      const groupToShow = { ...latestGroup, backgroundImage: latestGroup.backgroundImage || item.backgroundImage } as GroupForDisplay;
+                      setSelectedGroup(groupToShow);
                       setShowGroupDetail(true);
+                      
+                      // Check if user is a member
+                      if (verifiedAddress) {
+                        setCheckingMembership(true);
+                        try {
+                          const isOwner = groupToShow.ownerAddress === verifiedAddress;
+                          const isMember = isOwner || await apiService.checkMembership(groupToShow.id, verifiedAddress);
+                          setIsMemberOfSelectedGroup(isMember);
+                        } catch (error) {
+                          console.error('[Groups] Error checking membership:', error);
+                          setIsMemberOfSelectedGroup(false);
+                        } finally {
+                          setCheckingMembership(false);
+                        }
+                      } else {
+                        setIsMemberOfSelectedGroup(false);
+                      }
                     }}
-                    style={styles.discoverCardWrapper}
+                    style={[styles.discoverCardWrapper, styles.discoverCardCarousel]}
                   >
-                    <View style={styles.discoverCardContainer}>
+                    <View style={[styles.discoverCardContainer, styles.discoverCardContainerCarousel]}>
                       {/* Background Image */}
                       {item.backgroundImage ? (
                         <Image
@@ -583,7 +679,14 @@ export default function GroupsScreen() {
                       />
                       {/* Content */}
                       <View style={styles.discoverCardContent}>
-                        <Text style={styles.discoverCardTitle}>{item.name}</Text>
+                        <View style={styles.discoverCardHeader}>
+                          <Text style={styles.discoverCardTitle}>{item.name}</Text>
+                          {item.category && (
+                            <View style={styles.categoryBadge}>
+                              <Text style={styles.categoryBadgeText}>{item.category}</Text>
+                            </View>
+                          )}
+                        </View>
                         <View style={styles.discoverCardMeta}>
                           <Text style={styles.discoverCardMetaText}>by {creatorName}</Text>
                           <Text style={styles.discoverCardMetaText}>•</Text>
@@ -592,9 +695,116 @@ export default function GroupsScreen() {
                       </View>
                     </View>
                   </Pressable>
-                );
-              }}
-            />
+                  );
+                  })}
+                </ScrollView>
+              </View>
+            ) : (
+              // Vertical list for 3 or fewer groups
+              <FlatList
+                data={displayGroups}
+                keyExtractor={(g) => g.id}
+                scrollEnabled={false}
+                ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={handleRefresh}
+                    tintColor={colors.text.primary}
+                  />
+                }
+                renderItem={({ item }) => {
+                  // Generate gradient colors based on the group name for visual variety
+                  const colorIndex = item.name.charCodeAt(0) % 5;
+                  const gradientColors = [
+                    { start: '#7BA3D4', end: '#5B8BB4' }, // Blue
+                    { start: '#8BC34A', end: '#6BA03A' }, // Green
+                    { start: '#FF9800', end: '#DF7800' }, // Orange
+                    { start: '#9C27B0', end: '#7C1790' }, // Purple
+                    { start: '#E91E63', end: '#C90E43' }, // Pink
+                  ];
+                  const gradient = gradientColors[colorIndex];
+                  // Safety check: ensure ownerAddress exists before using slice
+                  const ownerAddr = item.ownerAddress || '';
+                  const creatorName = item.ownerUsername || (ownerAddr ? `${ownerAddr.slice(0, 6)}...${ownerAddr.slice(-4)}` : 'Unknown');
+                  const memberText = item.memberCount !== undefined 
+                    ? `${item.memberCount} ${item.memberCount === 1 ? 'member' : 'members'}`
+                    : 'New group';
+                  
+                  return (
+                    <Pressable
+                      onPress={async () => {
+                        // Fetch latest group data to ensure price updates are reflected
+                        await fetchPublicGroups(selectedCategory || undefined);
+                        const latestGroup = publicGroups.find(g => g.id === item.id) || item;
+                        const groupToShow = { ...latestGroup, backgroundImage: latestGroup.backgroundImage || item.backgroundImage } as GroupForDisplay;
+                        setSelectedGroup(groupToShow);
+                        setShowGroupDetail(true);
+                        
+                        // Check if user is a member
+                        if (verifiedAddress) {
+                          setCheckingMembership(true);
+                          try {
+                            const isOwner = groupToShow.ownerAddress === verifiedAddress;
+                            const isMember = isOwner || await apiService.checkMembership(groupToShow.id, verifiedAddress);
+                            setIsMemberOfSelectedGroup(isMember);
+                          } catch (error) {
+                            console.error('[Groups] Error checking membership:', error);
+                            setIsMemberOfSelectedGroup(false);
+                          } finally {
+                            setCheckingMembership(false);
+                          }
+                        } else {
+                          setIsMemberOfSelectedGroup(false);
+                        }
+                      }}
+                      style={styles.discoverCardWrapper}
+                    >
+                      <View style={styles.discoverCardContainer}>
+                        {/* Background Image */}
+                        {item.backgroundImage ? (
+                          <Image
+                            source={{ uri: item.backgroundImage }}
+                            style={styles.discoverCardBackground}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <LinearGradient
+                            colors={[gradient.start, gradient.end]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.discoverCardBackground}
+                          />
+                        )}
+                        {/* Gradient Glass Overlay */}
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={styles.discoverCardOverlay}
+                        />
+                        {/* Content */}
+                        <View style={styles.discoverCardContent}>
+                          <View style={styles.discoverCardHeader}>
+                            <Text style={styles.discoverCardTitle}>{item.name}</Text>
+                            {item.category && (
+                              <View style={styles.categoryBadge}>
+                                <Text style={styles.categoryBadgeText}>{item.category}</Text>
+                              </View>
+                            )}
+                          </View>
+                          <View style={styles.discoverCardMeta}>
+                            <Text style={styles.discoverCardMetaText}>by {creatorName}</Text>
+                            <Text style={styles.discoverCardMetaText}>•</Text>
+                            <Text style={styles.discoverCardMetaText}>{memberText}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </Pressable>
+                  );
+                }}
+              />
+            )
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No public groups available yet.</Text>
@@ -635,7 +845,12 @@ export default function GroupsScreen() {
                     ? `${item.ownerAddress.slice(0,4)}…${item.ownerAddress.slice(-4)}`
                     : 'You';
                 // Get background image from publicGroups if available
-                const publicGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
+                // Match by apiGroupId (backend ID) or local id
+                const publicGroup = publicGroups.find(g => 
+                  g.id === (item as any).apiGroupId || 
+                  g.id === item.id || 
+                  (g as any).apiGroupId === item.id
+                );
                 const backgroundImage = publicGroup?.backgroundImage || (item as any).backgroundImage;
                 
                 return (
@@ -645,8 +860,26 @@ export default function GroupsScreen() {
                       await fetchPublicGroups();
                       const latestGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
                       const finalGroup = latestGroup || item;
-                      setSelectedGroup({ ...finalGroup, backgroundImage: latestGroup?.backgroundImage || backgroundImage } as GroupForDisplay);
+                      const groupToShow = { ...finalGroup, backgroundImage: latestGroup?.backgroundImage || backgroundImage } as GroupForDisplay;
+                      setSelectedGroup(groupToShow);
                       setShowGroupDetail(true);
+                      
+                      // Check if user is a member (they should be since it's in "My Masterminds")
+                      if (verifiedAddress) {
+                        setCheckingMembership(true);
+                        try {
+                          const isOwner = groupToShow.ownerAddress === verifiedAddress;
+                          const isMember = isOwner || await apiService.checkMembership(groupToShow.id, verifiedAddress);
+                          setIsMemberOfSelectedGroup(isMember);
+                        } catch (error) {
+                          console.error('[Groups] Error checking membership:', error);
+                          setIsMemberOfSelectedGroup(false);
+                        } finally {
+                          setCheckingMembership(false);
+                        }
+                      } else {
+                        setIsMemberOfSelectedGroup(false);
+                      }
                     }}
                     style={styles.myMastermindCardWrapper}
                   >
@@ -681,7 +914,19 @@ export default function GroupsScreen() {
                             <Text style={styles.publicBadgeText}>Public</Text>
                           </View>
                         </View>
-                        <Text style={styles.myMastermindCardSub}>Owner: {ownerDisplay}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs, flexWrap: 'wrap' }}>
+                          <Text style={styles.myMastermindCardSub}>Owner: {ownerDisplay}</Text>
+                          {(publicGroup?.category || (item as any).category) && (
+                            <>
+                              <Text style={styles.myMastermindCardSub}>•</Text>
+                              <View style={styles.categoryBadgeSmall}>
+                                <Text style={styles.categoryBadgeTextSmall}>
+                                  {publicGroup?.category || (item as any).category}
+                                </Text>
+                              </View>
+                            </>
+                          )}
+                        </View>
                         {item.description && (
                           <Text style={styles.myMastermindCardDescription} numberOfLines={2}>
                             {item.description}
@@ -743,6 +988,7 @@ export default function GroupsScreen() {
         onRequestClose={() => {
           setShowGroupDetail(false);
           setSelectedGroup(null);
+          setIsMemberOfSelectedGroup(false);
         }}
       >
         <View style={styles.modalOverlay}>
@@ -766,7 +1012,14 @@ export default function GroupsScreen() {
                   </View>
                 )}
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{selectedGroup.name}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalTitle}>{selectedGroup.name}</Text>
+                    {selectedGroup.category && (
+                      <View style={[styles.categoryBadge, { marginTop: spacing.xs, alignSelf: 'flex-start' }]}>
+                        <Text style={styles.categoryBadgeText}>{selectedGroup.category}</Text>
+                      </View>
+                    )}
+                  </View>
                   <Pressable
                     style={styles.modalCloseBtn}
                     onPress={() => {
@@ -812,8 +1065,29 @@ export default function GroupsScreen() {
                   </View>
                 )}
 
-                {/* Action Button - Only show if user is not the owner */}
-                {selectedGroup.ownerAddress !== verifiedAddress && (
+                {/* Open Chat Button - Show if user is owner or member */}
+                {isMemberOfSelectedGroup && (
+                  <View style={styles.modalButtons}>
+                    <Pressable
+                      style={[styles.modalBtn, styles.openChatButton]}
+                      onPress={() => {
+                        // Find the local group ID (could be apiGroupId or local id)
+                        const localGroup = groups.find(g => g.id === selectedGroup.id || g.apiGroupId === selectedGroup.id);
+                        const groupIdForChat = localGroup?.id || selectedGroup.id;
+                        
+                        setShowGroupDetail(false);
+                        setSelectedGroup(null);
+                        router.push(`/masterminds/${groupIdForChat}`);
+                      }}
+                    >
+                      <Ionicons name="chatbubbles" size={24} color={colors.text.primary} style={{ marginRight: spacing.sm }} />
+                      <Text style={styles.openChatButtonText}>Open Chat</Text>
+                    </Pressable>
+                  </View>
+                )}
+
+                {/* Action Button - Only show if user is not a member and not the owner */}
+                {!isMemberOfSelectedGroup && selectedGroup.ownerAddress !== verifiedAddress && (
                   <View style={styles.modalButtons}>
                     <Pressable
                       style={[styles.modalBtn, styles.modalBtnPrimary, { width: '100%' }, joiningGroupId === selectedGroup.id && styles.modalBtnDisabled]}
@@ -830,8 +1104,8 @@ export default function GroupsScreen() {
                     </Pressable>
                   </View>
                 )}
-                {/* Owner Message */}
-                {selectedGroup.ownerAddress === verifiedAddress && (
+                {/* Owner Message - Only show if user is owner but not yet a member (shouldn't happen, but just in case) */}
+                {selectedGroup.ownerAddress === verifiedAddress && !isMemberOfSelectedGroup && (
                   <View style={styles.modalButtons}>
                     <View style={[styles.modalBtn, styles.ownerBadge]}>
                       <Ionicons name="checkmark-circle" size={20} color={colors.success.main} style={{ marginRight: spacing.sm }} />
@@ -939,15 +1213,55 @@ export default function GroupsScreen() {
                   if (!editingGroupId || !verifiedAddress) return;
                   
                   try {
-                    // Update background image via API
-                    await apiService.updateGroupBackgroundImage(
-                      editingGroupId,
-                      verifiedAddress,
-                      editingGroupImage || null
+                    // Optimistic update: Update local state immediately so image shows right away
+                    // Find the local group to get its apiGroupId
+                    const localGroup = groups.find(g => g.id === editingGroupId);
+                    const apiGroupId = localGroup?.apiGroupId || editingGroupId;
+                    
+                    const currentGroups = publicGroups;
+                    const updatedGroups = currentGroups.map(g => {
+                      // Match by backend id or apiGroupId
+                      if (g.id === apiGroupId || g.id === editingGroupId || (g as any).apiGroupId === editingGroupId) {
+                        return { ...g, backgroundImage: editingGroupImage || undefined };
+                      }
+                      return g;
+                    });
+                    
+                    // Also update local groups for immediate display
+                    const updatedLocalGroups = groups.map(g => 
+                      g.id === editingGroupId 
+                        ? { ...g, backgroundImage: editingGroupImage || undefined } as any
+                        : g
                     );
                     
-                    // Refresh groups to show updated image
-                    await fetchPublicGroups();
+                    // Update both stores immediately
+                    console.log('[Groups] Optimistic update:', {
+                      editingGroupId,
+                      apiGroupId,
+                      imageUrl: editingGroupImage,
+                      updatedGroupsCount: updatedGroups.length,
+                      foundMatch: updatedGroups.some(g => g.id === apiGroupId || g.id === editingGroupId)
+                    });
+                    useAppStore.setState({ 
+                      publicGroups: updatedGroups,
+                      groups: updatedLocalGroups
+                    });
+                    
+                    // Then sync to backend (don't wait for it to show the image)
+                    // Use apiGroupId for backend call, fallback to editingGroupId if not found
+                    const backendGroupId = apiGroupId || editingGroupId;
+                    apiService.updateGroupBackgroundImage(
+                      backendGroupId,
+                      verifiedAddress,
+                      editingGroupImage || null
+                    ).then(() => {
+                      // Refresh from backend to get latest data
+                      fetchPublicGroups();
+                    }).catch((error: any) => {
+                      console.error('[Groups] Background sync error (non-blocking):', error);
+                      // Revert optimistic update on error
+                      fetchPublicGroups();
+                    });
                     
                     Alert.alert('Success', 'Group image updated successfully');
                     setEditingGroupId(null);
@@ -1083,6 +1397,28 @@ export default function GroupsScreen() {
                 multiline
               />
 
+              <Text style={styles.label}>Category *</Text>
+              <View style={styles.categoryContainer}>
+                {['Health', 'Financial', 'Personal Growth', 'Relationship'].map((cat) => (
+                  <Pressable
+                    key={cat}
+                    style={[
+                      styles.categoryButton,
+                      publicGroupCategory === cat && styles.categoryButtonSelected
+                    ]}
+                    onPress={() => setPublicGroupCategory(cat)}
+                  >
+                    <Text style={[
+                      styles.categoryButtonText,
+                      publicGroupCategory === cat && styles.categoryButtonTextSelected
+                    ]}>
+                      {cat}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={styles.hint}>Select a category for your group</Text>
+
               <Text style={styles.label}>Background Image (Optional)</Text>
               <View style={styles.imagePickerContainer}>
                 {publicGroupBackgroundImage ? (
@@ -1150,6 +1486,7 @@ export default function GroupsScreen() {
                     setPublicGroupName('');
                     setPublicGroupDescription('');
                     setPublicGroupJoinPrice('0');
+                    setPublicGroupCategory('');
                     setPublicGroupBackgroundImage(null);
                     setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
                   }}
@@ -1177,6 +1514,10 @@ export default function GroupsScreen() {
                       Alert.alert('Error', 'Payment address is required');
                       return;
                     }
+                    if (!publicGroupCategory) {
+                      Alert.alert('Error', 'Please select a category');
+                      return;
+                    }
 
                     setIsCreatingPublic(true);
                     try {
@@ -1188,6 +1529,7 @@ export default function GroupsScreen() {
                         publicGroupName.trim(),
                         joinPrice,
                         publicGroupPaymentAddress.trim(),
+                        publicGroupCategory,
                         publicGroupDescription.trim() || undefined,
                         PLATFORM_CREATE_FEE,
                         publicGroupBackgroundImage || undefined
@@ -1197,8 +1539,23 @@ export default function GroupsScreen() {
                       setPublicGroupName('');
                       setPublicGroupDescription('');
                       setPublicGroupJoinPrice('0');
+                      setPublicGroupCategory('');
                       setPublicGroupBackgroundImage(null);
                       setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
+                      
+                      // Refresh groups with current category filter if active
+                      // This ensures the newly created group appears in the filtered view
+                      if (selectedCategory) {
+                        await fetchPublicGroups(selectedCategory);
+                      } else {
+                        await fetchPublicGroups();
+                      }
+                      
+                      // Also refresh all groups in the background to ensure we have the latest data
+                      // This helps if the category filter is changed later
+                      fetchPublicGroups().catch(() => {
+                        // Ignore errors
+                      });
                     } catch (error: any) {
                       Alert.alert('Error', error.message || 'Failed to create public group');
                     } finally {
@@ -2232,5 +2589,127 @@ const styles = StyleSheet.create({
   },
   ownerBadgeText: {
     color: colors.success.main,
+  },
+  // Category Selection Styles (for create modal)
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  categoryButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  categoryButtonSelected: {
+    borderColor: colors.primary.main,
+    backgroundColor: 'rgba(123, 97, 255, 0.2)',
+  },
+  categoryButtonText: {
+    color: colors.text.secondary,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+  },
+  categoryButtonTextSelected: {
+    color: colors.primary.main,
+    fontWeight: typography.weights.semibold,
+  },
+  // Category Filter Styles (for Discover page)
+  categoryFilterContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  categoryFilterButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  categoryFilterButtonActive: {
+    borderColor: colors.primary.main,
+    backgroundColor: 'rgba(123, 97, 255, 0.25)',
+  },
+  categoryFilterText: {
+    color: colors.text.secondary,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+  },
+  categoryFilterTextActive: {
+    color: colors.primary.main,
+    fontWeight: typography.weights.semibold,
+  },
+  // Category Badge Styles (for cards)
+  categoryBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    backgroundColor: 'rgba(123, 97, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(123, 97, 255, 0.4)',
+  },
+  categoryBadgeText: {
+    color: colors.primary.main,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+  },
+  categoryBadgeSmall: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    backgroundColor: 'rgba(123, 97, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(123, 97, 255, 0.3)',
+  },
+  categoryBadgeTextSmall: {
+    color: colors.primary.main,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+  },
+  discoverCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  // Open Chat Button Styles
+  openChatButton: {
+    width: '100%',
+    backgroundColor: 'rgba(123, 97, 255, 0.3)',
+    borderColor: colors.primary.main,
+    borderWidth: 2,
+    paddingVertical: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openChatButtonText: {
+    color: colors.text.primary,
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+  },
+  // Carousel Styles
+  carouselContainer: {
+    paddingRight: spacing.lg,
+    gap: spacing.md,
+  },
+  discoverCardCarousel: {
+    width: 280,
+    marginRight: spacing.md,
+  },
+  discoverCardContainerCarousel: {
+    minHeight: 200,
   },
 });

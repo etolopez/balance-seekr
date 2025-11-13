@@ -45,6 +45,7 @@ export async function initializeDatabase() {
         create_price DECIMAL(18, 9) NOT NULL,
         create_payment_signature VARCHAR(200),
         background_image TEXT,
+        category VARCHAR(50),
         member_count INTEGER DEFAULT 0,
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
@@ -54,6 +55,17 @@ export async function initializeDatabase() {
     await query(`
       ALTER TABLE groups 
       ADD COLUMN IF NOT EXISTS background_image TEXT
+    `);
+
+    // Add category column if it doesn't exist (for existing databases)
+    await query(`
+      ALTER TABLE groups 
+      ADD COLUMN IF NOT EXISTS category VARCHAR(50)
+    `);
+
+    // Create index for category filtering
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_groups_category ON groups(category)
     `);
 
     // Create indexes for groups

@@ -357,12 +357,12 @@ type State = {
   groups: { id: string; name: string; ownerAddress?: string | null; createdAt: string; isPublic?: boolean; joinPrice?: number; paymentAddress?: string; description?: string; apiGroupId?: string }[];
   messages: { id: string; groupId: string; senderAddress?: string | null; content: string; createdAt: string }[];
   createGroup: (name: string) => void;
-  createPublicGroup: (name: string, joinPrice: number, paymentAddress: string, description?: string, createPrice?: number, backgroundImage?: string) => Promise<void>;
+  createPublicGroup: (name: string, joinPrice: number, paymentAddress: string, category: string, description?: string, createPrice?: number, backgroundImage?: string) => Promise<void>;
   deleteGroup: (id: string) => void;
   sendMessage: (groupId: string, content: string) => void;
   joinPublicGroup: (groupId: string, paymentSignature: string) => Promise<void>;
-  publicGroups: { id: string; name: string; ownerAddress: string; ownerUsername?: string; createdAt: string; joinPrice: number; paymentAddress: string; description?: string; memberCount?: number }[];
-  fetchPublicGroups: () => Promise<void>;
+  publicGroups: { id: string; name: string; ownerAddress: string; ownerUsername?: string; createdAt: string; joinPrice: number; paymentAddress: string; description?: string; memberCount?: number; category?: string; backgroundImage?: string }[];
+  fetchPublicGroups: (category?: string) => Promise<void>;
   updateGroupJoinPrice: (groupId: string, newJoinPrice: number) => Promise<void>;
 };
 
@@ -699,7 +699,7 @@ export const useAppStore = create<State>((set, get) => ({
     dbApi.addGroup(g as any);
     return { groups: [g, ...s.groups] };
   }),
-  createPublicGroup: async (name, joinPrice, paymentAddress, description, createPrice, backgroundImage) => {
+  createPublicGroup: async (name, joinPrice, paymentAddress, category, description, createPrice, backgroundImage) => {
     const apiService = new ApiService();
     const paymentService = new PaymentService();
     const state = get();
@@ -747,6 +747,7 @@ export const useAppStore = create<State>((set, get) => ({
         createPaymentSignature: paymentSignature,
         createPrice: fee,
         backgroundImage, // Cloudinary URL for background image
+        category, // Required category
       });
       console.log('[Store] Group created on backend:', publicGroup.id);
 
@@ -767,8 +768,30 @@ export const useAppStore = create<State>((set, get) => ({
       
       set((s) => ({ groups: [g, ...s.groups] }));
       
-      // Step 4: Refresh public groups to show the new group with image
-      await get().fetchPublicGroups();
+      // Step 4: Optimistically add to publicGroups with image so it shows immediately
+      const transformedGroup = {
+        id: publicGroup.id,
+        name,
+        ownerAddress: state.verifiedAddress,
+        ownerUsername: state.username || undefined,
+        createdAt: publicGroup.created_at || nowIso(),
+        joinPrice,
+        paymentAddress,
+        description,
+        memberCount: 0,
+        backgroundImage: backgroundImage || undefined,
+        category,
+      };
+      set((s) => ({ 
+        publicGroups: [transformedGroup, ...s.publicGroups] 
+      }));
+      
+      // Step 5: Refresh from backend to get latest data (in background)
+      // Note: We don't pass category here because we want to refresh all groups
+      // The frontend will filter by category if needed
+      get().fetchPublicGroups().catch(() => {
+        // Ignore errors - we already have the optimistic update
+      });
     } catch (error) {
       console.error('[Store] Error creating public group:', error);
       throw error;
@@ -854,14 +877,40 @@ export const useAppStore = create<State>((set, get) => ({
       throw error;
     }
   },
-  fetchPublicGroups: async () => {
+  fetchPublicGroups: async (category?: string) => {
     const apiService = new ApiService();
+    const state = get();
     try {
-      const groups = await apiService.getPublicGroups();
-      set({ publicGroups: groups });
+      const groups = await apiService.getPublicGroups(category);
+      
+      // Debug: Log what we received from backend
+      if (category) {
+        console.log(`[Store] Fetched ${groups.length} groups for category "${category}" from backend`);
+      }
+      
+      // Merge with existing groups to preserve optimistic updates
+      // If fetching with a category filter, merge intelligently
+      if (category) {
+        // Keep groups that don't match the category
+        const otherGroups = state.publicGroups.filter(g => g.category !== category);
+        
+        // For groups in this category, merge fetched groups with existing ones
+        // This preserves optimistic updates that might not be in the backend yet
+        const existingCategoryGroups = state.publicGroups.filter(g => g.category === category);
+        const fetchedGroupIds = new Set(groups.map(g => g.id));
+        
+        // Keep existing groups that weren't in the fetched results (optimistic updates)
+        const preservedOptimistic = existingCategoryGroups.filter(g => !fetchedGroupIds.has(g.id));
+        
+        // Combine: other categories + fetched groups + preserved optimistic updates
+        set({ publicGroups: [...otherGroups, ...groups, ...preservedOptimistic] });
+      } else {
+        // Fetching all groups - replace entire list
+        set({ publicGroups: groups });
+      }
     } catch (error) {
       console.error('[Store] Error fetching public groups:', error);
-      // Don't throw - allow app to continue with empty list
+      // Don't throw - allow app to continue with existing groups
     }
   },
   updateGroupJoinPrice: async (groupId, newJoinPrice) => {

@@ -16,11 +16,21 @@ const router = express.Router();
 
 /**
  * GET /api/groups/public
- * Get all public groups
+ * Get all public groups (optionally filtered by category)
+ * Query params: ?category=Health|Financial|Personal Growth|Relationship
  */
 router.get('/public', async (req, res) => {
   try {
-    const groups = await getPublicGroups();
+    const { category } = req.query;
+    const groups = await getPublicGroups(category);
+    
+    // Debug: Log what we're returning to help diagnose category issues
+    if (category) {
+      console.log(`[Groups] Returning ${groups.length} groups for category "${category}":`, 
+        groups.map(g => ({ id: g.id, name: g.name, category: g.category }))
+      );
+    }
+    
     res.json({ groups });
   } catch (error) {
     console.error('[Groups] Error fetching public groups:', error);
@@ -36,7 +46,7 @@ router.get('/public', async (req, res) => {
  * Create a new public group
  */
 router.post('/',
-  validateRequired(['name', 'ownerAddress', 'joinPrice', 'paymentAddress', 'createPrice', 'createPaymentSignature']),
+  validateRequired(['name', 'ownerAddress', 'joinPrice', 'paymentAddress', 'createPrice', 'createPaymentSignature', 'category']),
   validateWalletAddress,
   async (req, res) => {
     try {
@@ -120,6 +130,16 @@ router.post('/',
         finalOwnerUsername = owner?.username || null;
       }
 
+      // Validate category
+      const validCategories = ['Health', 'Financial', 'Personal Growth', 'Relationship'];
+      const category = req.body.category;
+      if (!category || !validCategories.includes(category)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Category is required and must be one of: ${validCategories.join(', ')}` 
+        });
+      }
+
       // Create group
       const group = await createGroup({
         name,
@@ -131,6 +151,7 @@ router.post('/',
         createPrice: parseFloat(createPrice),
         createPaymentSignature,
         backgroundImage: req.body.backgroundImage || null,
+        category,
       });
 
       res.json({ group });

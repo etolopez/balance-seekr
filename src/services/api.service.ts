@@ -18,6 +18,7 @@ export type PublicGroup = {
   memberCount?: number;
   description?: string;
   backgroundImage?: string; // URI to background image (local or remote)
+  category?: string; // Health, Financial, Personal Growth, Relationship
 };
 
 export type PublicMessage = {
@@ -39,6 +40,7 @@ export type CreatePublicGroupRequest = {
   createPaymentSignature: string; // Transaction signature for platform creation fee (always required)
   createPrice: number; // Platform fee for creating a group (always required, even for free groups)
   backgroundImage?: string; // Cloudinary URL for background image
+  category: string; // Required: Health, Financial, Personal Growth, Relationship
 };
 
 export type JoinGroupRequest = {
@@ -81,15 +83,22 @@ export class ApiService {
       memberCount: group.memberCount ?? group.member_count,
       description: group.description,
       backgroundImage: group.backgroundImage || group.background_image,
+      // Category should be the same in both formats, but handle both just in case
+      category: group.category || group.category_name || undefined,
     };
   }
 
   /**
-   * Get all public Mastermind groups
+   * Get all public Mastermind groups (optionally filtered by category)
+   * @param category - Optional category filter (Health, Financial, Personal Growth, Relationship)
    */
-  async getPublicGroups(): Promise<PublicGroup[]> {
+  async getPublicGroups(category?: string): Promise<PublicGroup[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/groups/public`, {
+      const url = category 
+        ? `${this.baseUrl}/api/groups/public?category=${encodeURIComponent(category)}`
+        : `${this.baseUrl}/api/groups/public`;
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +112,16 @@ export class ApiService {
       const data = await response.json();
       const groups = data.groups || [];
       // Transform snake_case to camelCase for frontend consistency
-      return groups.map((group: any) => this.transformGroup(group));
+      const transformed = groups.map((group: any) => this.transformGroup(group));
+      
+      // Debug: Log category data to help diagnose issues
+      if (category) {
+        console.log(`[ApiService] Fetched ${transformed.length} groups for category "${category}":`, 
+          transformed.map((g: PublicGroup) => ({ id: g.id, name: g.name, category: g.category }))
+        );
+      }
+      
+      return transformed;
     } catch (error: any) {
       // Silently handle network errors when backend is not available
       // This is expected during development when backend hasn't been set up yet
