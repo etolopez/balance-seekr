@@ -8,7 +8,8 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "migrate": "node src/utils/migrate.js",
-    "test": "node test-api.js"
+    "test": "node test-api.js",
+    "cleanup-groups": "node cleanup-all-groups.js"
   },
   "keywords": [
     "solana",
