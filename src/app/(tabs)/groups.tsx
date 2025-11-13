@@ -13,7 +13,6 @@ import { detectSeeker } from '../../services/seeker';
 import { PROGRAM_ID } from '../../config/solana';
 import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
 import { PLATFORM_CREATE_FEE, PLATFORM_PAYMENT_ADDRESS, DEFAULT_JOIN_PAYMENT_ADDRESS, PLATFORM_JOIN_FEE_PERCENTAGE } from '../../config/platform';
-import { TESTING_MODE, generateMockSignature } from '../../config/testing';
 
 /**
  * Groups Screen - Create and manage Mastermind groups
@@ -303,9 +302,7 @@ export default function GroupsScreen() {
               if (group.joinPrice > 0) {
                 const platformFee = group.joinPrice * PLATFORM_JOIN_FEE_PERCENTAGE;
                 const ownerAmount = group.joinPrice - platformFee;
-                const paymentMessage = TESTING_MODE 
-                  ? `TESTING MODE: You'll need to pay ${group.joinPrice} SOL to join this group.\n\nBreakdown:\n• Group owner: ${ownerAmount.toFixed(4)} SOL\n• Platform fee: ${platformFee.toFixed(4)} SOL (1%)\n\nIn testing mode, payment will be simulated.`
-                  : `You'll need to pay ${group.joinPrice} SOL to join this group.\n\nBreakdown:\n• Group owner: ${ownerAmount.toFixed(4)} SOL\n• Platform fee: ${platformFee.toFixed(4)} SOL (1%)\n\nYour wallet will open to confirm the payment.`;
+                const paymentMessage = `You'll need to pay ${group.joinPrice} SOL to join this group.\n\nBreakdown:\n• Group owner: ${ownerAmount.toFixed(4)} SOL\n• Platform fee: ${platformFee.toFixed(4)} SOL (1%)\n\nYour wallet will open to confirm the payment.`;
                 
                 Alert.alert(
                   'Payment Required',
@@ -313,27 +310,16 @@ export default function GroupsScreen() {
                   [
                     { text: 'Cancel', style: 'cancel', onPress: () => setJoiningGroupId(null) },
                     {
-                      text: TESTING_MODE ? 'Simulate Payment' : 'Pay & Join',
+                      text: 'Pay & Join',
                       onPress: async () => {
                         try {
-                          let paymentResult: { platformSignature: string; ownerSignature: string };
-                          
-                          if (TESTING_MODE || group.id === mockGroup.id) {
-                            // Testing mode or mock group: Generate mock signatures
-                            console.log('[Groups] TESTING MODE: Simulating payment');
-                            paymentResult = {
-                              platformSignature: generateMockSignature(),
-                              ownerSignature: generateMockSignature(),
-                            };
-                          } else {
-                            paymentResult = await paymentService.payToJoinGroup(
-                              group.paymentAddress,
-                              group.joinPrice,
-                              PLATFORM_PAYMENT_ADDRESS,
-                              PLATFORM_JOIN_FEE_PERCENTAGE,
-                              verifiedAddress // Pass already-connected wallet address
-                            );
-                          }
+                          const paymentResult = await paymentService.payToJoinGroup(
+                            group.paymentAddress,
+                            group.joinPrice,
+                            PLATFORM_PAYMENT_ADDRESS,
+                            PLATFORM_JOIN_FEE_PERCENTAGE,
+                            verifiedAddress // Pass already-connected wallet address
+                          );
                           console.log('[Groups] Payment signatures:', paymentResult);
 
                           // Join the group with payment signature (transaction contains both payments)
@@ -1706,9 +1692,7 @@ export default function GroupsScreen() {
 
                     setIsCreatingPublic(true);
                     try {
-                      const createMessage = TESTING_MODE 
-                        ? 'TESTING MODE: Public group will be created locally without backend. Payment will be simulated.'
-                        : 'Public group created! You can find it in the Discover tab.';
+                      const createMessage = 'Public group created! You can find it in the Discover tab.';
                       
                       await createPublicGroup(
                         publicGroupName.trim(),
