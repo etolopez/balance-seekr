@@ -812,9 +812,24 @@ export default function GroupsScreen() {
         {/* My Masterminds Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>My Masterminds</Text>
-          {groups.filter(g => g.isPublic).length > 0 ? (
-            <FlatList
-              data={groups.filter(g => g.isPublic)}
+          {(() => {
+            // Only show groups that exist on the backend (in publicGroups)
+            // This ensures we don't show orphaned local groups
+            const myPublicGroups = groups.filter(g => {
+              if (!g.isPublic) return false;
+              // Check if this group exists in publicGroups (backend)
+              // Match by apiGroupId (backend UUID) or by id if it's a backend UUID
+              const existsInBackend = publicGroups.some(pg => 
+                pg.id === (g as any).apiGroupId || 
+                pg.id === g.id ||
+                (pg as any).apiGroupId === g.id
+              );
+              return existsInBackend;
+            });
+            
+            return myPublicGroups.length > 0 ? (
+              <FlatList
+                data={myPublicGroups}
               keyExtractor={(g) => g.id}
               scrollEnabled={false}
               ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
@@ -985,9 +1000,10 @@ export default function GroupsScreen() {
                 );
               }}
             />
-          ) : (
-            <Text style={styles.info}>No Masterminds yet. Create one above.</Text>
-          )}
+            ) : (
+              <Text style={styles.info}>No Masterminds yet. Create one above.</Text>
+            );
+          })()}
         </View>
       </ScrollView>
 
