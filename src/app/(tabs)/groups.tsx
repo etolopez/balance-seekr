@@ -941,6 +941,160 @@ export default function GroupsScreen() {
         </View>
       </Modal>
 
+      {/* Leave Group Confirmation Modal */}
+      <Modal
+        visible={leavingGroupId !== null}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          if (!verifyingLeave) {
+            setLeavingGroupId(null);
+          }
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+                <Ionicons name="exit-outline" size={24} color={colors.error.main} />
+                <Text style={styles.modalTitle}>Leave Group</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => {
+                  if (!verifyingLeave) {
+                    setLeavingGroupId(null);
+                  }
+                }}
+                disabled={verifyingLeave}
+              >
+                <Ionicons name="close" size={20} color={colors.text.primary} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Are you sure you want to leave this group?
+            </Text>
+
+            <View style={styles.detailSection}>
+              <View style={{ backgroundColor: '#FF9800' + '20', padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.sm }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
+                  <Ionicons name="warning" size={20} color="#FF9800" style={{ marginTop: 2 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.hint, { color: '#FF9800', fontWeight: '600' }]}>
+                      Important Notice
+                    </Text>
+                    <Text style={[styles.hint, { marginTop: spacing.xs }]}>
+                      If this group changes from free to paid, you will be charged the current join price when you rejoin in the future.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => {
+                  if (!verifyingLeave) {
+                    setLeavingGroupId(null);
+                  }
+                }}
+                disabled={verifyingLeave}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtn, styles.modalBtnDanger]}
+                onPress={async () => {
+                  if (!leavingGroupId || !verifiedAddress) {
+                    Alert.alert('Error', 'Missing group or wallet information');
+                    return;
+                  }
+
+                  setVerifyingLeave(true);
+                  try {
+                    // Verify wallet ownership
+                    const walletService = new WalletService();
+                    const walletAccount = await walletService.verifyOnce();
+                    
+                    if (!walletAccount || !walletAccount.address) {
+                      Alert.alert('Error', 'Wallet verification failed. Please try again.');
+                      setVerifyingLeave(false);
+                      return;
+                    }
+
+                    // Verify the address matches
+                    if (walletAccount.address !== verifiedAddress) {
+                      Alert.alert('Error', 'Wallet address mismatch. Please use the wallet you used to join this group.');
+                      setVerifyingLeave(false);
+                      return;
+                    }
+
+                    // Find the group to get its ID
+                    const groupToLeave = publicGroups.find(g => g.id === leavingGroupId) || 
+                                        groups.find(g => g.id === leavingGroupId || g.apiGroupId === leavingGroupId);
+                    
+                    if (!groupToLeave) {
+                      Alert.alert('Error', 'Group not found');
+                      setVerifyingLeave(false);
+                      return;
+                    }
+
+                    // Remove membership from local database
+                    const { dbApi } = await import('../../state/dbApi');
+                    const { run } = await import('../../db/client');
+                    await run('DELETE FROM mastermind_members WHERE groupId=? AND userAddress=?', [leavingGroupId, verifiedAddress]);
+
+                    // Remove from local groups if it's only in local state
+                    const localGroup = groups.find(g => g.id === leavingGroupId || g.apiGroupId === leavingGroupId);
+                    if (localGroup && !publicGroups.find(g => g.id === leavingGroupId)) {
+                      useAppStore.setState((s) => ({
+                        groups: s.groups.filter(g => g.id !== leavingGroupId && g.apiGroupId !== leavingGroupId)
+                      }));
+                    }
+
+                    // Update membership state
+                    setIsMemberOfSelectedGroup(false);
+                    
+                    // Close modals
+                    setShowGroupDetail(false);
+                    setSelectedGroup(null);
+                    setLeavingGroupId(null);
+
+                    // Refresh groups list
+                    await fetchPublicGroups();
+
+                    Alert.alert('Success', 'You have left the group.');
+                  } catch (error: any) {
+                    console.error('[Groups] Error leaving group:', error);
+                    const errorMsg = error?.message || 'Failed to leave group. Please try again.';
+                    if (!errorMsg.toLowerCase().includes('cancel')) {
+                      Alert.alert('Error', errorMsg);
+                    }
+                  } finally {
+                    setVerifyingLeave(false);
+                  }
+                }}
+                disabled={verifyingLeave}
+              >
+                {verifyingLeave ? (
+                  <>
+                    <ActivityIndicator size="small" color={colors.text.primary} style={{ marginRight: spacing.sm }} />
+                    <Text style={[styles.modalBtnText, styles.modalBtnDangerText]}>Verifying...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="exit-outline" size={20} color={colors.error.main} style={{ marginRight: spacing.sm }} />
+                    <Text style={[styles.modalBtnText, styles.modalBtnDangerText]}>Leave Group</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Delete Confirmation Modal */}
       <Modal
         visible={showDeleteConfirm}
