@@ -548,7 +548,19 @@ export const useAppStore = create<State>((set, get) => ({
     }
     
     const normalizedAddress = address.trim();
-    console.log('[Store] Setting verified address (base58):', normalizedAddress.substring(0, 10) + '...');
+    
+    // Clear previous wallet's profile data before setting new wallet
+    // This ensures X account data is not carried over between wallets
+    dbApi.upsertPref('profile.username', '');
+    dbApi.upsertPref('profile.usernameSet', '');
+    dbApi.upsertPref('profile.xHandle', '');
+    dbApi.upsertPref('profile.verified', '');
+    set(() => ({
+      username: null,
+      usernameSet: false,
+      xHandle: null,
+      verified: false,
+    }));
     
     dbApi.upsertPref('verified.address', normalizedAddress);
     dbApi.upsertPref('verified.at', nowIso());
