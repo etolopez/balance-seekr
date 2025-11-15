@@ -119,14 +119,7 @@ export default function GroupsScreen() {
   // Only log once to avoid spam
   useEffect(() => {
     if (selectedCategory && filteredGroups.length === 0 && allGroups.length > 0) {
-      // Category filter debug (removed verbose logging)
-      if (false) { // Disabled debug logging
-        console.log('[Groups] Category filter issue - groups have undefined category:', {
-        selectedCategory,
-        totalGroups: allGroups.length,
-        groupsWithCategories: allGroups.map(g => ({ id: g.id, name: g.name, category: g.category }))
-      });
-    }
+      // Category filter debug logging removed
   }, [selectedCategory, filteredGroups.length, allGroups.length]);
   
   const displayGroups = filteredGroups;
@@ -173,7 +166,7 @@ export default function GroupsScreen() {
             filteredGroups.push(g);
           }
         } catch (error) {
-          console.error('[Groups] Error checking membership for My Masterminds:', error);
+          // Error checking membership (silent fail)
         }
       }
       setMyMastermindsGroups(filteredGroups);
@@ -255,14 +248,14 @@ export default function GroupsScreen() {
             setPublicGroupBackgroundImage(publicUrl);
           }
         } catch (uploadError: any) {
-          console.error('[Groups] Upload error:', uploadError);
+          // Upload error (handled by Alert)
           Alert.alert('Upload Failed', uploadError.message || 'Failed to upload image. Please try again.');
         } finally {
           setUploadingImage(false);
         }
       }
     } catch (error: any) {
-      console.error('[Groups] Error picking image:', error);
+      // Error picking image (handled by Alert)
       setUploadingImage(false);
       // If native module not available, show helpful message
       if (error.message?.includes('native module') || 
@@ -366,7 +359,7 @@ export default function GroupsScreen() {
                             PLATFORM_JOIN_FEE_PERCENTAGE,
                             verifiedAddress // Pass already-connected wallet address
                           );
-                          console.log('[Groups] Payment signatures:', paymentResult);
+                          // Payment signatures received
 
                           // Join the group with payment signature (transaction contains both payments)
                           await joinPublicGroup(group.id, paymentResult.ownerSignature);
@@ -490,18 +483,18 @@ export default function GroupsScreen() {
           <View style={{ alignItems: 'center', marginTop: spacing.md }}>
             <Pressable style={styles.primaryBtn} onPress={async () => {
               try {
-                console.log('[Groups] Starting wallet verification - will open wallet picker...');
+                // Starting wallet verification
                 const svc = new WalletService();
                 // Use verifyOnce which opens the wallet picker/selector
                 const acc = await svc.verifyOnce();
-                console.log('[Groups] Wallet verification successful:', acc.address);
+                // Wallet verification successful
                 if (acc && acc.address) {
                   await setVerified(acc.address);
                 } else {
                   Alert.alert('Wallet verification', 'No address returned from wallet. Please try again.');
                 }
               } catch (e: any) {
-                console.error('[Groups] Wallet verification error:', e);
+                // Wallet verification error (handled by Alert)
                 const errorMsg = e?.message || 'Verification failed. Please try again.';
                 // Provide more helpful error message
                 const displayMsg = errorMsg.includes('cancel') || errorMsg.includes('reject') 
@@ -653,7 +646,7 @@ export default function GroupsScreen() {
                           const isMember = isOwner || await apiService.checkMembership(groupToShow.id, verifiedAddress);
                           setIsMemberOfSelectedGroup(isMember);
                         } catch (error) {
-                          console.error('[Groups] Error checking membership:', error);
+                          // Error checking membership (silent fail)
                           setIsMemberOfSelectedGroup(false);
                         } finally {
                           setCheckingMembership(false);
@@ -777,20 +770,20 @@ export default function GroupsScreen() {
                                       isMember = false;
                                     }
                                   } catch (error) {
-                                    console.error('[Groups] Error checking backend membership:', error);
+                                    // Error checking backend membership (silent fail)
                                     // Keep local membership state if backend check fails
                                   }
                                 }
                                 // If local says NOT a member, trust it - don't check backend
                               } catch (error) {
-                                console.error('[Groups] Error checking local membership:', error);
+                                // Error checking local membership (silent fail)
                                 isMember = false;
                               }
                             }
                             
                             setIsMemberOfSelectedGroup(isMember);
                           } catch (error) {
-                            console.error('[Groups] Error checking membership:', error);
+                            // Error checking membership (silent fail)
                             setIsMemberOfSelectedGroup(false);
                           } finally {
                             setCheckingMembership(false);
@@ -1181,7 +1174,7 @@ export default function GroupsScreen() {
 
                     Alert.alert('Success', 'You have left the group.');
                   } catch (error: any) {
-                    console.error('[Groups] Error leaving group:', error);
+                    // Error leaving group (handled by Alert)
                     const errorMsg = error?.message || 'Failed to leave group. Please try again.';
                     if (!errorMsg.toLowerCase().includes('cancel')) {
                       Alert.alert('Error', errorMsg);
@@ -1316,7 +1309,9 @@ export default function GroupsScreen() {
                                          (groups.find(g => g.id === deletingGroupId)?.apiGroupId) || 
                                          deletingGroupId;
                     
-                    console.log('[Groups] Deleting group:', {
+                    // Deleting group (removed verbose logging)
+                    if (false) { // Disabled
+                      console.log('[Groups] Deleting group:', {
                       deletingGroupId,
                       backendGroupId,
                       groupToDelete: groupToDelete?.name,
@@ -1344,7 +1339,7 @@ export default function GroupsScreen() {
                     setDeletingGroupId(null);
                     setDeletingGroupName('');
                   } catch (error: any) {
-                    console.error('[Groups] Error deleting group:', error);
+                    // Error deleting group (handled by Alert)
                     Alert.alert('Error', error.message || 'Failed to delete group. Please try again.');
                   } finally {
                     setVerifyingDelete(false);
@@ -1534,7 +1529,7 @@ export default function GroupsScreen() {
                           // Refresh from backend to get latest data
                           fetchPublicGroups();
                         }).catch((error: any) => {
-                          console.error('[Groups] Background sync error (non-blocking):', error);
+                          // Background sync error (non-blocking, silent fail)
                           // Revert optimistic update on error
                           fetchPublicGroups();
                         });
