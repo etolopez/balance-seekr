@@ -476,15 +476,18 @@ const styles = StyleSheet.create({
   },
   intentionBox: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: borderRadius['2xl'],
+    borderRadius: 0, // Remove border radius to touch edges
     padding: spacing.lg,
     width: '100%',
-    borderWidth: 1,
+    borderWidth: 0, // Remove side borders
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.25)',
     marginTop: spacing.md,
     marginHorizontal: -spacing['2xl'], // Negative margin to touch screen edges
     gap: spacing.xs,
     overflow: 'hidden',
+    alignSelf: 'stretch', // Ensure it stretches to full width
   },
   goalHeader: {
     fontWeight: typography.weights.bold,
@@ -492,14 +495,12 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
     marginTop: spacing.xs,
     marginBottom: spacing.xs,
-    textAlign: 'center',
   },
   goalSubHeader: {
     fontWeight: typography.weights.medium,
     color: colors.text.secondary,
     fontSize: typography.sizes.sm,
     marginTop: spacing.sm,
-    textAlign: 'center',
   },
   goalText: {
     color: colors.text.secondary,
