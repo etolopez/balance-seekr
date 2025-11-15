@@ -21,15 +21,15 @@ Your X API credentials have been added to `backend/.env` for local development. 
 
 **Variable 1:**
 - **Name**: `X_BEARER_TOKEN`
-- **Value**: `AAAAAAAAAAAAAAAAAAAAAJ3K5QEAAAAAzfMcIoWLMksWE9luuQ9mqeJ92mc=7CMW6XAjbRCWTY6qgW5rUJDQAflgHBfNuqkOirR0IcQWiNoT87`
+- **Value**: `<yourtoken>`
 
 **Variable 2:**
 - **Name**: `X_ACCESS_TOKEN`
-- **Value**: `1360260811193786375-dlEPz8ElZsvjrJd0akXBnZMu38x4e7`
+- **Value**: `<yourtoken>`
 
 **Variable 3:**
 - **Name**: `X_ACCESS_TOKEN_SECRET`
-- **Value**: `Mqyyb42cCWPJMunV07LeajdWTl0wlEUOqT43pc5yr6gYg`
+- **Value**: `<yourtoken>`
 
 ### 3. Deploy
 

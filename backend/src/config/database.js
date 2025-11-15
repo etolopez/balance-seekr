@@ -18,7 +18,13 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
   console.error('[Database] Unexpected error on idle client:', err);
-  process.exit(-1);
+  // Don't exit immediately - let the application handle it
+  // This prevents Railway from killing the service on transient errors
+  console.error('[Database] Error details:', {
+    message: err.message,
+    code: err.code,
+    stack: err.stack
+  });
 });
 
 // Helper function to execute queries

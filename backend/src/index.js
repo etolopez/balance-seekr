@@ -88,27 +88,63 @@ async function startServer() {
     console.log('[Server] Starting server...');
     console.log(`[Server] PORT: ${PORT}`);
     console.log(`[Server] NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`[Server] DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'NOT SET'}`);
+    
+    // Check for required environment variables
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      console.error('[Server] ❌ DATABASE_URL is not set!');
+      console.error('[Server] Please set DATABASE_URL in Railway environment variables.');
+      console.error('[Server] Railway should automatically provide this when you add a PostgreSQL service.');
+      process.exit(1);
+      return;
+    }
+    
+    console.log(`[Server] DATABASE_URL: ${databaseUrl.substring(0, 20)}... (hidden)`);
+    
+    // Test database connection first
+    console.log('[Server] Testing database connection...');
+    const { pool } = await import('./config/database.js');
+    try {
+      const testQuery = await pool.query('SELECT NOW()');
+      console.log('[Server] ✅ Database connection successful');
+      console.log(`[Server] Database time: ${testQuery.rows[0].now}`);
+    } catch (dbError) {
+      console.error('[Server] ❌ Database connection failed:', dbError.message);
+      console.error('[Server] Error code:', dbError.code);
+      console.error('[Server] Please check:');
+      console.error('[Server] 1. PostgreSQL service is running in Railway');
+      console.error('[Server] 2. DATABASE_URL is correctly set');
+      console.error('[Server] 3. Database is accessible from Railway network');
+      throw dbError;
+    }
     
     // Initialize database tables
-    console.log('[Server] Initializing database...');
+    console.log('[Server] Initializing database tables...');
     await initializeDatabase();
-    console.log('[Server] Database initialized successfully');
+    console.log('[Server] ✅ Database initialized successfully');
 
     // Start server - Railway requires listening on 0.0.0.0
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`[Server] ✅ Server running on port ${PORT}`);
       console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`[Server] Health check: http://0.0.0.0:${PORT}/health`);
+      console.log(`[Server] Root endpoint: http://0.0.0.0:${PORT}/`);
     });
   } catch (error) {
     console.error('[Server] ❌ Failed to start:', error);
     console.error('[Server] Error details:', {
       message: error.message,
       stack: error.stack,
-      code: error.code
+      code: error.code,
+      errno: error.errno,
+      syscall: error.syscall
     });
-    process.exit(1);
+    
+    // Give Railway time to capture logs before exiting
+    setTimeout(() => {
+      console.error('[Server] Exiting due to startup failure...');
+      process.exit(1);
+    }, 2000);
   }
 }
 
