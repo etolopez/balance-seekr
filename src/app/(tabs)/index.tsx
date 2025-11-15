@@ -477,7 +477,10 @@ const styles = StyleSheet.create({
   intentionBox: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 0, // Remove border radius to touch edges
-    padding: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+    paddingLeft: spacing['2xl'], // Match parent container padding for content alignment
+    paddingRight: spacing['2xl'], // Match parent container padding for content alignment
     width: '100%',
     borderWidth: 0, // Remove side borders
     borderTopWidth: 1,
@@ -486,8 +489,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     marginLeft: -spacing['2xl'], // Negative margin to touch left edge
     marginRight: -spacing['2xl'], // Negative margin to touch right edge
-    paddingLeft: spacing['2xl'], // Add padding back inside to maintain content spacing
-    paddingRight: spacing['2xl'], // Add padding back inside to maintain content spacing
     gap: spacing.xs,
     overflow: 'hidden',
     alignSelf: 'stretch', // Ensure it stretches to full width
