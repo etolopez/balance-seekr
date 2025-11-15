@@ -148,6 +148,15 @@ router.post('/x-sync',
       // Clean handle (remove @ if present)
       const cleanHandle = xHandle.replace(/^@/, '');
 
+      // Check if this X handle is already synced to a different wallet
+      const existingUser = await getUserByXHandle(cleanHandle);
+      if (existingUser && existingUser.wallet_address !== userAddress) {
+        return res.status(409).json({
+          success: false,
+          message: `This X account (@${cleanHandle}) is already synced to another wallet address. Each X account can only be synced to one wallet.`,
+        });
+      }
+
       // Get X API credentials from environment (NEVER expose to frontend)
       // These are only checked at runtime, not during build
       // Using alternative names to avoid Railway's secret detection during build

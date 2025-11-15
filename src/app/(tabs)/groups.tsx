@@ -2587,7 +2587,16 @@ export default function GroupsScreen() {
                       await dbApi2.upsertPref('x_oauth_token', '');
                       Alert.alert('Success', `X account @${result.screenName} synced successfully!`);
                     } catch (error: any) {
-                      Alert.alert('Error', error.message || 'Failed to verify PIN');
+                      const errorMessage = error.message || 'Failed to verify PIN';
+                      // Check if it's a 409 conflict (X account already synced)
+                      if (errorMessage.includes('already synced to another wallet')) {
+                        Alert.alert(
+                          'X Account Already Synced',
+                          `This X account is already synced to another wallet. Each X account can only be linked to one wallet address.`,
+                        );
+                      } else {
+                        Alert.alert('Error', errorMessage);
+                      }
                     } finally {
                       setVerifyingPin(false);
                     }
