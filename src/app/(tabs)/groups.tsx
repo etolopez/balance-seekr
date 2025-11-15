@@ -2078,7 +2078,13 @@ export default function GroupsScreen() {
                                 )}
                                 <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.sm, alignItems: 'center' }}>
                                   <Link href={`/masterminds/${item.id}`} asChild>
-                                    <Pressable style={[styles.myMastermindCardBtn, { flex: 1, minWidth: '60%' }]}>
+                                    <Pressable style={[styles.myMastermindCardBtn, { 
+                                      flex: 1, 
+                                      minWidth: '60%',
+                                      backgroundColor: 'rgba(123, 97, 255, 0.3)',
+                                      borderColor: colors.primary.main,
+                                      borderWidth: 2
+                                    }]}>
                                       <Text style={styles.myMastermindCardBtnText}>Open</Text>
                                     </Pressable>
                                   </Link>
