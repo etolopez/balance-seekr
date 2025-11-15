@@ -2434,6 +2434,7 @@ export default function GroupsScreen() {
                     }
 
                     if (!xOAuthToken) {
+                      console.error('[Groups] OAuth token is null when trying to verify PIN');
                       Alert.alert('Error', 'OAuth session expired. Please try again.');
                       setShowXPinModal(false);
                       setXPinCode('');
@@ -2447,7 +2448,13 @@ export default function GroupsScreen() {
                       let oauthData;
                       try {
                         oauthData = JSON.parse(xOAuthToken);
+                        console.log('[Groups] Parsed OAuth data:', { 
+                          hasToken: !!oauthData.oauthToken, 
+                          hasAddress: !!oauthData.userAddress,
+                          hasBackendUrl: !!oauthData.backendUrl 
+                        });
                       } catch (e) {
+                        console.warn('[Groups] Failed to parse OAuth token as JSON, using fallback:', e);
                         // Fallback: if it's not JSON, treat it as just the token (legacy)
                         const Constants = await import('expo-constants');
                         const backendUrl = Constants.default.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
@@ -2459,6 +2466,10 @@ export default function GroupsScreen() {
                           userAddress: verifiedAddress,
                           backendUrl,
                         };
+                      }
+
+                      if (!oauthData.oauthToken) {
+                        throw new Error('OAuth token is missing');
                       }
 
                       const { XOAuthService } = await import('../../services/x-oauth.service');
