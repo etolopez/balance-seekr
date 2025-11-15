@@ -96,6 +96,8 @@ export default function GroupsScreen() {
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
   const [deletingGroupName, setDeletingGroupName] = useState<string>('');
   const [verifyingDelete, setVerifyingDelete] = useState(false);
+  const [leavingGroupId, setLeavingGroupId] = useState<string | null>(null);
+  const [verifyingLeave, setVerifyingLeave] = useState(false);
   const apiService = new ApiService();
   const seeker = detectSeeker();
   const useSiws = seeker.isSeeker && (process.env.EXPO_PUBLIC_USE_SIWS === '1' || process.env.EXPO_PUBLIC_USE_SIWS === 'true');
@@ -883,6 +885,20 @@ export default function GroupsScreen() {
                       <Ionicons name="chatbubbles" size={24} color={colors.text.primary} style={{ marginRight: spacing.sm }} />
                       <Text style={styles.openChatButtonText}>Open Chat</Text>
                     </Pressable>
+                    
+                    {/* Leave Group Button - Only show for non-owners who are members */}
+                    {selectedGroup.ownerAddress !== verifiedAddress && (
+                      <Pressable
+                        style={[styles.modalBtn, styles.modalBtnDanger, { marginTop: spacing.sm }]}
+                        onPress={() => {
+                          setLeavingGroupId(selectedGroup.id);
+                        }}
+                        disabled={verifyingLeave}
+                      >
+                        <Ionicons name="exit-outline" size={20} color={colors.error.main} style={{ marginRight: spacing.sm }} />
+                        <Text style={[styles.modalBtnText, styles.modalBtnDangerText]}>Leave Group</Text>
+                      </Pressable>
+                    )}
                   </View>
                 )}
 
