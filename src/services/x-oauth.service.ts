@@ -1,14 +1,16 @@
 /**
  * X (Twitter) OAuth Service
  * Handles X account authentication via OAuth flow
+ * 
+ * Note: Full OAuth flow requires deep linking setup.
+ * For now, we'll use a simplified approach that opens X in browser
+ * and uses a web-based callback page.
  */
 
-import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import { ApiService } from './api.service';
-
-// Complete the auth session for better UX
-WebBrowser.maybeCompleteAuthSession();
+import { Alert } from 'react-native';
 
 export interface XOAuthResult {
   screenName: string; // X username without @
@@ -25,7 +27,10 @@ export class XOAuthService {
 
   /**
    * Initiate X OAuth flow
-   * Opens X authentication in browser and returns user info
+   * Opens X authentication in browser
+   * 
+   * Note: This uses a simplified flow where the user completes OAuth in browser
+   * and the backend automatically syncs the account when callback is received.
    */
   async authenticate(userAddress: string): Promise<XOAuthResult> {
     try {
@@ -34,7 +39,7 @@ export class XOAuthService {
         throw new Error('Backend API URL not configured');
       }
 
-      // Generate redirect URI for OAuth callback
+      // Generate redirect URI - use a web page that shows success message
       const redirectUri = `${backendUrl}/api/auth/x/callback?userAddress=${encodeURIComponent(userAddress)}`;
       
       // Step 1: Get authorization URL from backend
@@ -54,49 +59,80 @@ export class XOAuthService {
       }
 
       // Step 2: Open X authorization in browser
-      const result = await WebBrowser.openAuthSessionAsync(
-        authUrl,
-        redirectUri
-      );
-
-      if (result.type !== 'success' || !result.url) {
-        throw new Error('X authentication was cancelled or failed');
+      const canOpen = await Linking.canOpenURL(authUrl);
+      if (!canOpen) {
+        throw new Error('Cannot open X authentication URL');
       }
 
-      // Step 3: Extract callback data from URL
-      const url = new URL(result.url);
-      const oauthToken = url.searchParams.get('oauth_token');
-      const oauthVerifier = url.searchParams.get('oauth_verifier');
-
-      if (!oauthToken || !oauthVerifier) {
-        throw new Error('Invalid OAuth callback - missing parameters');
-      }
-
-      // Step 4: Complete OAuth flow via backend
-      const callbackResponse = await fetch(
-        `${backendUrl}/api/auth/x/callback?oauth_token=${oauthToken}&oauth_verifier=${oauthVerifier}`
-      );
-
-      if (!callbackResponse.ok) {
-        const error = await callbackResponse.json().catch(() => ({ message: callbackResponse.statusText }));
-        throw new Error(error.message || 'Failed to complete X OAuth');
-      }
-
-      const userData = await callbackResponse.json();
-
-      if (!userData.success || !userData.screenName) {
-        throw new Error('Failed to get X username from OAuth');
-      }
-
-      return {
-        screenName: userData.screenName,
-        userId: userData.userId || '',
-        verified: userData.verified || false,
-      };
+      // Show instructions to user
+      return new Promise((resolve, reject) => {
+        Alert.alert(
+          'Open X to Authenticate',
+          'You will be redirected to X to authenticate your account. After authorizing, return to this app and your X username will be automatically synced.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => reject(new Error('X authentication cancelled')),
+            },
+            {
+              text: 'Open X',
+              onPress: async () => {
+                try {
+                  // Open the auth URL in browser
+                  await Linking.openURL(authUrl);
+                  
+                  // Poll the backend to check if OAuth completed
+                  // The backend will automatically sync when callback is received
+                  const maxAttempts = 30; // 30 seconds max
+                  let attempts = 0;
+                  
+                  const checkInterval = setInterval(async () => {
+                    attempts++;
+                    
+                    try {
+                      // Check if user profile has been updated with X handle
+                      const { ApiService } = await import('./api.service');
+                      const apiService = new ApiService();
+                      const profile = await apiService.getUserProfile(userAddress);
+                      
+                      if (profile.xHandle) {
+                        clearInterval(checkInterval);
+                        resolve({
+                          screenName: profile.xHandle,
+                          userId: '',
+                          verified: profile.verified || false,
+                        });
+                      } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('X authentication timed out. Please try again.'));
+                      }
+                    } catch (error) {
+                      // Continue polling
+                      if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Failed to verify X authentication. Please try again.'));
+                      }
+                    }
+                  }, 1000); // Check every second
+                  
+                  // Show a message that we're waiting
+                  Alert.alert(
+                    'Authenticating...',
+                    'Please complete the authentication in X, then return to this app. We will automatically detect when you\'re done.',
+                    [{ text: 'OK' }]
+                  );
+                } catch (error: any) {
+                  reject(error);
+                }
+              },
+            },
+          ]
+        );
+      });
     } catch (error: any) {
       console.error('[XOAuth] Authentication error:', error);
       throw error;
     }
   }
 }
-
