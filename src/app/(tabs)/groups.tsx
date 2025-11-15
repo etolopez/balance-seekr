@@ -331,7 +331,7 @@ export default function GroupsScreen() {
     }
 
     // Confirm join
-    const priceText = group.joinPrice === 0 ? 'free' : `${group.joinPrice} SOL`;
+    const priceText = (!group.joinPrice || Number(group.joinPrice) === 0 || Number(group.joinPrice) < 0.0001) ? 'free' : `${group.joinPrice} SOL`;
     Alert.alert(
       'Join Group',
       `Join "${group.name}" for ${priceText}?`,
