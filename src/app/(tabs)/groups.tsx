@@ -1022,7 +1022,7 @@ export default function GroupsScreen() {
                         <ActivityIndicator color={colors.text.primary} size="small" />
                       ) : (
                         <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>
-                          {(!selectedGroup.joinPrice || selectedGroup.joinPrice === 0) ? 'Join for Free' : `Join for ${selectedGroup.joinPrice} SOL`}
+                          {(!selectedGroup.joinPrice || Number(selectedGroup.joinPrice) === 0 || Number(selectedGroup.joinPrice) < 0.0001) ? 'Join for Free' : `Join for ${selectedGroup.joinPrice} SOL`}
                         </Text>
                       )}
                     </Pressable>
