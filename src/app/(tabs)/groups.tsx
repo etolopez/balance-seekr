@@ -2256,73 +2256,134 @@ export default function GroupsScreen() {
               {/* X Account Sync */}
               <View style={styles.detailSection}>
                 <Text style={styles.label}>X (Twitter) Account</Text>
-                <Text style={styles.hint}>
-                  Sync your X account to get a verified badge on your username. This will open X to authenticate.
-                </Text>
-                <Pressable
-                  style={[styles.modalBtn, styles.modalBtnPrimary, syncingX && styles.modalBtnDisabled, { width: '100%', marginTop: spacing.sm }]}
-                  onPress={async () => {
-                    if (!verifiedAddress) {
-                      Alert.alert('Error', 'Wallet not connected');
-                      return;
-                    }
+                {!xHandle ? (
+                  <>
+                    <Text style={styles.hint}>
+                      Sync your X account to get a verified badge on your username. This will open X to authenticate.
+                    </Text>
+                    <Pressable
+                      style={[styles.modalBtn, styles.modalBtnPrimary, syncingX && styles.modalBtnDisabled, { width: '100%', marginTop: spacing.sm }]}
+                      onPress={async () => {
+                        if (!verifiedAddress) {
+                          Alert.alert('Error', 'Wallet not connected');
+                          return;
+                        }
+                        
+                        setSyncingX(true);
+                        try {
+                          // OAuth flow - opens X and prompts for PIN
+                          const { XOAuthService } = await import('../../services/x-oauth.service');
+                          const xOAuth = new XOAuthService();
+                          
+                          const result = await xOAuth.authenticate(verifiedAddress);
+                          
+                          // Get OAuth token for PIN verification
+                          // Store the service instance or token before opening X
+                          const oauthData = xOAuth.getCurrentOAuthToken();
+                          if (!oauthData) {
+                            throw new Error('Failed to get OAuth token');
+                          }
+                          
+                          // Store OAuth token AND backend URL in state AND database for PIN verification
+                          // Store in database to persist across app switches
+                          const tokenData = JSON.stringify({
+                            oauthToken: oauthData.oauthToken,
+                            userAddress: oauthData.userAddress,
+                            backendUrl: oauthData.backendUrl,
+                            timestamp: Date.now(), // Add timestamp for expiration check
+                          });
+                          
+                          // Store in both state and database
+                          setXOAuthToken(tokenData);
+                          const { dbApi } = await import('../../state/dbApi');
+                          await dbApi.upsertPref('x_oauth_token', tokenData);
+                          
+                          console.log('[Groups] Stored OAuth token:', { 
+                            hasToken: !!oauthData.oauthToken,
+                            tokenLength: oauthData.oauthToken?.length,
+                            storedLength: tokenData.length 
+                          });
+                          
+                          // Show PIN entry modal immediately
+                          setShowXPinModal(true);
+                          setXPinCode('');
+                        } catch (error: any) {
+                          Alert.alert('Error', error.message || 'Failed to initiate X OAuth');
+                        } finally {
+                          setSyncingX(false);
+                        }
+                      }}
+                      disabled={syncingX}
+                    >
+                      {syncingX ? (
+                        <ActivityIndicator size="small" color={colors.text.primary} />
+                      ) : (
+                        <Text style={styles.modalBtnText}>Sync with X</Text>
+                      )}
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.xAccountInfo}>
+                      {/* X Profile Picture */}
+                      <Image
+                        source={{ 
+                          uri: `https://unavatar.io/twitter/${xHandle}` 
+                        }}
+                        style={styles.xProfilePicture}
+                        defaultSource={require('../../assets/default-avatar.png')}
+                      />
+                      
+                      {/* X Account Details */}
+                      <View style={styles.xAccountDetails}>
+                        <View style={styles.xAccountRow}>
+                          <Text style={styles.xHandleText}>@{xHandle}</Text>
+                          {verified && (
+                            <View style={styles.verifiedBadge}>
+                              <Ionicons name="checkmark-circle" size={14} color={colors.success.main} />
+                              <Text style={styles.verifiedText}>Verified</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.xAccountHint}>X account is synced</Text>
+                      </View>
+                    </View>
                     
-                    setSyncingX(true);
-                    try {
-                      // OAuth flow - opens X and prompts for PIN
-                      const { XOAuthService } = await import('../../services/x-oauth.service');
-                      const xOAuth = new XOAuthService();
-                      
-                      const result = await xOAuth.authenticate(verifiedAddress);
-                      
-                      // Get OAuth token for PIN verification
-                      // Store the service instance or token before opening X
-                      const oauthData = xOAuth.getCurrentOAuthToken();
-                      if (!oauthData) {
-                        throw new Error('Failed to get OAuth token');
-                      }
-                      
-                      // Store OAuth token AND backend URL in state AND database for PIN verification
-                      // Store in database to persist across app switches
-                      const tokenData = JSON.stringify({
-                        oauthToken: oauthData.oauthToken,
-                        userAddress: oauthData.userAddress,
-                        backendUrl: oauthData.backendUrl,
-                        timestamp: Date.now(), // Add timestamp for expiration check
-                      });
-                      
-                      // Store in both state and database
-                      setXOAuthToken(tokenData);
-                      const { dbApi } = await import('../../state/dbApi');
-                      await dbApi.upsertPref('x_oauth_token', tokenData);
-                      
-                      console.log('[Groups] Stored OAuth token:', { 
-                        hasToken: !!oauthData.oauthToken,
-                        tokenLength: oauthData.oauthToken?.length,
-                        storedLength: tokenData.length 
-                      });
-                      
-                      // Show PIN entry modal immediately
-                      setShowXPinModal(true);
-                      setXPinCode('');
-                    } catch (error: any) {
-                      Alert.alert('Error', error.message || 'Failed to initiate X OAuth');
-                    } finally {
-                      setSyncingX(false);
-                    }
-                  }}
-                  disabled={syncingX}
-                >
-                  {syncingX ? (
-                    <ActivityIndicator size="small" color={colors.text.primary} />
-                  ) : (
-                    <Text style={styles.modalBtnText}>Sync with X</Text>
-                  )}
-                </Pressable>
-                {xHandle && (
-                  <Text style={[styles.hint, { marginTop: spacing.sm }]}>
-                    Currently synced: @{xHandle} {verified && '✓ Verified'}
-                  </Text>
+                    {/* Disconnect Button */}
+                    <Pressable
+                      style={[styles.modalBtn, styles.disconnectBtn, { width: '100%', marginTop: spacing.sm }]}
+                      onPress={() => {
+                        Alert.alert(
+                          'Disconnect X Account',
+                          'Are you sure you want to disconnect your X account? You can reconnect it later.',
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                              text: 'Disconnect',
+                              style: 'destructive',
+                              onPress: async () => {
+                                try {
+                                  const { dbApi } = await import('../../state/dbApi');
+                                  await dbApi.upsertPref('profile.xHandle', '');
+                                  await dbApi.upsertPref('profile.verified', 'false');
+                                  useAppStore.setState({
+                                    xHandle: '',
+                                    verified: false,
+                                  });
+                                  Alert.alert('Disconnected', 'X account has been disconnected.');
+                                } catch (error: any) {
+                                  Alert.alert('Error', 'Failed to disconnect X account');
+                                }
+                              },
+                            },
+                          ]
+                        );
+                      }}
+                    >
+                      <Ionicons name="log-out-outline" size={18} color={colors.error.main} />
+                      <Text style={styles.disconnectBtnText}>Disconnect X Account</Text>
+                    </Pressable>
+                  </>
                 )}
               </View>
 
