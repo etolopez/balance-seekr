@@ -41,7 +41,6 @@ export default function GroupsScreen() {
   const [tempUsername, setTempUsername] = useState(username || '');
   const [showEditModal, setShowEditModal] = useState(false);
   const [syncingX, setSyncingX] = useState(false);
-  const [tempXHandle, setTempXHandle] = useState(xHandle || '');
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showPublicModal, setShowPublicModal] = useState(false);
