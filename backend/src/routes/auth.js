@@ -49,21 +49,16 @@ router.get('/x/authorize', async (req, res) => {
       });
     }
 
-    const { redirect_uri, userAddress } = req.query;
-
-    if (!redirect_uri) {
-      return res.status(400).json({
-        success: false,
-        message: 'redirect_uri is required',
-      });
-    }
+    const { userAddress } = req.query;
 
     // Step 1: Request OAuth token
+    // For mobile apps, X requires oauth_callback='oob' (out-of-band)
+    // This means the user will get a PIN code to enter manually
     const requestData = {
       url: 'https://api.twitter.com/oauth/request_token',
       method: 'POST',
       data: { 
-        oauth_callback: redirect_uri,
+        oauth_callback: 'oob', // Required for mobile/desktop apps
       },
     };
 
@@ -111,6 +106,8 @@ router.get('/x/authorize', async (req, res) => {
       success: true,
       authUrl,
       oauthToken,
+      // Note: With 'oob' callback, user will get a PIN code after authorizing
+      // They need to enter this PIN to complete the flow
     });
   } catch (error) {
     console.error('[Auth] Error initiating X OAuth:', error);
@@ -122,18 +119,18 @@ router.get('/x/authorize', async (req, res) => {
 });
 
 /**
- * GET /api/auth/x/callback
- * Handle X OAuth callback
- * Exchanges verifier for access token and returns user info
+ * POST /api/auth/x/verify-pin
+ * Verify OAuth PIN code (for mobile apps using 'oob' callback)
+ * Exchanges PIN for access token and returns user info
  */
-router.get('/x/callback', async (req, res) => {
+router.post('/x/verify-pin', async (req, res) => {
   try {
-    const { oauth_token, oauth_verifier } = req.query;
+    const { oauth_token, oauth_verifier, userAddress } = req.body;
 
     if (!oauth_token || !oauth_verifier) {
       return res.status(400).json({
         success: false,
-        message: 'Missing OAuth parameters',
+        message: 'Missing OAuth parameters (oauth_token and oauth_verifier/PIN required)',
       });
     }
 
@@ -142,11 +139,13 @@ router.get('/x/callback', async (req, res) => {
     if (!stored) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid or expired OAuth token',
+        message: 'Invalid or expired OAuth token. Please start the authentication process again.',
       });
     }
 
-    const { oauthTokenSecret, userAddress } = stored;
+    const { oauthTokenSecret } = stored;
+    // Use userAddress from request body if provided, otherwise from stored token
+    const finalUserAddress = userAddress || stored.userAddress;
 
     // Step 3: Exchange verifier for access token
     const requestData = {
