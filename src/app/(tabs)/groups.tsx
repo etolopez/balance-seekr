@@ -98,6 +98,7 @@ export default function GroupsScreen() {
   const [verifyingDelete, setVerifyingDelete] = useState(false);
   const [leavingGroupId, setLeavingGroupId] = useState<string | null>(null);
   const [verifyingLeave, setVerifyingLeave] = useState(false);
+  const [myMastermindsGroups, setMyMastermindsGroups] = useState<any[]>([]);
   const apiService = new ApiService();
   const seeker = detectSeeker();
   const useSiws = seeker.isSeeker && (process.env.EXPO_PUBLIC_USE_SIWS === '1' || process.env.EXPO_PUBLIC_USE_SIWS === 'true');
