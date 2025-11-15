@@ -119,7 +119,9 @@ export default function GroupsScreen() {
   // Only log once to avoid spam
   useEffect(() => {
     if (selectedCategory && filteredGroups.length === 0 && allGroups.length > 0) {
-      console.log('[Groups] Category filter issue - groups have undefined category:', {
+      // Category filter debug (removed verbose logging)
+      if (false) { // Disabled debug logging
+        console.log('[Groups] Category filter issue - groups have undefined category:', {
         selectedCategory,
         totalGroups: allGroups.length,
         groupsWithCategories: allGroups.map(g => ({ id: g.id, name: g.name, category: g.category }))
