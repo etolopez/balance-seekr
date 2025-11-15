@@ -37,7 +37,6 @@ export default function GroupsScreen() {
   const fetchPublicGroups = useAppStore((s) => s.fetchPublicGroups);
   const joinPublicGroup = useAppStore((s) => s.joinPublicGroup);
   const updateGroupJoinPrice = useAppStore((s) => s.updateGroupJoinPrice);
-  const [manualAddr, setManualAddr] = useState('');
   const [editingUsername, setEditingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState(username || '');
   const [showEditModal, setShowEditModal] = useState(false);
