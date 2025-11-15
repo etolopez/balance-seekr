@@ -2282,13 +2282,25 @@ export default function GroupsScreen() {
                         throw new Error('Failed to get OAuth token');
                       }
                       
-                      // Store OAuth token AND backend URL in state for PIN verification
-                      // We need to store all the data needed for verification
-                      setXOAuthToken(JSON.stringify({
+                      // Store OAuth token AND backend URL in state AND database for PIN verification
+                      // Store in database to persist across app switches
+                      const tokenData = JSON.stringify({
                         oauthToken: oauthData.oauthToken,
                         userAddress: oauthData.userAddress,
                         backendUrl: oauthData.backendUrl,
-                      }));
+                        timestamp: Date.now(), // Add timestamp for expiration check
+                      });
+                      
+                      // Store in both state and database
+                      setXOAuthToken(tokenData);
+                      const { dbApi } = await import('../../state/dbApi');
+                      await dbApi.upsertPref('x_oauth_token', tokenData);
+                      
+                      console.log('[Groups] Stored OAuth token:', { 
+                        hasToken: !!oauthData.oauthToken,
+                        tokenLength: oauthData.oauthToken?.length,
+                        storedLength: tokenData.length 
+                      });
                       
                       // Show PIN entry modal immediately
                       setShowXPinModal(true);
@@ -2364,10 +2376,17 @@ export default function GroupsScreen() {
         visible={showXPinModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => {
+        onRequestClose={async () => {
           setShowXPinModal(false);
           setXPinCode('');
           setXOAuthToken(null);
+          // Clear from database too
+          try {
+            const { dbApi } = await import('../../state/dbApi');
+            await dbApi.upsertPref('x_oauth_token', '');
+          } catch (error) {
+            console.error('[Groups] Error clearing OAuth token:', error);
+          }
         }}
       >
         <View style={styles.modalOverlay}>
@@ -2379,10 +2398,17 @@ export default function GroupsScreen() {
               </View>
               <Pressable
                 style={styles.modalCloseBtn}
-                onPress={() => {
+                onPress={async () => {
                   setShowXPinModal(false);
                   setXPinCode('');
                   setXOAuthToken(null);
+                  // Clear from database too
+                  try {
+                    const { dbApi } = await import('../../state/dbApi');
+                    await dbApi.upsertPref('x_oauth_token', '');
+                  } catch (error) {
+                    console.error('[Groups] Error clearing OAuth token:', error);
+                  }
                 }}
               >
                 <Ionicons name="close" size={20} color={colors.text.primary} />
@@ -2412,10 +2438,17 @@ export default function GroupsScreen() {
               <View style={styles.modalButtons}>
                 <Pressable
                   style={[styles.modalBtn, styles.cancelBtn, { flex: 1, marginRight: spacing.xs }]}
-                  onPress={() => {
+                  onPress={async () => {
                     setShowXPinModal(false);
                     setXPinCode('');
                     setXOAuthToken(null);
+                    // Clear from database too
+                    try {
+                      const { dbApi } = await import('../../state/dbApi');
+                      await dbApi.upsertPref('x_oauth_token', '');
+                    } catch (error) {
+                      console.error('[Groups] Error clearing OAuth token:', error);
+                    }
                   }}
                 >
                   <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -2433,12 +2466,29 @@ export default function GroupsScreen() {
                       return;
                     }
 
-                    if (!xOAuthToken) {
+                    // If token is not in state, try loading from database
+                    let tokenToUse = xOAuthToken;
+                    if (!tokenToUse) {
+                      try {
+                        const { dbApi } = await import('../../state/dbApi');
+                        const storedToken = await dbApi.getPref('x_oauth_token');
+                        if (storedToken) {
+                          tokenToUse = storedToken;
+                          setXOAuthToken(storedToken);
+                        }
+                      } catch (error) {
+                        console.error('[Groups] Error loading OAuth token from database:', error);
+                      }
+                    }
+
+                    if (!tokenToUse) {
                       console.error('[Groups] OAuth token is null when trying to verify PIN');
                       Alert.alert('Error', 'OAuth session expired. Please try again.');
                       setShowXPinModal(false);
                       setXPinCode('');
                       setXOAuthToken(null);
+                      const { dbApi } = await import('../../state/dbApi');
+                      await dbApi.upsertPref('x_oauth_token', '');
                       return;
                     }
 
@@ -2447,7 +2497,7 @@ export default function GroupsScreen() {
                       // Parse stored OAuth data
                       let oauthData;
                       try {
-                        oauthData = JSON.parse(xOAuthToken);
+                        oauthData = JSON.parse(tokenToUse);
                         console.log('[Groups] Parsed OAuth data:', { 
                           hasToken: !!oauthData.oauthToken, 
                           hasAddress: !!oauthData.userAddress,
@@ -2494,6 +2544,9 @@ export default function GroupsScreen() {
                       setShowXPinModal(false);
                       setXPinCode('');
                       setXOAuthToken(null); // Clear OAuth token
+                      // Clear from database too
+                      const { dbApi: dbApi2 } = await import('../../state/dbApi');
+                      await dbApi2.upsertPref('x_oauth_token', '');
                       Alert.alert('Success', `X account @${result.screenName} synced successfully!`);
                     } catch (error: any) {
                       Alert.alert('Error', error.message || 'Failed to verify PIN');
