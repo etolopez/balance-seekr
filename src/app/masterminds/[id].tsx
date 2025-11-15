@@ -20,18 +20,30 @@ export default function GroupChat() {
   const group = useMemo(() => groups.find(g => g.id === id), [groups, id]);
   const publicGroup = useMemo(() => publicGroups.find(g => g.id === id || (g as any).apiGroupId === id), [publicGroups, id]);
   const groupData = publicGroup || group;
-  const groupMsgs = useMemo(() => messages.filter(m => m.groupId === id), [messages, id]);
+  
+  // Resolve backend group ID: if it's a public group, use its id; if it's a local group, use apiGroupId or id
+  const backendGroupId = useMemo(() => {
+    if (publicGroup) {
+      return publicGroup.id; // Public groups have backend IDs
+    }
+    if (group?.apiGroupId) {
+      return group.apiGroupId; // Local group with backend ID
+    }
+    return id; // Fallback to the route ID
+  }, [publicGroup, group, id]);
+  
+  const groupMsgs = useMemo(() => messages.filter(m => m.groupId === id || m.groupId === backendGroupId), [messages, id, backendGroupId]);
   const [text, setText] = useState('');
   const listRef = useRef<FlatList>(null);
   const apiService = new ApiService();
 
   // Fetch messages from backend on mount and periodically
   useEffect(() => {
-    if (!id || !verifiedAddress) return;
+    if (!backendGroupId || !verifiedAddress) return;
     
     const fetchMessages = async () => {
       try {
-        const backendMessages = await apiService.getGroupMessages(id);
+        const backendMessages = await apiService.getGroupMessages(backendGroupId);
         // Update local messages with backend data (includes senderUsername)
         if (backendMessages.length > 0) {
           // Merge backend messages with local ones
@@ -59,16 +71,16 @@ export default function GroupChat() {
     fetchMessages();
     const interval = setInterval(fetchMessages, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
-  }, [id, verifiedAddress]);
+  }, [backendGroupId, verifiedAddress]);
 
   const onSend = async () => {
-    if (!text.trim() || !id || !verifiedAddress) return;
+    if (!text.trim() || !backendGroupId || !verifiedAddress) return;
     
     try {
-      // Send to backend first
-      await apiService.sendMessage(id, verifiedAddress, text.trim(), username || undefined);
+      // Send to backend first using backend group ID
+      await apiService.sendMessage(backendGroupId, verifiedAddress, text.trim(), username || undefined);
       
-      // Then add to local state
+      // Then add to local state using local group ID
       sendMessage(id, text.trim());
       setText('');
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);

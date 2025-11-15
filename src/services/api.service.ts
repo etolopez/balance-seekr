@@ -142,7 +142,6 @@ export class ApiService {
    */
   async createPublicGroup(request: CreatePublicGroupRequest): Promise<PublicGroup> {
     try {
-      console.log('[ApiService] Creating public group with request:', {
         name: request.name,
         ownerAddress: request.ownerAddress?.substring(0, 10) + '...',
         joinPrice: request.joinPrice,
@@ -159,8 +158,6 @@ export class ApiService {
       });
 
       const responseText = await response.text();
-      console.log('[ApiService] Backend response status:', response.status);
-      console.log('[ApiService] Backend response:', responseText.substring(0, 200));
 
       if (!response.ok) {
         let error;
@@ -173,7 +170,6 @@ export class ApiService {
       }
 
       const data = JSON.parse(responseText);
-      console.log('[ApiService] Group created successfully:', data.group?.id);
       // Transform snake_case to camelCase for frontend consistency
       return this.transformGroup(data.group || data);
     } catch (error: any) {
@@ -274,7 +270,6 @@ export class ApiService {
       const data = await response.json();
       return data.message;
     } catch (error) {
-      console.error('[ApiService] Error sending message:', error);
       throw error;
     }
   }
