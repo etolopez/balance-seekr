@@ -465,55 +465,15 @@ export default function GroupsScreen() {
   return (
     <LinearGradient colors={[colors.background.gradient.start, colors.background.gradient.end]} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
       <View style={[styles.content, { paddingTop: Math.max(insets.top, spacing.xl) + spacing.lg }]}>
-        <Text style={styles.title}>Masterminds</Text>
-        {/* Profile Section - Username */}
-        <View style={styles.profileCard}>
-          <View style={styles.profileHeader}>
-          <Text style={styles.profileLabel}>Your Profile</Text>
-              <Pressable
-              style={styles.editProfileBtn}
-              onPress={() => setShowEditModal(true)}
-            >
-              <Ionicons name="settings-outline" size={16} color={colors.primary.main} />
-              <Text style={styles.editProfileBtnText}>Edit</Text>
-              </Pressable>
-            </View>
-            <View style={styles.profileRow}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.usernameRow}>
-                <Text style={styles.profileValue}>
-                  {username || 'No username set'}
-                </Text>
-                {verified && (
-                  <View style={styles.verifiedBadge}>
-                    <Ionicons name="checkmark-circle" size={16} color={colors.success.main} />
-                    <Text style={styles.verifiedText}>Verified</Text>
-                  </View>
-                )}
-              </View>
-              {xHandle && (
-                <Text style={styles.xHandleText}>@{xHandle}</Text>
-              )}
-              {verifiedAddress && (
-                <Text style={styles.addressText}>
-                  {verifiedAddress.slice(0, 6)}...{verifiedAddress.slice(-4)}
-                </Text>
-              )}
-            </View>
-          </View>
-          {!usernameSet && (
-              <Pressable
-              style={styles.setUsernameBtn}
-                onPress={() => {
-                setTempUsername('');
-                  setEditingUsername(true);
-                setUsernameError(null);
-                }}
-              >
-              <Ionicons name="person-add-outline" size={16} color={colors.primary.main} />
-              <Text style={styles.setUsernameBtnText}>Set Username</Text>
-              </Pressable>
-          )}
+        {/* Header with title and profile button */}
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Masterminds</Text>
+          <Pressable
+            style={styles.profileIconBtn}
+            onPress={() => setShowEditModal(true)}
+          >
+            <Ionicons name="person-circle" size={32} color={colors.primary.main} />
+          </Pressable>
         </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
