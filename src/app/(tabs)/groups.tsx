@@ -140,6 +140,49 @@ export default function GroupsScreen() {
     }
   }, [xHandle, syncingX]);
 
+  // Update My Masterminds groups when groups, publicGroups, or verifiedAddress changes
+  useEffect(() => {
+    const checkMembership = async () => {
+      if (!verifiedAddress) {
+        setMyMastermindsGroups([]);
+        return;
+      }
+
+      const filteredGroups = [];
+      for (const g of groups) {
+        if (!g.isPublic) continue;
+        
+        // Check if this group exists in publicGroups (backend)
+        const existsInBackend = publicGroups.some(pg => 
+          pg.id === (g as any).apiGroupId || 
+          pg.id === g.id ||
+          (pg as any).apiGroupId === g.id
+        );
+        if (!existsInBackend) continue;
+        
+        // User is owner - always show
+        if (g.ownerAddress === verifiedAddress) {
+          filteredGroups.push(g);
+          continue;
+        }
+        
+        // Check if user is a member (from local database)
+        try {
+          const { dbApi } = await import('../../state/dbApi');
+          const member = await dbApi.getMember(g.id, verifiedAddress);
+          if (member) {
+            filteredGroups.push(g);
+          }
+        } catch (error) {
+          console.error('[Groups] Error checking membership for My Masterminds:', error);
+        }
+      }
+      setMyMastermindsGroups(filteredGroups);
+    };
+
+    checkMembership();
+  }, [groups, publicGroups, verifiedAddress]);
+
   // Fetch public groups on mount
   useEffect(() => {
     if (verifiedAddress) {
