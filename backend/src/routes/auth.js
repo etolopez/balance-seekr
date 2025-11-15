@@ -98,6 +98,13 @@ router.get('/x/authorize', async (req, res) => {
     } else {
       oauthTokenStore.set(oauthToken, { oauthTokenSecret });
     }
+    
+    console.log('[Auth] Stored OAuth token:', {
+      tokenPrefix: oauthToken.substring(0, 10),
+      hasSecret: !!oauthTokenSecret,
+      hasUserAddress: !!userAddress,
+      storeSize: oauthTokenStore.size
+    });
 
     // Step 2: Generate authorization URL
     const authUrl = `https://api.twitter.com/oauth/authorize?oauth_token=${oauthToken}`;
@@ -127,6 +134,16 @@ router.post('/x/verify-pin', async (req, res) => {
   try {
     const { oauth_token, oauth_verifier, userAddress } = req.body;
 
+    console.log('[Auth] PIN verification request:', {
+      hasOAuthToken: !!oauth_token,
+      oauthTokenLength: oauth_token?.length,
+      oauthTokenPrefix: oauth_token?.substring(0, 10),
+      hasVerifier: !!oauth_verifier,
+      verifierLength: oauth_verifier?.length,
+      hasUserAddress: !!userAddress,
+      storeSize: oauthTokenStore.size
+    });
+
     if (!oauth_token || !oauth_verifier) {
       return res.status(400).json({
         success: false,
@@ -136,7 +153,19 @@ router.post('/x/verify-pin', async (req, res) => {
 
     // Retrieve stored token secret
     const stored = oauthTokenStore.get(oauth_token);
+    console.log('[Auth] Token lookup result:', {
+      found: !!stored,
+      hasSecret: !!stored?.oauthTokenSecret,
+      hasUserAddress: !!stored?.userAddress,
+      allTokens: Array.from(oauthTokenStore.keys()).map(k => k.substring(0, 10))
+    });
+    
     if (!stored) {
+      console.error('[Auth] OAuth token not found in store:', {
+        requestedToken: oauth_token?.substring(0, 10),
+        storeSize: oauthTokenStore.size,
+        availableTokens: Array.from(oauthTokenStore.keys()).map(k => k.substring(0, 10))
+      });
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired OAuth token. Please start the authentication process again.',
