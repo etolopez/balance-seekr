@@ -171,7 +171,7 @@ export default function HomeScreen() {
             <>
               {/* Intention for the Week - Separate Section */}
               {weeklyGoal && (
-                <View style={styles.intentionBox}>
+                <View style={styles.goalsBox}>
                   <Text style={styles.goalHeader}>Intention for the Week</Text>
                   <Text style={styles.goalText}>{weeklyGoal}</Text>
                 </View>
@@ -471,23 +471,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.25)',
     marginTop: spacing.md,
-    gap: spacing.xs,
-    overflow: 'hidden',
-  },
-  intentionBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 0, // Remove border radius to touch edges
-    padding: spacing.lg,
-    width: '100%',
-    borderWidth: 0, // Remove side borders
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    marginTop: spacing.md,
-    marginLeft: -spacing['2xl'], // Negative margin to touch left edge
-    marginRight: -spacing['2xl'], // Negative margin to touch right edge
-    paddingLeft: spacing['2xl'] + spacing.lg, // Parent padding + card padding for alignment
-    paddingRight: spacing['2xl'] + spacing.lg, // Parent padding + card padding for alignment
     gap: spacing.xs,
     overflow: 'hidden',
   },
