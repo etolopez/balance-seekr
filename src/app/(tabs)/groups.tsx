@@ -2032,24 +2032,27 @@ export default function GroupsScreen() {
                               const latestGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
                               const finalGroup = latestGroup || item;
                               const groupToShow = { ...finalGroup, backgroundImage: latestGroup?.backgroundImage || backgroundImage } as GroupForDisplay;
+                              
+                              // Since this is from "My Masterminds", user should be a member
+                              // Set membership to true optimistically, then verify
+                              const isOwner = groupToShow.ownerAddress === verifiedAddress;
+                              setIsMemberOfSelectedGroup(true); // Optimistically set to true
+                              
                               setSelectedGroup(groupToShow);
                               setShowGroupDetail(true);
                               
-                              // Check if user is a member (they should be since it's in "My Masterminds")
-                              if (verifiedAddress) {
+                              // Verify membership with backend (but don't block UI)
+                              if (verifiedAddress && !isOwner) {
                                 setCheckingMembership(true);
                                 try {
-                                  const isOwner = groupToShow.ownerAddress === verifiedAddress;
-                                  const isMember = isOwner || await apiService.checkMembership(groupToShow.id, verifiedAddress);
+                                  const isMember = await apiService.checkMembership(groupToShow.id, verifiedAddress);
                                   setIsMemberOfSelectedGroup(isMember);
                                 } catch (error) {
                                   console.error('[Groups] Error checking membership:', error);
-                                  setIsMemberOfSelectedGroup(false);
+                                  // If check fails, keep optimistic true since it's in "My Masterminds"
                                 } finally {
                                   setCheckingMembership(false);
                                 }
-                              } else {
-                                setIsMemberOfSelectedGroup(false);
                               }
                             }}
                             style={[styles.myMastermindCardWrapper, { marginBottom: spacing.sm }]}
