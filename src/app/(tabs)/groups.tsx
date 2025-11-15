@@ -2331,7 +2331,6 @@ export default function GroupsScreen() {
                           uri: `https://unavatar.io/twitter/${xHandle}` 
                         }}
                         style={styles.xProfilePicture}
-                        defaultSource={require('../../assets/default-avatar.png')}
                       />
                       
                       {/* X Account Details */}
