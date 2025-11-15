@@ -2468,10 +2468,19 @@ export default function GroupsScreen() {
 
                     // If token is not in state, try loading from database
                     let tokenToUse = xOAuthToken;
+                    console.log('[Groups] Initial token check:', { 
+                      hasStateToken: !!xOAuthToken,
+                      stateTokenLength: xOAuthToken?.length 
+                    });
+                    
                     if (!tokenToUse) {
                       try {
                         const { dbApi } = await import('../../state/dbApi');
                         const storedToken = await dbApi.getPref('x_oauth_token');
+                        console.log('[Groups] Loaded token from database:', { 
+                          hasStoredToken: !!storedToken,
+                          storedTokenLength: storedToken?.length 
+                        });
                         if (storedToken) {
                           tokenToUse = storedToken;
                           setXOAuthToken(storedToken);
@@ -2487,8 +2496,12 @@ export default function GroupsScreen() {
                       setShowXPinModal(false);
                       setXPinCode('');
                       setXOAuthToken(null);
-                      const { dbApi } = await import('../../state/dbApi');
-                      await dbApi.upsertPref('x_oauth_token', '');
+                      try {
+                        const { dbApi } = await import('../../state/dbApi');
+                        await dbApi.upsertPref('x_oauth_token', '');
+                      } catch (e) {
+                        console.error('[Groups] Error clearing token:', e);
+                      }
                       return;
                     }
 
@@ -2530,7 +2543,18 @@ export default function GroupsScreen() {
                       (xOAuth as any).currentUserAddress = oauthData.userAddress;
                       (xOAuth as any).currentBackendUrl = oauthData.backendUrl;
                       
+                      console.log('[Groups] Calling verifyPIN with token:', {
+                        hasToken: !!oauthData.oauthToken,
+                        tokenPrefix: oauthData.oauthToken?.substring(0, 10),
+                        pinLength: xPinCode.trim().length
+                      });
+                      
                       const result = await xOAuth.verifyPIN(xPinCode.trim());
+                      
+                      console.log('[Groups] PIN verification successful:', {
+                        screenName: result.screenName,
+                        verified: result.verified
+                      });
                       
                       // Update store directly with OAuth result
                       const { dbApi } = await import('../../state/dbApi');
@@ -2549,6 +2573,11 @@ export default function GroupsScreen() {
                       await dbApi2.upsertPref('x_oauth_token', '');
                       Alert.alert('Success', `X account @${result.screenName} synced successfully!`);
                     } catch (error: any) {
+                      console.error('[Groups] PIN verification error:', {
+                        message: error.message,
+                        stack: error.stack,
+                        errorType: error.constructor.name
+                      });
                       Alert.alert('Error', error.message || 'Failed to verify PIN');
                     } finally {
                       setVerifyingPin(false);
