@@ -1835,22 +1835,66 @@ export default function GroupsScreen() {
           <View style={styles.modalContent}>
             <ScrollView>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Profile</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+                  <Ionicons name="person-outline" size={24} color={colors.primary.main} />
+                  <Text style={styles.modalTitle}>Your Profile</Text>
+                </View>
                 <Pressable
                   style={styles.modalCloseBtn}
                   onPress={() => setShowEditModal(false)}
                 >
-                  <Text style={styles.modalCloseText}>✕</Text>
+                  <Ionicons name="close" size={20} color={colors.text.primary} />
                 </Pressable>
+              </View>
+
+              {/* Profile Display Section */}
+              <View style={styles.detailSection}>
+                <Text style={styles.label}>Username</Text>
+                <View style={styles.profileDisplayRow}>
+                  <Text style={styles.profileDisplayValue}>
+                    {username || 'No username set'}
+                  </Text>
+                  {verified && (
+                    <View style={styles.verifiedBadge}>
+                      <Ionicons name="checkmark-circle" size={16} color={colors.success.main} />
+                      <Text style={styles.verifiedText}>Verified</Text>
+                    </View>
+                  )}
+                </View>
+                {xHandle && (
+                  <Text style={styles.hint}>@{xHandle}</Text>
+                )}
               </View>
 
               {/* Wallet Address */}
               {verifiedAddress && (
                 <View style={styles.detailSection}>
                   <Text style={styles.label}>Wallet Address</Text>
-                  <View style={styles.detailValueContainer}>
-                    <Text style={styles.detailValue}>{verifiedAddress}</Text>
-                  </View>
+                  <Text style={styles.hint}>
+                    {verifiedAddress.slice(0, 8)}...{verifiedAddress.slice(-8)}
+                  </Text>
+                </View>
+              )}
+
+              {/* Set Username Section */}
+              {!usernameSet && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.label}>Set Username</Text>
+                  <Text style={styles.hint}>
+                    Choose a unique username for your wallet. This cannot be changed once set.
+                  </Text>
+                  <Pressable
+                    style={styles.setUsernameBtn}
+                    onPress={() => {
+                      setTempUsername('');
+                      setEditingUsername(true);
+                      setUsernameError(null);
+                      setShowEditModal(false);
+                    }}
+                  >
+                    <Ionicons name="person-add-outline" size={16} color={colors.primary.main} />
+                    <Text style={styles.setUsernameBtnText}>Set Username</Text>
+                  </Pressable>
                 </View>
               )}
 
