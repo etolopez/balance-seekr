@@ -2273,18 +2273,24 @@ export default function GroupsScreen() {
                       const { XOAuthService } = await import('../../services/x-oauth.service');
                       const xOAuth = new XOAuthService();
                       
-                      await xOAuth.authenticate(verifiedAddress);
+                      const result = await xOAuth.authenticate(verifiedAddress);
                       
                       // Get OAuth token for PIN verification
+                      // Store the service instance or token before opening X
                       const oauthData = xOAuth.getCurrentOAuthToken();
                       if (!oauthData) {
                         throw new Error('Failed to get OAuth token');
                       }
                       
-                      // Store OAuth token in state for PIN verification
-                      setXOAuthToken(oauthData.oauthToken);
+                      // Store OAuth token AND backend URL in state for PIN verification
+                      // We need to store all the data needed for verification
+                      setXOAuthToken(JSON.stringify({
+                        oauthToken: oauthData.oauthToken,
+                        userAddress: oauthData.userAddress,
+                        backendUrl: oauthData.backendUrl,
+                      }));
                       
-                      // Show PIN entry modal
+                      // Show PIN entry modal immediately
                       setShowXPinModal(true);
                       setXPinCode('');
                     } catch (error: any) {
@@ -2431,25 +2437,37 @@ export default function GroupsScreen() {
                       Alert.alert('Error', 'OAuth session expired. Please try again.');
                       setShowXPinModal(false);
                       setXPinCode('');
+                      setXOAuthToken(null);
                       return;
                     }
 
                     setVerifyingPin(true);
                     try {
+                      // Parse stored OAuth data
+                      let oauthData;
+                      try {
+                        oauthData = JSON.parse(xOAuthToken);
+                      } catch (e) {
+                        // Fallback: if it's not JSON, treat it as just the token (legacy)
+                        const Constants = await import('expo-constants');
+                        const backendUrl = Constants.default.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
+                        if (!backendUrl) {
+                          throw new Error('Backend API URL not configured');
+                        }
+                        oauthData = {
+                          oauthToken: xOAuthToken,
+                          userAddress: verifiedAddress,
+                          backendUrl,
+                        };
+                      }
+
                       const { XOAuthService } = await import('../../services/x-oauth.service');
                       const xOAuth = new XOAuthService();
                       
-                      // Set the OAuth token before verifying
-                      const Constants = await import('expo-constants');
-                      const backendUrl = Constants.default.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
-                      if (!backendUrl) {
-                        throw new Error('Backend API URL not configured');
-                      }
-                      
-                      // Manually set the OAuth token in the service
-                      (xOAuth as any).currentOAuthToken = xOAuthToken;
-                      (xOAuth as any).currentUserAddress = verifiedAddress;
-                      (xOAuth as any).currentBackendUrl = backendUrl;
+                      // Manually set the OAuth token in the service instance
+                      (xOAuth as any).currentOAuthToken = oauthData.oauthToken;
+                      (xOAuth as any).currentUserAddress = oauthData.userAddress;
+                      (xOAuth as any).currentBackendUrl = oauthData.backendUrl;
                       
                       const result = await xOAuth.verifyPIN(xPinCode.trim());
                       
