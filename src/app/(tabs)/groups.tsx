@@ -871,7 +871,7 @@ export default function GroupsScreen() {
                 {isMemberOfSelectedGroup && (
                   <View style={styles.modalButtons}>
                     <Pressable
-                      style={[styles.modalBtn, styles.openChatButton]}
+                      style={[styles.modalBtn, styles.openChatButton, { width: '100%' }]}
                       onPress={() => {
                         // Find the local group ID (could be apiGroupId or local id)
                         const localGroup = groups.find(g => g.id === selectedGroup.id || g.apiGroupId === selectedGroup.id);
@@ -889,7 +889,7 @@ export default function GroupsScreen() {
                     {/* Leave Group Button - Only show for non-owners who are members */}
                     {selectedGroup.ownerAddress !== verifiedAddress && (
                       <Pressable
-                        style={[styles.modalBtn, styles.modalBtnDanger, { marginTop: spacing.sm }]}
+                        style={[styles.modalBtn, styles.modalBtnDanger, { width: '100%', marginTop: spacing.sm }]}
                         onPress={() => {
                           setLeavingGroupId(selectedGroup.id);
                         }}
