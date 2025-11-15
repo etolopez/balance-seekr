@@ -113,14 +113,6 @@ export class ApiService {
       const groups = data.groups || [];
       // Transform snake_case to camelCase for frontend consistency
       const transformed = groups.map((group: any) => this.transformGroup(group));
-      
-      // Debug: Log category data to help diagnose issues
-      if (category) {
-        console.log(`[ApiService] Fetched ${transformed.length} groups for category "${category}":`, 
-          transformed.map((g: PublicGroup) => ({ id: g.id, name: g.name, category: g.category }))
-        );
-      }
-      
       return transformed;
     } catch (error: any) {
       // Silently handle network errors when backend is not available
