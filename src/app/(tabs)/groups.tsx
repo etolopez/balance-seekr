@@ -755,216 +755,6 @@ export default function GroupsScreen() {
           )}
         </View>
 
-        {/* Create Mastermind Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Create Mastermind</Text>
-          <Pressable 
-            style={styles.primaryBtn} 
-            onPress={() => setShowPublicModal(true)}
-          >
-            <Text style={styles.primaryBtnText}>Create Public Group</Text>
-          </Pressable>
-          <Text style={styles.feeNote}>
-            Public groups require a {PLATFORM_CREATE_FEE} SOL creation fee
-          </Text>
-        </View>
-
-        {/* My Masterminds Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My Masterminds</Text>
-          {(() => {
-            // Only show groups that exist on the backend (in publicGroups)
-            // This ensures we don't show orphaned local groups
-            const myPublicGroups = groups.filter(g => {
-              if (!g.isPublic) return false;
-              // Check if this group exists in publicGroups (backend)
-              // Match by apiGroupId (backend UUID) or by id if it's a backend UUID
-              const existsInBackend = publicGroups.some(pg => 
-                pg.id === (g as any).apiGroupId || 
-                pg.id === g.id ||
-                (pg as any).apiGroupId === g.id
-              );
-              return existsInBackend;
-            });
-            
-            return myPublicGroups.length > 0 ? (
-              <FlatList
-                data={myPublicGroups}
-              keyExtractor={(g) => g.id}
-              scrollEnabled={false}
-              ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-              renderItem={({ item }) => {
-                // Show username if owner is the current user, otherwise show wallet address
-                const isOwner = item.ownerAddress === verifiedAddress;
-                const ownerDisplay = isOwner && username 
-                  ? username 
-                  : item.ownerAddress 
-                    ? `${item.ownerAddress.slice(0,4)}…${item.ownerAddress.slice(-4)}`
-                    : 'You';
-                // Get background image from publicGroups if available
-                // Match by apiGroupId (backend ID) or local id
-                const publicGroup = publicGroups.find(g => 
-                  g.id === (item as any).apiGroupId || 
-                  g.id === item.id || 
-                  (g as any).apiGroupId === item.id
-                );
-                const backgroundImage = publicGroup?.backgroundImage || (item as any).backgroundImage;
-                
-                return (
-                  <Pressable
-                    onPress={async () => {
-                      // Fetch latest group data to ensure price updates are reflected
-                      await fetchPublicGroups();
-                      const latestGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
-                      const finalGroup = latestGroup || item;
-                      const groupToShow = { ...finalGroup, backgroundImage: latestGroup?.backgroundImage || backgroundImage } as GroupForDisplay;
-                      setSelectedGroup(groupToShow);
-                      setShowGroupDetail(true);
-                      
-                      // Check if user is a member (they should be since it's in "My Masterminds")
-                      if (verifiedAddress) {
-                        setCheckingMembership(true);
-                        try {
-                          const isOwner = groupToShow.ownerAddress === verifiedAddress;
-                          const isMember = isOwner || await apiService.checkMembership(groupToShow.id, verifiedAddress);
-                          setIsMemberOfSelectedGroup(isMember);
-                        } catch (error) {
-                          console.error('[Groups] Error checking membership:', error);
-                          setIsMemberOfSelectedGroup(false);
-                        } finally {
-                          setCheckingMembership(false);
-                        }
-                      } else {
-                        setIsMemberOfSelectedGroup(false);
-                      }
-                    }}
-                    style={styles.myMastermindCardWrapper}
-                  >
-                    <View style={styles.myMastermindCardContainer}>
-                      {/* Background Image */}
-                      {backgroundImage ? (
-                        <Image
-                          source={{ uri: backgroundImage }}
-                          style={styles.myMastermindCardBackground}
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <LinearGradient
-                          colors={['rgba(123, 163, 212, 0.3)', 'rgba(91, 139, 180, 0.5)']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={styles.myMastermindCardBackground}
-                        />
-                      )}
-                      {/* Gradient Glass Overlay */}
-                      <LinearGradient
-                        colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.7)']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 0, y: 1 }}
-                        style={styles.myMastermindCardOverlay}
-                      />
-                      {/* Content */}
-                      <View style={styles.myMastermindCardContent}>
-                        <View style={styles.myMastermindCardHeader}>
-                          <Text style={styles.myMastermindCardTitle}>{item.name}</Text>
-                          <View style={styles.publicBadge}>
-                            <Text style={styles.publicBadgeText}>Public</Text>
-                          </View>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs, flexWrap: 'wrap' }}>
-                          <Text style={styles.myMastermindCardSub}>Owner: {ownerDisplay}</Text>
-                          {(publicGroup?.category || (item as any).category) && (
-                            <>
-                              <Text style={styles.myMastermindCardSub}>•</Text>
-                              <View style={styles.categoryBadgeSmall}>
-                                <Text style={styles.categoryBadgeTextSmall}>
-                                  {publicGroup?.category || (item as any).category}
-                                </Text>
-                              </View>
-                            </>
-                          )}
-                        </View>
-                        {item.description && (
-                          <Text style={styles.myMastermindCardDescription} numberOfLines={2}>
-                            {item.description}
-                          </Text>
-                        )}
-                        {item.joinPrice !== undefined && item.joinPrice > 0 && (
-                          <Text style={styles.myMastermindCardSub}>Join Price: {item.joinPrice} SOL</Text>
-                        )}
-                        <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.sm }}>
-                          <Link href={`/masterminds/${item.id}`} asChild>
-                            <Pressable style={styles.myMastermindCardBtn}>
-                              <Text style={styles.myMastermindCardBtnText}>Open</Text>
-                            </Pressable>
-                          </Link>
-                          {isOwner && (
-                            <>
-                              <Pressable 
-                                style={styles.myMastermindCardBtn} 
-                                onPress={() => {
-                                  setEditingGroupId(item.id);
-                                  const publicGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
-                                  setEditingGroupImage(publicGroup?.backgroundImage || backgroundImage || null);
-                                }}
-                              >
-                                <Text style={styles.myMastermindCardBtnText}>Edit</Text>
-                              </Pressable>
-                              <Pressable 
-                                style={styles.myMastermindCardBtn} 
-                                onPress={() => {
-                                  setEditingJoinPriceGroupId(item.id);
-                                  setNewJoinPrice(String(item.joinPrice || 0));
-                                }}
-                              >
-                                <Text style={styles.myMastermindCardBtnText}>Update Price</Text>
-                              </Pressable>
-                            </>
-                          )}
-                          <Pressable 
-                            style={styles.myMastermindCardBtn} 
-                            onPress={() => {
-                              // Find the group name and backend ID for the confirmation modal
-                              // item.id is the local ID, we need the backend UUID (apiGroupId)
-                              const groupName = item.name;
-                              const localApiGroupId = (item as any).apiGroupId; // Backend UUID stored in local group
-                              const groupToDelete = publicGroups.find(g => 
-                                g.id === localApiGroupId || 
-                                g.id === item.id || 
-                                (g as any).apiGroupId === item.id
-                              );
-                              
-                              // Use backend UUID if available, otherwise fallback to local ID
-                              const backendId = localApiGroupId || groupToDelete?.id || item.id;
-                              const finalGroupName = groupToDelete?.name || groupName;
-                              
-                              console.log('[Groups] Delete button pressed:', {
-                                localId: item.id,
-                                apiGroupId: localApiGroupId,
-                                backendId,
-                                groupToDelete: groupToDelete?.id,
-                                name: finalGroupName
-                              });
-                              
-                              setDeletingGroupId(backendId); // Use backend UUID for deletion
-                              setDeletingGroupName(finalGroupName);
-                              setShowDeleteConfirm(true);
-                            }}
-                          >
-                            <Text style={styles.myMastermindCardBtnText}>Delete</Text>
-                          </Pressable>
-                        </View>
-                      </View>
-                    </View>
-                  </Pressable>
-                );
-              }}
-            />
-            ) : (
-              <Text style={styles.info}>No Masterminds yet. Create one above.</Text>
-            );
-          })()}
-        </View>
       </ScrollView>
 
       {/* Group Detail Modal */}
@@ -1904,6 +1694,213 @@ export default function GroupsScreen() {
                   </Pressable>
                 </View>
               )}
+
+              {/* Create Mastermind Section */}
+              <View style={styles.detailSection}>
+                <Text style={styles.label}>Create Mastermind</Text>
+                <Pressable 
+                  style={styles.primaryBtn} 
+                  onPress={() => {
+                    setShowEditModal(false);
+                    setShowPublicModal(true);
+                  }}
+                >
+                  <Text style={styles.primaryBtnText}>Create Public Group</Text>
+                </Pressable>
+                <Text style={styles.hint}>
+                  Public groups require a {PLATFORM_CREATE_FEE} SOL creation fee
+                </Text>
+              </View>
+
+              {/* My Masterminds Section */}
+              <View style={styles.detailSection}>
+                <Text style={styles.label}>My Masterminds</Text>
+                {(() => {
+                  // Only show groups that exist on the backend (in publicGroups)
+                  // This ensures we don't show orphaned local groups
+                  const myPublicGroups = groups.filter(g => {
+                    if (!g.isPublic) return false;
+                    // Check if this group exists in publicGroups (backend)
+                    // Match by apiGroupId (backend UUID) or by id if it's a backend UUID
+                    const existsInBackend = publicGroups.some(pg => 
+                      pg.id === (g as any).apiGroupId || 
+                      pg.id === g.id ||
+                      (pg as any).apiGroupId === g.id
+                    );
+                    return existsInBackend;
+                  });
+                  
+                  return myPublicGroups.length > 0 ? (
+                    <View style={{ marginTop: spacing.sm }}>
+                      {myPublicGroups.map((item) => {
+                        // Show username if owner is the current user, otherwise show wallet address
+                        const isOwner = item.ownerAddress === verifiedAddress;
+                        const ownerDisplay = isOwner && username 
+                          ? username 
+                          : item.ownerAddress 
+                            ? `${item.ownerAddress.slice(0,4)}…${item.ownerAddress.slice(-4)}`
+                            : 'You';
+                        // Get background image from publicGroups if available
+                        // Match by apiGroupId (backend ID) or local id
+                        const publicGroup = publicGroups.find(g => 
+                          g.id === (item as any).apiGroupId || 
+                          g.id === item.id || 
+                          (g as any).apiGroupId === item.id
+                        );
+                        const backgroundImage = publicGroup?.backgroundImage || (item as any).backgroundImage;
+                        
+                        return (
+                          <Pressable
+                            key={item.id}
+                            onPress={async () => {
+                              setShowEditModal(false);
+                              // Fetch latest group data to ensure price updates are reflected
+                              await fetchPublicGroups();
+                              const latestGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
+                              const finalGroup = latestGroup || item;
+                              const groupToShow = { ...finalGroup, backgroundImage: latestGroup?.backgroundImage || backgroundImage } as GroupForDisplay;
+                              setSelectedGroup(groupToShow);
+                              setShowGroupDetail(true);
+                              
+                              // Check if user is a member (they should be since it's in "My Masterminds")
+                              if (verifiedAddress) {
+                                setCheckingMembership(true);
+                                try {
+                                  const isOwner = groupToShow.ownerAddress === verifiedAddress;
+                                  const isMember = isOwner || await apiService.checkMembership(groupToShow.id, verifiedAddress);
+                                  setIsMemberOfSelectedGroup(isMember);
+                                } catch (error) {
+                                  console.error('[Groups] Error checking membership:', error);
+                                  setIsMemberOfSelectedGroup(false);
+                                } finally {
+                                  setCheckingMembership(false);
+                                }
+                              } else {
+                                setIsMemberOfSelectedGroup(false);
+                              }
+                            }}
+                            style={[styles.myMastermindCardWrapper, { marginBottom: spacing.sm }]}
+                          >
+                            <View style={styles.myMastermindCardContainer}>
+                              {/* Background Image */}
+                              {backgroundImage ? (
+                                <Image
+                                  source={{ uri: backgroundImage }}
+                                  style={styles.myMastermindCardBackground}
+                                  resizeMode="cover"
+                                />
+                              ) : (
+                                <LinearGradient
+                                  colors={['rgba(123, 163, 212, 0.3)', 'rgba(91, 139, 180, 0.5)']}
+                                  start={{ x: 0, y: 0 }}
+                                  end={{ x: 1, y: 1 }}
+                                  style={styles.myMastermindCardBackground}
+                                />
+                              )}
+                              {/* Gradient Glass Overlay */}
+                              <LinearGradient
+                                colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.7)']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 0, y: 1 }}
+                                style={styles.myMastermindCardOverlay}
+                              />
+                              {/* Content */}
+                              <View style={styles.myMastermindCardContent}>
+                                <View style={styles.myMastermindCardHeader}>
+                                  <Text style={styles.myMastermindCardTitle}>{item.name}</Text>
+                                  <View style={styles.publicBadge}>
+                                    <Text style={styles.publicBadgeText}>Public</Text>
+                                  </View>
+                                </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs, flexWrap: 'wrap' }}>
+                                  <Text style={styles.myMastermindCardSub}>Owner: {ownerDisplay}</Text>
+                                  {(publicGroup?.category || (item as any).category) && (
+                                    <>
+                                      <Text style={styles.myMastermindCardSub}>•</Text>
+                                      <View style={styles.categoryBadgeSmall}>
+                                        <Text style={styles.categoryBadgeTextSmall}>
+                                          {publicGroup?.category || (item as any).category}
+                                        </Text>
+                                      </View>
+                                    </>
+                                  )}
+                                </View>
+                                {item.description && (
+                                  <Text style={styles.myMastermindCardDescription} numberOfLines={2}>
+                                    {item.description}
+                                  </Text>
+                                )}
+                                {item.joinPrice !== undefined && item.joinPrice > 0 && (
+                                  <Text style={styles.myMastermindCardSub}>Join Price: {item.joinPrice} SOL</Text>
+                                )}
+                                <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.sm }}>
+                                  <Link href={`/masterminds/${item.id}`} asChild>
+                                    <Pressable style={styles.myMastermindCardBtn}>
+                                      <Text style={styles.myMastermindCardBtnText}>Open</Text>
+                                    </Pressable>
+                                  </Link>
+                                  {isOwner && (
+                                    <>
+                                      <Pressable 
+                                        style={styles.myMastermindCardBtn} 
+                                        onPress={() => {
+                                          setShowEditModal(false);
+                                          setEditingGroupId(item.id);
+                                          const publicGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
+                                          setEditingGroupImage(publicGroup?.backgroundImage || backgroundImage || null);
+                                        }}
+                                      >
+                                        <Text style={styles.myMastermindCardBtnText}>Edit</Text>
+                                      </Pressable>
+                                      <Pressable 
+                                        style={styles.myMastermindCardBtn} 
+                                        onPress={() => {
+                                          setShowEditModal(false);
+                                          setEditingJoinPriceGroupId(item.id);
+                                          setNewJoinPrice(String(item.joinPrice || 0));
+                                        }}
+                                      >
+                                        <Text style={styles.myMastermindCardBtnText}>Update Price</Text>
+                                      </Pressable>
+                                    </>
+                                  )}
+                                  <Pressable 
+                                    style={styles.myMastermindCardBtn} 
+                                    onPress={() => {
+                                      setShowEditModal(false);
+                                      // Find the group name and backend ID for the confirmation modal
+                                      // item.id is the local ID, we need the backend UUID (apiGroupId)
+                                      const groupName = item.name;
+                                      const localApiGroupId = (item as any).apiGroupId; // Backend UUID stored in local group
+                                      const groupToDelete = publicGroups.find(g => 
+                                        g.id === localApiGroupId || 
+                                        g.id === item.id || 
+                                        (g as any).apiGroupId === item.id
+                                      );
+                                      
+                                      // Use backend UUID if available, otherwise fallback to local ID
+                                      const backendId = localApiGroupId || groupToDelete?.id || item.id;
+                                      const finalGroupName = groupToDelete?.name || groupName;
+                                      
+                                      setDeletingGroupId(backendId); // Use backend UUID for deletion
+                                      setDeletingGroupName(finalGroupName);
+                                      setShowDeleteConfirm(true);
+                                    }}
+                                  >
+                                    <Text style={styles.myMastermindCardBtnText}>Delete</Text>
+                                  </Pressable>
+                                </View>
+                              </View>
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <Text style={styles.hint}>No Masterminds yet. Create one above.</Text>
+                  );
+                })()}
+              </View>
 
               {/* X Account Sync */}
               <View style={styles.detailSection}>
