@@ -41,6 +41,9 @@ export default function GroupsScreen() {
   const [tempUsername, setTempUsername] = useState(username || '');
   const [showEditModal, setShowEditModal] = useState(false);
   const [syncingX, setSyncingX] = useState(false);
+  const [showXPinModal, setShowXPinModal] = useState(false);
+  const [xPinCode, setXPinCode] = useState('');
+  const [verifyingPin, setVerifyingPin] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showPublicModal, setShowPublicModal] = useState(false);
@@ -2258,18 +2261,27 @@ export default function GroupsScreen() {
                 <Pressable
                   style={[styles.modalBtn, styles.modalBtnPrimary, syncingX && styles.modalBtnDisabled, { width: '100%', marginTop: spacing.sm }]}
                   onPress={async () => {
+                    if (!verifiedAddress) {
+                      Alert.alert('Error', 'Wallet not connected');
+                      return;
+                    }
+                    
                     setSyncingX(true);
                     try {
-                      // OAuth flow - no handle needed, automatically gets from X
-                      await syncXAccount();
-                      Alert.alert('Success', 'X account synced successfully!');
-                      // Refresh user profile to get updated X handle
-                      const { fetchUserProfile } = useAppStore.getState();
-                      if (verifiedAddress) {
-                        await fetchUserProfile(verifiedAddress);
-                      }
+                      // OAuth flow - opens X and prompts for PIN
+                      const { XOAuthService } = await import('../../services/x-oauth.service');
+                      const xOAuth = new XOAuthService();
+                      
+                      await xOAuth.authenticate(verifiedAddress);
+                      
+                      // Show PIN entry modal
+                      setShowXPinModal(true);
+                      setXPinCode('');
                     } catch (error: any) {
-                      Alert.alert('Error', error.message || 'Failed to sync X account');
+                      // Only show error if it's not the initial resolve (which happens immediately)
+                      if (!error.message?.includes('PIN')) {
+                        Alert.alert('Error', error.message || 'Failed to initiate X OAuth');
+                      }
                     } finally {
                       setSyncingX(false);
                     }
@@ -2330,6 +2342,113 @@ export default function GroupsScreen() {
                 </Pressable>
               </View>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* X PIN Entry Modal */}
+      <Modal
+        visible={showXPinModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowXPinModal(false);
+          setXPinCode('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Ionicons name="key-outline" size={24} color={colors.primary.main} />
+                <Text style={styles.modalTitle}>Enter PIN from X</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => {
+                  setShowXPinModal(false);
+                  setXPinCode('');
+                }}
+              >
+                <Ionicons name="close" size={20} color={colors.text.primary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.detailSection}>
+              <Text style={styles.hint}>
+                After authorizing on X, you should see a PIN code. Enter it here to complete the authentication.
+              </Text>
+              
+              <TextInput
+                value={xPinCode}
+                onChangeText={setXPinCode}
+                placeholder="Enter PIN code"
+                placeholderTextColor={colors.text.tertiary}
+                style={styles.modalInputField}
+                autoFocus
+                keyboardType="numeric"
+                maxLength={10}
+                selectionColor={colors.primary.main}
+              />
+
+              <View style={styles.modalButtons}>
+                <Pressable
+                  style={[styles.modalBtn, styles.cancelBtn, { flex: 1, marginRight: spacing.xs }]}
+                  onPress={() => {
+                    setShowXPinModal(false);
+                    setXPinCode('');
+                  }}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.modalBtn,
+                    styles.modalBtnPrimary,
+                    { flex: 1, marginLeft: spacing.xs },
+                    (verifyingPin || !xPinCode.trim()) && styles.modalBtnDisabled
+                  ]}
+                  onPress={async () => {
+                    if (!xPinCode.trim()) {
+                      Alert.alert('Error', 'Please enter the PIN code');
+                      return;
+                    }
+
+                    setVerifyingPin(true);
+                    try {
+                      const { XOAuthService } = await import('../../services/x-oauth.service');
+                      const xOAuth = new XOAuthService();
+                      
+                      const result = await xOAuth.verifyPIN(xPinCode.trim());
+                      
+                      // Update store with X account info
+                      await syncXAccount(); // This will use the OAuth result
+                      
+                      // Refresh user profile
+                      const { fetchUserProfile } = useAppStore.getState();
+                      if (verifiedAddress) {
+                        await fetchUserProfile(verifiedAddress);
+                      }
+                      
+                      setShowXPinModal(false);
+                      setXPinCode('');
+                      Alert.alert('Success', `X account @${result.screenName} synced successfully!`);
+                    } catch (error: any) {
+                      Alert.alert('Error', error.message || 'Failed to verify PIN');
+                    } finally {
+                      setVerifyingPin(false);
+                    }
+                  }}
+                  disabled={verifyingPin || !xPinCode.trim()}
+                >
+                  {verifyingPin ? (
+                    <ActivityIndicator size="small" color={colors.text.primary} />
+                  ) : (
+                    <Text style={styles.modalBtnText}>Verify PIN</Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
           </View>
         </View>
       </Modal>
