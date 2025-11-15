@@ -412,9 +412,9 @@ export default function GroupsScreen() {
         <View style={styles.verifyCard}>
           <Text style={styles.verifyTitle}>Verify your identity</Text>
           <Text style={styles.verifyText}>
-            Verify once with your Solana wallet to create Mastermind groups. This will open your wallet app to authenticate.
+            Verify once with your Solana wallet to enter Masterminds. This will open your wallet app to authenticate.
           </Text>
-          <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
+          <View style={{ alignItems: 'center', marginTop: spacing.md }}>
             <Pressable style={styles.primaryBtn} onPress={async () => {
               try {
                 console.log('[Groups] Starting wallet verification - will open wallet picker...');
@@ -443,21 +443,14 @@ export default function GroupsScreen() {
                 });
               }
             }}>
-              <Text style={styles.primaryBtnText}>{useSiws ? 'Verify Seeker (SIWS)' : (seeker.isSeeker ? 'Verify with Seeker Wallet' : 'Verify with Solana')}</Text>
+              <Text style={styles.primaryBtnText}>{useSiws ? 'Verify Seeker (SIWS)' : (seeker.isSeeker ? 'Verify with Solana Seeker' : 'Verify with Solana')}</Text>
             </Pressable>
           </View>
           {seeker.isSeeker && (
-            <Text style={[styles.verifyText, { marginTop: spacing.xs }]}>
+            <Text style={[styles.verifyText, { marginTop: spacing.xs, textAlign: 'center' }]}>
               Tip: When the Seeker wallet opens, complete the prompts and wait for the app to return automatically.
             </Text>
           )}
-          <Text style={[styles.verifyText, { marginTop: spacing.sm }]}>No wallet? Set an address manually (temporary).</Text>
-          <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
-            <TextInput placeholder="Your SOL address" placeholderTextColor={colors.text.tertiary} value={manualAddr} onChangeText={setManualAddr} style={styles.input} />
-            <Pressable style={styles.secondaryBtn} onPress={async () => { if (manualAddr.trim()) await setVerified(manualAddr.trim()); }}>
-              <Text style={styles.secondaryBtnText}>Set</Text>
-            </Pressable>
-          </View>
         </View>
         </View>
       </LinearGradient>
