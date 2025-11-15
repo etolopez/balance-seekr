@@ -142,13 +142,6 @@ export class ApiService {
    */
   async createPublicGroup(request: CreatePublicGroupRequest): Promise<PublicGroup> {
     try {
-        name: request.name,
-        ownerAddress: request.ownerAddress?.substring(0, 10) + '...',
-        joinPrice: request.joinPrice,
-        createPrice: request.createPrice,
-        signatureLength: request.createPaymentSignature?.length || 0,
-      });
-      
       const response = await fetch(`${this.baseUrl}/api/groups`, {
         method: 'POST',
         headers: {
