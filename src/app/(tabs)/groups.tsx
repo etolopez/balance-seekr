@@ -2081,11 +2081,15 @@ export default function GroupsScreen() {
                                     <Pressable style={[styles.myMastermindCardBtn, { 
                                       flex: 1, 
                                       minWidth: '60%',
-                                      backgroundColor: 'rgba(123, 97, 255, 0.3)',
-                                      borderColor: colors.primary.main,
-                                      borderWidth: 2
+                                      backgroundColor: colors.success.main + '30',
+                                      borderColor: colors.success.main,
+                                      borderWidth: 2,
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
                                     }]}>
-                                      <Text style={styles.myMastermindCardBtnText}>Open</Text>
+                                      <Ionicons name="chatbubbles" size={16} color={colors.success.main} style={{ marginRight: spacing.xs }} />
+                                      <Text style={[styles.myMastermindCardBtnText, { color: colors.success.main }]}>Open</Text>
                                     </Pressable>
                                   </Link>
                                   {isOwner && (
