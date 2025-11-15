@@ -57,12 +57,23 @@ $ git check-ignore -v backend/.env .env
 - No actual API keys/secrets in any committed files
 - All sensitive values are in environment variables only
 
+## ⚠️ SECURITY INCIDENT (RESOLVED)
+
+**Issue**: API credentials were accidentally committed in documentation files but have been removed.
+
+**Status**: 
+- ✅ Credentials removed from all current files
+- ⚠️ **Credentials still exist in Git history** (commits: `9fd3238`, `df24246`, `2c607ab`)
+- ⚠️ **REQUIRED**: Rotate all exposed credentials immediately (see `CREDENTIAL_ROTATION_REQUIRED.md`)
+
 ## Current Status
 
-✅ **Repository is safe** - No actual secrets are committed. All sensitive data is:
+✅ **Current files are safe** - No actual secrets in current codebase. All sensitive data is:
 - Stored in `.env` files (gitignored)
 - Set as environment variables in Railway
-- Never committed to Git
+- Not in current committed files
+
+⚠️ **Git history contains exposed credentials** - If repository is public, credentials are visible in commit history. **Rotation required.**
 
 ## What Gets Uploaded to Git:
 
