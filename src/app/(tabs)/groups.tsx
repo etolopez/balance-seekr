@@ -2421,14 +2421,14 @@ export default function GroupsScreen() {
                       
                       const result = await xOAuth.verifyPIN(xPinCode.trim());
                       
-                      // Update store with X account info
-                      await syncXAccount(); // This will use the OAuth result
-                      
-                      // Refresh user profile
-                      const { fetchUserProfile } = useAppStore.getState();
-                      if (verifiedAddress) {
-                        await fetchUserProfile(verifiedAddress);
-                      }
+                      // Update store directly with OAuth result
+                      const { dbApi } = await import('../../state/dbApi');
+                      dbApi.upsertPref('profile.xHandle', result.screenName);
+                      dbApi.upsertPref('profile.verified', result.verified ? 'true' : 'false');
+                      useAppStore.setState({
+                        xHandle: result.screenName,
+                        verified: result.verified,
+                      });
                       
                       setShowXPinModal(false);
                       setXPinCode('');
