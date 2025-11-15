@@ -2,7 +2,7 @@ import { StyleSheet, Text, View, Pressable, FlatList, ScrollView, Modal, TextInp
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { playInhale, playExhale, playChange } from '../../audio/sounds';
+import { playChange } from '../../audio/sounds';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
 import * as Haptics from 'expo-haptics';
@@ -131,12 +131,9 @@ export default function BreathScreen() {
   const animatePhase = (p: Phase, secs: number) => {
     const dur = Math.max(800, (lowMotion ? 1.2 : 1.0) * secs * 1000);
     // No generic haptic here; targeted haptic is triggered only on inhale -> exhale
-    if (cuesAudio) {
-      if (p === 'inhale') {
-        playInhale().catch(() => {});
-      } else if (p === 'exhale') {
-        playExhale().catch(() => {});
-      } else if (p === 'hold' || p === 'hold2') {
+      if (cuesAudio) {
+      // Use change sound for all phases (inhale, exhale, and holds)
+      if (p === 'inhale' || p === 'exhale' || p === 'hold' || p === 'hold2') {
         playChange().catch(() => {});
       }
     }
