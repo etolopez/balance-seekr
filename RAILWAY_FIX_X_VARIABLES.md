@@ -24,16 +24,16 @@ Even though all variables appear in the same "Service Variables" list, Railway i
 
 **Variable 1:**
 - **Name**: `X_BEARER_TOKEN`
-- **Value**: `AAAAAAAAAAAAAAAAAAAAAJ3K5QEAAAAAzfMcIoWLMksWE9luuQ9mqeJ92mc=7CMW6XAjbRCWTY6qgW5rUJDQAflgHBfNuqkOirR0IcQWiNoT87`
+- **Value**: `<your_bearer_token_here>` ⚠️ **DO NOT use actual token in this file**
 - Make sure it's added as a **regular variable** (not secret)
 
 **Variable 2:**
 - **Name**: `X_ACCESS_TOKEN`
-- **Value**: `1360260811193786375-dlEPz8ElZsvjrJd0akXBnZMu38x4e7`
+- **Value**: `<your_access_token_here>` ⚠️ **DO NOT use actual token in this file**
 
 **Variable 3:**
 - **Name**: `X_ACCESS_TOKEN_SECRET`
-- **Value**: `Mqyyb42cCWPJMunV07LeajdWTl0wlEUOqT43pc5yr6gYg`
+- **Value**: `<your_access_token_secret_here>` ⚠️ **DO NOT use actual token in this file**
 
 ### Step 3: Check for "Raw Editor" Option
 
