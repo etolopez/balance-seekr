@@ -2076,22 +2076,7 @@ export default function GroupsScreen() {
                                 {item.joinPrice !== undefined && item.joinPrice > 0 && (
                                   <Text style={styles.myMastermindCardSub}>Join Price: {item.joinPrice} SOL</Text>
                                 )}
-                                <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.sm, alignItems: 'center' }}>
-                                  <Link href={`/masterminds/${item.id}`} asChild>
-                                    <Pressable style={[styles.myMastermindCardBtn, { 
-                                      flex: 1, 
-                                      minWidth: '60%',
-                                      backgroundColor: colors.success.main + '30',
-                                      borderColor: colors.success.main,
-                                      borderWidth: 2,
-                                      flexDirection: 'row',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }]}>
-                                      <Ionicons name="chatbubbles" size={16} color={colors.success.main} style={{ marginRight: spacing.xs }} />
-                                      <Text style={[styles.myMastermindCardBtnText, { color: colors.success.main }]}>Open</Text>
-                                    </Pressable>
-                                  </Link>
+                                <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.sm, alignItems: 'center', justifyContent: 'flex-end' }}>
                                   {isOwner && (
                                     <Pressable 
                                       style={styles.myMastermindCardBtn} 
@@ -2131,6 +2116,23 @@ export default function GroupsScreen() {
                                       <Text style={[styles.myMastermindCardBtnText, { color: colors.error.main }]}>Leave</Text>
                                     </Pressable>
                                   )}
+                                  <Link href={`/masterminds/${item.id}`} asChild>
+                                    <Pressable style={[styles.myMastermindCardBtn, { 
+                                      flex: 1, 
+                                      minWidth: '60%',
+                                      backgroundColor: colors.success.main + '40',
+                                      borderColor: colors.success.main,
+                                      borderWidth: 2,
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      paddingHorizontal: spacing.lg,
+                                      paddingVertical: spacing.sm
+                                    }]}>
+                                      <Ionicons name="chatbubbles" size={18} color={colors.success.main} style={{ marginRight: spacing.xs }} />
+                                      <Text style={[styles.myMastermindCardBtnText, { color: colors.success.main, fontWeight: typography.weights.bold }]}>Open</Text>
+                                    </Pressable>
+                                  </Link>
                                 </View>
                               </View>
                             </View>
