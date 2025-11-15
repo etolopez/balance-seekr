@@ -1064,155 +1064,235 @@ export default function GroupsScreen() {
         </View>
       </Modal>
 
-      {/* Edit Group Modal */}
+      {/* Edit Group Modal - Combined: Price, Image, Delete */}
       <Modal
-        visible={editingGroupId !== null}
+        visible={showEditGroupModal}
         animationType="slide"
         transparent={true}
         onRequestClose={() => {
+          setShowEditGroupModal(false);
           setEditingGroupId(null);
           setEditingGroupImage(null);
+          setEditingGroupPrice('');
         }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
-                <Ionicons name="create-outline" size={24} color={colors.primary.main} />
-                <Text style={styles.modalTitle}>Edit Group</Text>
+            <ScrollView>
+              <View style={styles.modalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+                  <Ionicons name="create-outline" size={24} color={colors.primary.main} />
+                  <Text style={styles.modalTitle}>Edit Group</Text>
+                </View>
+                <Pressable
+                  style={styles.modalCloseBtn}
+                  onPress={() => {
+                    setShowEditGroupModal(false);
+                    setEditingGroupId(null);
+                    setEditingGroupImage(null);
+                    setEditingGroupPrice('');
+                  }}
+                >
+                  <Ionicons name="close" size={20} color={colors.text.primary} />
+                </Pressable>
               </View>
-              <Pressable
-                style={styles.modalCloseBtn}
-                onPress={() => {
-                  setEditingGroupId(null);
-                  setEditingGroupImage(null);
-                }}
-              >
-                <Ionicons name="close" size={20} color={colors.text.primary} />
-              </Pressable>
-            </View>
 
-            <Text style={styles.modalSubtitle}>
-              Update your group's background image
-            </Text>
+              <Text style={styles.modalSubtitle}>
+                Update your group's settings
+              </Text>
 
-            <View style={styles.detailSection}>
-              <Text style={styles.label}>Background Image</Text>
-              <View style={styles.imagePickerContainer}>
-                {editingGroupImage ? (
-                  <View style={styles.imagePreviewContainer}>
-                    <Image
-                      source={{ uri: editingGroupImage }}
-                      style={styles.imagePreview}
-                      resizeMode="cover"
-                    />
-                    <Pressable
-                      style={styles.removeImageBtn}
-                      onPress={() => setEditingGroupImage(null)}
+              {/* Update Join Price */}
+              <View style={styles.detailSection}>
+                <Text style={styles.label}>Join Price (SOL)</Text>
+                <Text style={styles.hint}>
+                  Set the price users need to pay to join this group. Set to 0 for free groups.
+                </Text>
+                <TextInput
+                  value={editingGroupPrice}
+                  onChangeText={setEditingGroupPrice}
+                  placeholder="0"
+                  placeholderTextColor={colors.text.tertiary}
+                  style={styles.modalInputField}
+                  keyboardType="decimal-pad"
+                  autoFocus={false}
+                  selectionColor={colors.primary.main}
+                />
+                <Pressable
+                  style={[styles.modalBtn, styles.modalBtnPrimary, { marginTop: spacing.sm }]}
+                  onPress={async () => {
+                    if (!editingGroupId) return;
+                    
+                    const price = parseFloat(editingGroupPrice);
+                    if (isNaN(price) || price < 0) {
+                      Alert.alert('Error', 'Please enter a valid join price (0 or greater)');
+                      return;
+                    }
+
+                    try {
+                      await updateGroupJoinPrice(editingGroupId, price);
+                      Alert.alert('Success', 'Join price updated successfully');
+                      // Refresh groups to show updated price
+                      await fetchPublicGroups();
+                    } catch (error: any) {
+                      Alert.alert('Error', error.message || 'Failed to update join price');
+                    }
+                  }}
+                >
+                  <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>Update Price</Text>
+                </Pressable>
+              </View>
+
+              {/* Background Image */}
+              <View style={styles.detailSection}>
+                <Text style={styles.label}>Background Image</Text>
+                <Text style={styles.hint}>
+                  Update the background image for your group card
+                </Text>
+                <View style={styles.imagePickerContainer}>
+                  {editingGroupImage ? (
+                    <View style={styles.imagePreviewContainer}>
+                      <Image
+                        source={{ uri: editingGroupImage }}
+                        style={styles.imagePreview}
+                        resizeMode="cover"
+                      />
+                      <Pressable
+                        style={styles.removeImageBtn}
+                        onPress={() => setEditingGroupImage(null)}
+                      >
+                        <Ionicons name="close-circle" size={24} color={colors.error.main} />
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <Pressable 
+                      style={[styles.imagePickerBtn, uploadingImage && styles.imagePickerBtnDisabled]} 
+                      onPress={() => pickBackgroundImage(true)}
+                      disabled={uploadingImage}
                     >
-                      <Ionicons name="close-circle" size={24} color={colors.error.main} />
+                      {uploadingImage ? (
+                        <>
+                          <ActivityIndicator size="small" color={colors.primary.main} />
+                          <Text style={styles.imagePickerText}>Uploading...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Ionicons name="image-outline" size={24} color={colors.primary.main} />
+                          <Text style={styles.imagePickerText}>Choose Background Image</Text>
+                          <Text style={styles.imagePickerHint}>16:9 aspect ratio recommended</Text>
+                        </>
+                      )}
                     </Pressable>
-                  </View>
-                ) : (
-                  <Pressable 
-                    style={[styles.imagePickerBtn, uploadingImage && styles.imagePickerBtnDisabled]} 
-                    onPress={() => pickBackgroundImage(true)}
-                    disabled={uploadingImage}
+                  )}
+                </View>
+                {editingGroupImage && (
+                  <Pressable
+                    style={[styles.modalBtn, styles.modalBtnPrimary, { marginTop: spacing.sm }]}
+                    onPress={async () => {
+                      if (!editingGroupId || !verifiedAddress) return;
+                      
+                      try {
+                        // Optimistic update: Update local state immediately so image shows right away
+                        // Find the local group to get its apiGroupId
+                        const localGroup = groups.find(g => g.id === editingGroupId);
+                        const apiGroupId = localGroup?.apiGroupId || editingGroupId;
+
+                        const currentGroups = publicGroups;
+                        const updatedGroups = currentGroups.map(g => {
+                          // Match by backend id or apiGroupId
+                          if (g.id === apiGroupId || g.id === editingGroupId || (g as any).apiGroupId === editingGroupId) {
+                            return { ...g, backgroundImage: editingGroupImage || undefined };
+                          }
+                          return g;
+                        });
+
+                        // Also update local groups for immediate display
+                        const updatedLocalGroups = groups.map(g =>
+                          g.id === editingGroupId 
+                            ? { ...g, backgroundImage: editingGroupImage || undefined } as any
+                            : g
+                        );
+
+                        // Update both stores immediately
+                        useAppStore.setState({ 
+                          publicGroups: updatedGroups,
+                          groups: updatedLocalGroups
+                        });
+
+                        // Then sync to backend (don't wait for it to show the image)
+                        // Use apiGroupId for backend call, fallback to editingGroupId if not found
+                        const backendGroupId = apiGroupId || editingGroupId;
+                        apiService.updateGroupBackgroundImage(
+                          backendGroupId,
+                          verifiedAddress,
+                          editingGroupImage || null
+                        ).then(() => {
+                          // Refresh from backend to get latest data
+                          fetchPublicGroups();
+                        }).catch((error: any) => {
+                          console.error('[Groups] Background sync error (non-blocking):', error);
+                          // Revert optimistic update on error
+                          fetchPublicGroups();
+                        });
+                        
+                        Alert.alert('Success', 'Group image updated successfully');
+                      } catch (error: any) {
+                        Alert.alert('Error', error.message || 'Failed to update image');
+                      }
+                    }}
                   >
-                    {uploadingImage ? (
-                      <>
-                        <ActivityIndicator size="small" color={colors.primary.main} />
-                        <Text style={styles.imagePickerText}>Uploading...</Text>
-                      </>
-                    ) : (
-                      <>
-                        <Ionicons name="image-outline" size={24} color={colors.primary.main} />
-                        <Text style={styles.imagePickerText}>Choose Background Image</Text>
-                        <Text style={styles.imagePickerHint}>16:9 aspect ratio recommended</Text>
-                      </>
-                    )}
+                    <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>Save Image</Text>
                   </Pressable>
                 )}
               </View>
-            </View>
 
-            <View style={styles.modalButtons}>
-              <Pressable
-                style={[styles.modalBtn, styles.cancelBtn]}
-                onPress={() => {
-                  setEditingGroupId(null);
-                  setEditingGroupImage(null);
-                }}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modalBtn, styles.modalBtnPrimary]}
-                onPress={async () => {
-                  if (!editingGroupId || !verifiedAddress) return;
-                  
-                  try {
-                    // Optimistic update: Update local state immediately so image shows right away
-                    // Find the local group to get its apiGroupId
+              {/* Delete Group */}
+              <View style={styles.detailSection}>
+                <Text style={styles.label}>Delete Group</Text>
+                <Text style={styles.hint}>
+                  Permanently delete this group. This action cannot be undone.
+                </Text>
+                <Pressable
+                  style={[styles.modalBtn, styles.modalBtnDanger, { marginTop: spacing.sm }]}
+                  onPress={() => {
+                    if (!editingGroupId) return;
+                    
+                    // Find the group name and backend ID for the confirmation modal
                     const localGroup = groups.find(g => g.id === editingGroupId);
-                    const apiGroupId = localGroup?.apiGroupId || editingGroupId;
-                    
-                    const currentGroups = publicGroups;
-                    const updatedGroups = currentGroups.map(g => {
-                      // Match by backend id or apiGroupId
-                      if (g.id === apiGroupId || g.id === editingGroupId || (g as any).apiGroupId === editingGroupId) {
-                        return { ...g, backgroundImage: editingGroupImage || undefined };
-                      }
-                      return g;
-                    });
-                    
-                    // Also update local groups for immediate display
-                    const updatedLocalGroups = groups.map(g => 
-                      g.id === editingGroupId 
-                        ? { ...g, backgroundImage: editingGroupImage || undefined } as any
-                        : g
+                    const localApiGroupId = (localGroup as any)?.apiGroupId;
+                    const groupToDelete = publicGroups.find(g => 
+                      g.id === localApiGroupId || 
+                      g.id === editingGroupId || 
+                      (g as any).apiGroupId === editingGroupId
                     );
                     
-                    // Update both stores immediately
-                    console.log('[Groups] Optimistic update:', {
-                      editingGroupId,
-                      apiGroupId,
-                      imageUrl: editingGroupImage,
-                      updatedGroupsCount: updatedGroups.length,
-                      foundMatch: updatedGroups.some(g => g.id === apiGroupId || g.id === editingGroupId)
-                    });
-                    useAppStore.setState({ 
-                      publicGroups: updatedGroups,
-                      groups: updatedLocalGroups
-                    });
+                    const backendId = localApiGroupId || groupToDelete?.id || editingGroupId;
+                    const finalGroupName = groupToDelete?.name || localGroup?.name || 'this group';
                     
-                    // Then sync to backend (don't wait for it to show the image)
-                    // Use apiGroupId for backend call, fallback to editingGroupId if not found
-                    const backendGroupId = apiGroupId || editingGroupId;
-                    apiService.updateGroupBackgroundImage(
-                      backendGroupId,
-                      verifiedAddress,
-                      editingGroupImage || null
-                    ).then(() => {
-                      // Refresh from backend to get latest data
-                      fetchPublicGroups();
-                    }).catch((error: any) => {
-                      console.error('[Groups] Background sync error (non-blocking):', error);
-                      // Revert optimistic update on error
-                      fetchPublicGroups();
-                    });
-                    
-                    Alert.alert('Success', 'Group image updated successfully');
+                    setShowEditGroupModal(false);
+                    setDeletingGroupId(backendId);
+                    setDeletingGroupName(finalGroupName);
+                    setShowDeleteConfirm(true);
+                  }}
+                >
+                  <Ionicons name="trash" size={20} color={colors.error.main} style={{ marginRight: spacing.sm }} />
+                  <Text style={[styles.modalBtnText, styles.modalBtnDangerText]}>Delete Group</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.modalButtons}>
+                <Pressable
+                  style={[styles.modalBtn, styles.cancelBtn]}
+                  onPress={() => {
+                    setShowEditGroupModal(false);
                     setEditingGroupId(null);
                     setEditingGroupImage(null);
-                  } catch (error: any) {
-                    Alert.alert('Error', error.message || 'Failed to update group image');
-                  }
-                }}
-              >
-                <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>Save Changes</Text>
-              </Pressable>
-            </View>
+                    setEditingGroupPrice('');
+                  }}
+                >
+                  <Text style={styles.cancelBtnText}>Close</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
