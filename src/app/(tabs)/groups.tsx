@@ -1309,17 +1309,6 @@ export default function GroupsScreen() {
                                          (groups.find(g => g.id === deletingGroupId)?.apiGroupId) || 
                                          deletingGroupId;
                     
-                    // Deleting group (removed verbose logging)
-                    if (false) { // Disabled
-                      console.log('[Groups] Deleting group:', {
-                      deletingGroupId,
-                      backendGroupId,
-                      groupToDelete: groupToDelete?.name,
-                      groupToDeleteId: groupToDelete?.id,
-                      verifiedAddr,
-                      allPublicGroups: publicGroups.map(g => ({ id: g.id, name: g.name }))
-                    });
-                    
                     // Delete the group
                     await deletePublicGroup(backendGroupId, verificationSignature);
                     
