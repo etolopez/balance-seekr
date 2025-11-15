@@ -23,6 +23,17 @@ export async function getUserByUsername(username) {
 }
 
 /**
+ * Get user by X handle
+ */
+export async function getUserByXHandle(xHandle) {
+  const result = await query(
+    `SELECT * FROM users WHERE x_handle = $1 AND x_handle IS NOT NULL`,
+    [xHandle]
+  );
+  return result.rows[0] || null;
+}
+
+/**
  * Create or update user
  */
 export async function upsertUser(walletAddress, data = {}) {

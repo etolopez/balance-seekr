@@ -1,5 +1,5 @@
 import express from 'express';
-import { getUserByAddress, getUserByUsername, upsertUser, isUsernameAvailable } from '../models/user.js';
+import { getUserByAddress, getUserByUsername, getUserByXHandle, upsertUser, isUsernameAvailable } from '../models/user.js';
 import { validateWalletAddress, validateUsername, validateRequired } from '../middleware/validation.js';
 
 const router = express.Router();

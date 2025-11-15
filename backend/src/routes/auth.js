@@ -206,7 +206,22 @@ router.post('/x/verify-pin', async (req, res) => {
     // If userAddress was provided, automatically sync the account
     if (userAddress) {
       try {
-        const { upsertUser } = await import('../models/user.js');
+        const { upsertUser, getUserByXHandle } = await import('../models/user.js');
+        
+        // Check if this X handle is already synced to a different wallet
+        const existingUser = await getUserByXHandle(screenName);
+        if (existingUser && existingUser.wallet_address !== userAddress) {
+          // Don't sync if already linked to another wallet
+          return res.status(409).json({
+            success: false,
+            message: `This X account (@${screenName}) is already synced to another wallet address. Each X account can only be synced to one wallet.`,
+            screenName,
+            userId,
+            verified: isVerified,
+            synced: false,
+          });
+        }
+        
         await upsertUser(userAddress, {
           x_handle: screenName,
           x_verified: isVerified,
