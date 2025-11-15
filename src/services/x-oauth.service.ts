@@ -97,18 +97,34 @@ export class XOAuthService {
       this.currentUserAddress = userAddress;
       this.currentBackendUrl = backendUrl;
 
-      // Step 2: Open X authorization in browser
-      const canOpen = await Linking.canOpenURL(xAuthUrl);
-      if (!canOpen) {
-        this.clearOAuthToken();
-        throw new Error('Cannot open X authentication URL');
+      // Step 2: Try to open X app first, fallback to browser
+      // Check if X app is installed by trying to open twitter:// URL
+      const xAppUrl = `twitter://post?message=${encodeURIComponent('auth')}`;
+      const canOpenXApp = await Linking.canOpenURL(xAppUrl).catch(() => false);
+      
+      // Try to open in X app first (better UX, PIN is more visible)
+      let openedInApp = false;
+      if (canOpenXApp) {
+        try {
+          // Try to open the OAuth URL - if X app is installed, it should handle it
+          const twitterAuthUrl = xAuthUrl.replace('https://api.twitter.com', 'twitter://');
+          await Linking.openURL(xAuthUrl); // Still use https, but X app might intercept
+          openedInApp = true;
+        } catch (error) {
+          // Fallback to browser
+          openedInApp = false;
+        }
       }
 
       // Show instructions and open X
       return new Promise((resolve, reject) => {
+        const instructionText = openedInApp
+          ? 'Opening X app... After authorizing, you will see a PIN code. Copy that PIN and return here to enter it.\n\n⚠️ The PIN appears on the authorization page - look carefully!'
+          : 'You will be redirected to X in your browser to authorize this app. After authorizing, X will show you a PIN code on the page. Copy that PIN and return here to enter it.\n\n⚠️ The PIN appears on the authorization page - look carefully!';
+
         Alert.alert(
           'Open X to Authenticate',
-          'You will be redirected to X to authorize this app. After authorizing, X will show you a PIN code. Copy that PIN and return here to enter it.',
+          instructionText,
           [
             {
               text: 'Cancel',
@@ -119,10 +135,10 @@ export class XOAuthService {
               },
             },
             {
-              text: 'Open X',
+              text: openedInApp ? 'Open X App' : 'Open in Browser',
               onPress: async () => {
                 try {
-                  // Open the auth URL in browser
+                  // Open the auth URL
                   await Linking.openURL(xAuthUrl);
                   // Resolve immediately - UI will show PIN modal
                   resolve({

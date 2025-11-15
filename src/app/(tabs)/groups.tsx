@@ -2385,7 +2385,10 @@ export default function GroupsScreen() {
 
             <View style={styles.detailSection}>
               <Text style={styles.hint}>
-                After authorizing on X, you should see a PIN code. Enter it here to complete the authentication.
+                After authorizing on X, you should see a PIN code displayed on the authorization page. The PIN is usually shown in a box or highlighted text. Enter it here to complete the authentication.
+              </Text>
+              <Text style={[styles.hint, { marginTop: spacing.xs, color: '#FFA500', fontWeight: '600' }]}>
+                ⚠️ Can't find the PIN? Look for a 7-digit number on the X authorization page. It may appear after you click "Authorize app".
               </Text>
               
               <TextInput
