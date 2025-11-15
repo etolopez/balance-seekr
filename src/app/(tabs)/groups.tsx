@@ -2047,6 +2047,31 @@ const styles = StyleSheet.create({
   },
   verifyTitle: { fontWeight: typography.weights.bold, color: colors.text.primary, fontSize: typography.sizes.lg },
   verifyText: { color: colors.text.secondary, marginTop: spacing.xs },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+  },
+  profileIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(123, 163, 212, 0.1)',
+  },
+  profileDisplayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  profileDisplayValue: {
+    fontSize: typography.sizes.lg,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
   profileCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 1,
