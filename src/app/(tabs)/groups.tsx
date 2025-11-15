@@ -2273,16 +2273,33 @@ export default function GroupsScreen() {
               <View style={styles.detailSection}>
                 <Text style={styles.label}>Create Mastermind</Text>
                 <Pressable 
-                  style={styles.primaryBtn} 
+                  style={[
+                    styles.primaryBtn,
+                    !xHandle && styles.modalBtnDisabled
+                  ]} 
                   onPress={() => {
+                    if (!xHandle) {
+                      Alert.alert(
+                        'X Account Required',
+                        'You must sync your X account before creating a Mastermind. Please sync your X account first.',
+                        [{ text: 'OK' }]
+                      );
+                      return;
+                    }
                     setShowEditModal(false);
                     setShowPublicModal(true);
                   }}
+                  disabled={!xHandle}
                 >
-                  <Text style={styles.primaryBtnText}>Create Public Group</Text>
+                  <Text style={styles.primaryBtnText}>
+                    {xHandle ? 'Create Public Group' : 'Sync X Account First'}
+                  </Text>
                 </Pressable>
                 <Text style={styles.hint}>
-                  Public groups require a {PLATFORM_CREATE_FEE} SOL creation fee
+                  {xHandle 
+                    ? `Public groups require a ${PLATFORM_CREATE_FEE} SOL creation fee`
+                    : 'Sync your X account to create a Mastermind'
+                  }
                 </Text>
               </View>
 
