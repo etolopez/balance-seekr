@@ -1998,6 +1998,16 @@ export default function GroupsScreen() {
                 <Pressable
                   style={[styles.modalBtn, styles.primaryBtn]}
                   onPress={async () => {
+                    // Require X account to be synced before creating a Mastermind
+                    if (!xHandle) {
+                      Alert.alert(
+                        'X Account Required',
+                        'You must sync your X account before creating a Mastermind. Please sync your X account in the profile section first.',
+                        [{ text: 'OK' }]
+                      );
+                      return;
+                    }
+                    
                     if (!publicGroupName.trim()) {
                       Alert.alert('Error', 'Please enter a group name');
                       return;
