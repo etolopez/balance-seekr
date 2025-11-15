@@ -44,6 +44,7 @@ export default function GroupsScreen() {
   const [showXPinModal, setShowXPinModal] = useState(false);
   const [xPinCode, setXPinCode] = useState('');
   const [verifyingPin, setVerifyingPin] = useState(false);
+  const [xOAuthToken, setXOAuthToken] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showPublicModal, setShowPublicModal] = useState(false);
@@ -2354,6 +2355,7 @@ export default function GroupsScreen() {
         onRequestClose={() => {
           setShowXPinModal(false);
           setXPinCode('');
+          setXOAuthToken(null);
         }}
       >
         <View style={styles.modalOverlay}>
@@ -2368,6 +2370,7 @@ export default function GroupsScreen() {
                 onPress={() => {
                   setShowXPinModal(false);
                   setXPinCode('');
+                  setXOAuthToken(null);
                 }}
               >
                 <Ionicons name="close" size={20} color={colors.text.primary} />
@@ -2397,6 +2400,7 @@ export default function GroupsScreen() {
                   onPress={() => {
                     setShowXPinModal(false);
                     setXPinCode('');
+                    setXOAuthToken(null);
                   }}
                 >
                   <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -2414,10 +2418,29 @@ export default function GroupsScreen() {
                       return;
                     }
 
+                    if (!xOAuthToken) {
+                      Alert.alert('Error', 'OAuth session expired. Please try again.');
+                      setShowXPinModal(false);
+                      setXPinCode('');
+                      return;
+                    }
+
                     setVerifyingPin(true);
                     try {
                       const { XOAuthService } = await import('../../services/x-oauth.service');
                       const xOAuth = new XOAuthService();
+                      
+                      // Set the OAuth token before verifying
+                      const Constants = await import('expo-constants');
+                      const backendUrl = Constants.default.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
+                      if (!backendUrl) {
+                        throw new Error('Backend API URL not configured');
+                      }
+                      
+                      // Manually set the OAuth token in the service
+                      (xOAuth as any).currentOAuthToken = xOAuthToken;
+                      (xOAuth as any).currentUserAddress = verifiedAddress;
+                      (xOAuth as any).currentBackendUrl = backendUrl;
                       
                       const result = await xOAuth.verifyPIN(xPinCode.trim());
                       
@@ -2432,6 +2455,7 @@ export default function GroupsScreen() {
                       
                       setShowXPinModal(false);
                       setXPinCode('');
+                      setXOAuthToken(null); // Clear OAuth token
                       Alert.alert('Success', `X account @${result.screenName} synced successfully!`);
                     } catch (error: any) {
                       Alert.alert('Error', error.message || 'Failed to verify PIN');
