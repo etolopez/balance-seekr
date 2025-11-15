@@ -5,6 +5,7 @@ import { initializeDatabase } from './models/database.js';
 import userRoutes from './routes/users.js';
 import groupRoutes from './routes/groups.js';
 import messageRoutes from './routes/messages.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -62,6 +63,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/auth', authRoutes);
 // Messages routes are nested under groups - groupId is available in req.params
 app.use('/api/groups/:groupId/messages', messageRoutes);
 

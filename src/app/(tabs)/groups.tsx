@@ -133,12 +133,6 @@ export default function GroupsScreen() {
     }
   }, [username, editingUsername]);
 
-  // Sync tempXHandle with store xHandle when it changes
-  useEffect(() => {
-    if (!syncingX) {
-      setTempXHandle(xHandle || '');
-    }
-  }, [xHandle, syncingX]);
 
   // Update My Masterminds groups when groups, publicGroups, or verifiedAddress changes
   useEffect(() => {
@@ -2260,46 +2254,37 @@ export default function GroupsScreen() {
               <View style={styles.detailSection}>
                 <Text style={styles.label}>X (Twitter) Account</Text>
                 <Text style={styles.hint}>
-                  Sync your X account to get a verified badge on your username
+                  Sync your X account to get a verified badge on your username. This will open X to authenticate.
                 </Text>
-                <View style={styles.row}>
-                  <TextInput
-                    value={tempXHandle}
-                    onChangeText={setTempXHandle}
-                    placeholder="@username"
-                    placeholderTextColor={colors.text.tertiary}
-                    style={[styles.input, { flex: 1 }]}
-                    editable={!syncingX}
-                  />
-                  <Pressable
-                    style={[styles.saveBtn, syncingX && styles.saveBtnDisabled]}
-                    onPress={async () => {
-                      if (!tempXHandle.trim()) {
-                        Alert.alert('Error', 'Please enter your X handle');
-                        return;
+                <Pressable
+                  style={[styles.modalBtn, styles.modalBtnPrimary, syncingX && styles.modalBtnDisabled, { width: '100%', marginTop: spacing.sm }]}
+                  onPress={async () => {
+                    setSyncingX(true);
+                    try {
+                      // OAuth flow - no handle needed, automatically gets from X
+                      await syncXAccount();
+                      Alert.alert('Success', 'X account synced successfully!');
+                      // Refresh user profile to get updated X handle
+                      const { fetchUserProfile } = useAppStore.getState();
+                      if (verifiedAddress) {
+                        await fetchUserProfile(verifiedAddress);
                       }
-                      setSyncingX(true);
-                      try {
-                        await syncXAccount(tempXHandle.trim());
-                        Alert.alert('Success', 'X account synced successfully!');
-                        setShowEditModal(false);
-                      } catch (error: any) {
-                        Alert.alert('Error', error.message || 'Failed to sync X account');
-                      } finally {
-                        setSyncingX(false);
-                      }
-                    }}
-                    disabled={syncingX}
-                  >
-                    {syncingX ? (
-                      <ActivityIndicator size="small" color={colors.primary.main} />
-                    ) : (
-                      <Text style={styles.saveBtnText}>Sync</Text>
-                    )}
-                  </Pressable>
-                </View>
+                    } catch (error: any) {
+                      Alert.alert('Error', error.message || 'Failed to sync X account');
+                    } finally {
+                      setSyncingX(false);
+                    }
+                  }}
+                  disabled={syncingX}
+                >
+                  {syncingX ? (
+                    <ActivityIndicator size="small" color={colors.text.primary} />
+                  ) : (
+                    <Text style={styles.modalBtnText}>Sync with X</Text>
+                  )}
+                </Pressable>
                 {xHandle && (
-                  <Text style={styles.hint}>
+                  <Text style={[styles.hint, { marginTop: spacing.sm }]}>
                     Currently synced: @{xHandle} {verified && '✓ Verified'}
                   </Text>
                 )}

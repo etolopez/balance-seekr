@@ -625,33 +625,44 @@ export const useAppStore = create<State>((set, get) => ({
       throw error;
     }
   },
-  syncXAccount: async (xHandle: string) => {
+  syncXAccount: async (xHandle?: string) => {
     const state = get();
     if (!state.verifiedAddress) {
       throw new Error('Wallet not connected. Please connect your wallet first.');
     }
 
-    if (!xHandle || xHandle.trim().length === 0) {
-      throw new Error('X handle cannot be empty.');
-    }
-
-    // Remove @ if present
-    const cleanHandle = xHandle.trim().replace(/^@/, '');
-
     try {
-      const { ApiService } = await import('../services/api.service');
-      const apiService = new ApiService();
-      
-      // Sync X account with backend
-      const result = await apiService.syncXAccount(state.verifiedAddress, cleanHandle);
-      
-      // Update local state
-      dbApi.upsertPref('profile.xHandle', cleanHandle);
-      dbApi.upsertPref('profile.verified', result.verified ? 'true' : 'false');
-      set(() => ({
-        xHandle: cleanHandle,
-        verified: result.verified,
-      }));
+      // If xHandle is provided, use the old manual method
+      // Otherwise, use OAuth flow
+      if (xHandle && xHandle.trim().length > 0) {
+        // Manual method (legacy support)
+        const cleanHandle = xHandle.trim().replace(/^@/, '');
+        const { ApiService } = await import('../services/api.service');
+        const apiService = new ApiService();
+        
+        const result = await apiService.syncXAccount(state.verifiedAddress, cleanHandle);
+        
+        dbApi.upsertPref('profile.xHandle', cleanHandle);
+        dbApi.upsertPref('profile.verified', result.verified ? 'true' : 'false');
+        set(() => ({
+          xHandle: cleanHandle,
+          verified: result.verified,
+        }));
+      } else {
+        // OAuth flow - automatically gets username from X
+        const { XOAuthService } = await import('../services/x-oauth.service');
+        const xOAuth = new XOAuthService();
+        
+        const result = await xOAuth.authenticate(state.verifiedAddress);
+        
+        // Update local state with OAuth result
+        dbApi.upsertPref('profile.xHandle', result.screenName);
+        dbApi.upsertPref('profile.verified', result.verified ? 'true' : 'false');
+        set(() => ({
+          xHandle: result.screenName,
+          verified: result.verified,
+        }));
+      }
     } catch (error: any) {
       console.error('[Store] Error syncing X account:', error);
       throw error;
