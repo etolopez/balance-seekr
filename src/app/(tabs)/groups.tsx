@@ -2117,20 +2117,26 @@ export default function GroupsScreen() {
                                     </Pressable>
                                   )}
                                   <Link href={`/masterminds/${item.id}`} asChild>
-                                    <Pressable style={[styles.myMastermindCardBtn, { 
+                                    <Pressable style={{ 
                                       flex: 1, 
                                       minWidth: '60%',
-                                      backgroundColor: colors.success.main + '40',
+                                      backgroundColor: colors.success.main + '50',
                                       borderColor: colors.success.main,
                                       borderWidth: 2,
+                                      borderRadius: borderRadius.sm,
                                       flexDirection: 'row',
                                       alignItems: 'center',
                                       justifyContent: 'center',
                                       paddingHorizontal: spacing.lg,
-                                      paddingVertical: spacing.sm
-                                    }]}>
-                                      <Ionicons name="chatbubbles" size={18} color={colors.success.main} style={{ marginRight: spacing.xs }} />
-                                      <Text style={[styles.myMastermindCardBtnText, { color: colors.success.main, fontWeight: typography.weights.bold }]}>Open</Text>
+                                      paddingVertical: spacing.sm,
+                                      gap: spacing.xs
+                                    }}>
+                                      <Ionicons name="chatbubbles" size={18} color={colors.success.main} />
+                                      <Text style={{ 
+                                        color: colors.success.main, 
+                                        fontWeight: typography.weights.bold,
+                                        fontSize: typography.sizes.sm
+                                      }}>Open</Text>
                                     </Pressable>
                                   </Link>
                                 </View>
