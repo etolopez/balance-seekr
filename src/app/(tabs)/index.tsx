@@ -171,7 +171,7 @@ export default function HomeScreen() {
             <>
               {/* Intention for the Week - Separate Section */}
               {weeklyGoal && (
-                <View style={styles.goalsBox}>
+                <View style={styles.intentionBox}>
                   <Text style={styles.goalHeader}>Intention for the Week</Text>
                   <Text style={styles.goalText}>{weeklyGoal}</Text>
                 </View>
@@ -474,18 +474,32 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     overflow: 'hidden',
   },
+  intentionBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.lg,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    marginTop: spacing.md,
+    marginHorizontal: -spacing['2xl'], // Negative margin to touch screen edges
+    gap: spacing.xs,
+    overflow: 'hidden',
+  },
   goalHeader: {
     fontWeight: typography.weights.bold,
     color: colors.text.primary,
     fontSize: typography.sizes.lg,
     marginTop: spacing.xs,
     marginBottom: spacing.xs,
+    textAlign: 'center',
   },
   goalSubHeader: {
     fontWeight: typography.weights.medium,
     color: colors.text.secondary,
     fontSize: typography.sizes.sm,
     marginTop: spacing.sm,
+    textAlign: 'center',
   },
   goalText: {
     color: colors.text.secondary,
