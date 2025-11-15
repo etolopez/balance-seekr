@@ -30,9 +30,9 @@ After removing the variables:
 If you want X verification to work, add them back with different names that Railway won't treat as secrets:
 
 **Option A: Use TWITTER_ prefix**
-- `TWITTER_BEARER` = `AAAAAAAAAAAAAAAAAAAAAJ3K5QEAAAAAzfMcIoWLMksWE9luuQ9mqeJ92mc=7CMW6XAjbRCWTY6qgW5rUJDQAflgHBfNuqkOirR0IcQWiNoT87`
-- `TWITTER_ACCESS_TOKEN` = `1360260811193786375-dlEPz8ElZsvjrJd0akXBnZMu38x4e7`
-- `TWITTER_ACCESS_TOKEN_SECRET` = `Mqyyb42cCWPJMunV07LeajdWTl0wlEUOqT43pc5yr6gYg`
+- `TWITTER_BEARER` = `<your_bearer_token_here>` ⚠️ **DO NOT use actual token**
+- `TWITTER_ACCESS_TOKEN` = `<your_access_token_here>` ⚠️ **DO NOT use actual token**
+- `TWITTER_ACCESS_TOKEN_SECRET` = `<your_access_token_secret_here>` ⚠️ **DO NOT use actual token**
 
 The code now supports both `X_BEARER_TOKEN` and `TWITTER_BEARER` (and similar for the others).
 

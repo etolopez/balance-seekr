@@ -30,17 +30,17 @@ This happens when credentials are added as **"Secrets"** instead of **"Environme
 
 **Variable 1:**
 - **Key/Name**: `X_BEARER_TOKEN`
-- **Value**: `AAAAAAAAAAAAAAAAAAAAAJ3K5QEAAAAAzfMcIoWLMksWE9luuQ9mqeJ92mc=7CMW6XAjbRCWTY6qgW5rUJDQAflgHBfNuqkOirR0IcQWiNoT87`
+- **Value**: `<your_bearer_token_here>` ⚠️ **DO NOT use actual token**
 - **Type**: Make sure it's **"Environment Variable"** (NOT "Secret")
 
 **Variable 2:**
 - **Key/Name**: `X_ACCESS_TOKEN`
-- **Value**: `1360260811193786375-dlEPz8ElZsvjrJd0akXBnZMu38x4e7`
+- **Value**: `<your_access_token_here>` ⚠️ **DO NOT use actual token**
 - **Type**: **"Environment Variable"**
 
 **Variable 3:**
 - **Key/Name**: `X_ACCESS_TOKEN_SECRET`
-- **Value**: `Mqyyb42cCWPJMunV07LeajdWTl0wlEUOqT43pc5yr6gYg`
+- **Value**: `<your_access_token_secret_here>` ⚠️ **DO NOT use actual token**
 - **Type**: **"Environment Variable"**
 
 ### Step 3: Verify
