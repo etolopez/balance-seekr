@@ -2076,9 +2076,9 @@ export default function GroupsScreen() {
                                 {item.joinPrice !== undefined && item.joinPrice > 0 && (
                                   <Text style={styles.myMastermindCardSub}>Join Price: {item.joinPrice} SOL</Text>
                                 )}
-                                <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.sm }}>
+                                <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.sm, alignItems: 'center' }}>
                                   <Link href={`/masterminds/${item.id}`} asChild>
-                                    <Pressable style={styles.myMastermindCardBtn}>
+                                    <Pressable style={[styles.myMastermindCardBtn, { flex: 1, minWidth: '60%' }]}>
                                       <Text style={styles.myMastermindCardBtnText}>Open</Text>
                                     </Pressable>
                                   </Link>
@@ -2104,7 +2104,7 @@ export default function GroupsScreen() {
                                   )}
                                   {!isOwner && (
                                     <Pressable 
-                                      style={[styles.myMastermindCardBtn, { backgroundColor: colors.error.main + '30', borderColor: colors.error.main }]} 
+                                      style={[styles.myMastermindCardBtn, { backgroundColor: colors.error.main + '30', borderColor: colors.error.main, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]} 
                                       onPress={() => {
                                         // Find the group to get its ID
                                         const groupToLeave = publicGroups.find(g => 
