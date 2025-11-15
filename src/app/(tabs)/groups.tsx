@@ -2023,58 +2023,7 @@ export default function GroupsScreen() {
                         const backgroundImage = publicGroup?.backgroundImage || (item as any).backgroundImage;
                         
                         return (
-                          <Pressable
-                            key={item.id}
-                            onPress={async () => {
-                              setShowEditModal(false);
-                              // Fetch latest group data to ensure price updates are reflected
-                              await fetchPublicGroups();
-                              const latestGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
-                              const finalGroup = latestGroup || item;
-                              const groupToShow = { ...finalGroup, backgroundImage: latestGroup?.backgroundImage || backgroundImage } as GroupForDisplay;
-                              
-                              // Since this is from "My Masterminds", user should be a member
-                              // Check local database first to confirm membership
-                              const isOwner = groupToShow.ownerAddress === verifiedAddress;
-                              let isMember = isOwner; // Owner is always a member
-                              
-                              if (!isOwner && verifiedAddress) {
-                                // Check local database for membership
-                                try {
-                                  const { dbApi } = await import('../../state/dbApi');
-                                  const localMember = await dbApi.getMember(groupToShow.id, verifiedAddress);
-                                  isMember = !!localMember;
-                                } catch (error) {
-                                  console.error('[Groups] Error checking local membership:', error);
-                                  // If local check fails, assume member since it's in "My Masterminds"
-                                  isMember = true;
-                                }
-                              }
-                              
-                              // Set membership state before opening modal
-                              setIsMemberOfSelectedGroup(isMember);
-                              setSelectedGroup(groupToShow);
-                              setShowGroupDetail(true);
-                              
-                              // Verify membership with backend in background (but don't change UI if already true)
-                              if (verifiedAddress && !isOwner && isMember) {
-                                setCheckingMembership(true);
-                                try {
-                                  const backendIsMember = await apiService.checkMembership(groupToShow.id, verifiedAddress);
-                                  // Only update if backend says not a member (might have left on another device)
-                                  if (!backendIsMember) {
-                                    setIsMemberOfSelectedGroup(false);
-                                  }
-                                } catch (error) {
-                                  console.error('[Groups] Error checking backend membership:', error);
-                                  // Keep local membership state if backend check fails
-                                } finally {
-                                  setCheckingMembership(false);
-                                }
-                              }
-                            }}
-                            style={[styles.myMastermindCardWrapper, { marginBottom: spacing.sm }]}
-                          >
+                          <View key={item.id} style={[styles.myMastermindCardWrapper, { marginBottom: spacing.sm }]}>
                             <View style={styles.myMastermindCardContainer}>
                               {/* Background Image */}
                               {backgroundImage ? (
@@ -2153,10 +2102,29 @@ export default function GroupsScreen() {
                                       <Text style={styles.myMastermindCardBtnText}>Edit</Text>
                                     </Pressable>
                                   )}
+                                  {!isOwner && (
+                                    <Pressable 
+                                      style={[styles.myMastermindCardBtn, { backgroundColor: colors.error.main + '30', borderColor: colors.error.main }]} 
+                                      onPress={() => {
+                                        // Find the group to get its ID
+                                        const groupToLeave = publicGroups.find(g => 
+                                          g.id === (item as any).apiGroupId || 
+                                          g.id === item.id || 
+                                          (g as any).apiGroupId === item.id
+                                        ) || item;
+                                        
+                                        setLeavingGroupId(groupToLeave.id || item.id);
+                                      }}
+                                      disabled={verifyingLeave}
+                                    >
+                                      <Ionicons name="exit-outline" size={16} color={colors.error.main} style={{ marginRight: spacing.xs }} />
+                                      <Text style={[styles.myMastermindCardBtnText, { color: colors.error.main }]}>Leave</Text>
+                                    </Pressable>
+                                  )}
                                 </View>
                               </View>
                             </View>
-                          </Pressable>
+                          </View>
                         );
                       })}
                     </View>
