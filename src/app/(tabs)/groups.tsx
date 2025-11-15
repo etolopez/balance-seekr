@@ -466,52 +466,242 @@ export default function GroupsScreen() {
   if (!verifiedAddress) {
     return (
       <LinearGradient colors={[colors.background.gradient.start, colors.background.gradient.end]} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-        <View style={[styles.content, { paddingTop: Math.max(insets.top, spacing.xl) + spacing.lg }]}>
+        <ScrollView 
+          style={styles.container}
+          contentContainerStyle={[styles.verifyScrollContent, { paddingTop: Math.max(insets.top, spacing.xl) + spacing.lg }]}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.title}>Masterminds</Text>
-        <View style={styles.verifyCard}>
-          <Text style={styles.verifyTitle}>Verify your identity</Text>
-          <Text style={styles.verifyText}>
-            Verify once with your Solana wallet to enter Masterminds. This will open your wallet app to authenticate.
-          </Text>
-          <View style={{ alignItems: 'center', marginTop: spacing.md }}>
-            <Pressable style={styles.primaryBtn} onPress={async () => {
-              try {
-                // Starting wallet verification
-                const svc = new WalletService();
-                // Use verifyOnce which opens the wallet picker/selector
-                const acc = await svc.verifyOnce();
-                // Wallet verification successful
-                if (acc && acc.address) {
-                  await setVerified(acc.address);
-                } else {
-                  Alert.alert('Wallet verification', 'No address returned from wallet. Please try again.');
-                }
-              } catch (e: any) {
-                // Wallet verification error (handled by Alert)
-                const errorMsg = e?.message || 'Verification failed. Please try again.';
-                // Provide more helpful error message
-                const displayMsg = errorMsg.includes('cancel') || errorMsg.includes('reject') 
-                  ? 'Connection was cancelled. Make sure to accept the connection in Phantom and wait for it to complete.'
-                  : errorMsg;
-                // Suppress alerts while returning from wallet or when user cancelled
-                if (displayMsg.toLowerCase().includes('cancel') || displayMsg.toLowerCase().includes('interrupted')) {
-                  return;
-                }
-                InteractionManager.runAfterInteractions(() => {
-                  Alert.alert('Wallet verification', displayMsg);
-                });
-              }
-            }}>
-              <Text style={styles.primaryBtnText}>{useSiws ? 'Verify Seeker (SIWS)' : (seeker.isSeeker ? 'Verify with Solana Seeker' : 'Verify with Solana')}</Text>
-            </Pressable>
+
+          {/* Informational Landing Page */}
+          <View style={styles.infoSection}>
+            <View style={styles.infoHeader}>
+              <Ionicons name="people-circle" size={48} color={colors.primary.main} />
+              <Text style={styles.infoTitle}>Welcome to Masterminds</Text>
+              <Text style={styles.infoSubtitle}>
+                Connect with like-minded individuals and grow together
+              </Text>
+            </View>
+
+            {/* What is a Mastermind? */}
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Ionicons name="bulb-outline" size={24} color={colors.primary.main} />
+                <Text style={styles.infoCardTitle}>What is a Mastermind?</Text>
+              </View>
+              <Text style={styles.infoCardText}>
+                A Mastermind is a community space where people come together to support each other's growth. 
+                Whether you're focused on health, financial goals, personal development, or relationships, 
+                Masterminds provide a dedicated environment for shared learning and mutual support.
+              </Text>
+              <View style={styles.infoCardExamples}>
+                <View style={styles.exampleItem}>
+                  <Ionicons name="fitness-outline" size={20} color={colors.secondary.main} />
+                  <Text style={styles.exampleText}>Health & Wellness</Text>
+                </View>
+                <View style={styles.exampleItem}>
+                  <Ionicons name="cash-outline" size={20} color={colors.secondary.main} />
+                  <Text style={styles.exampleText}>Financial Growth</Text>
+                </View>
+                <View style={styles.exampleItem}>
+                  <Ionicons name="trending-up-outline" size={20} color={colors.secondary.main} />
+                  <Text style={styles.exampleText}>Personal Development</Text>
+                </View>
+                <View style={styles.exampleItem}>
+                  <Ionicons name="people-outline" size={20} color={colors.secondary.main} />
+                  <Text style={styles.exampleText}>Relationships</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Intentional Rules */}
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Ionicons name="shield-checkmark-outline" size={24} color={colors.success.main} />
+                <Text style={styles.infoCardTitle}>Community Guidelines</Text>
+              </View>
+              <Text style={styles.infoCardText}>
+                Our Masterminds operate on an honor system built on respect and mutual support:
+              </Text>
+              <View style={styles.rulesList}>
+                <View style={styles.ruleItem}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success.main} />
+                  <Text style={styles.ruleText}>
+                    Stay on topic and contribute meaningfully to discussions
+                  </Text>
+                </View>
+                <View style={styles.ruleItem}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success.main} />
+                  <Text style={styles.ruleText}>
+                    Offer help and support to fellow community members
+                  </Text>
+                </View>
+                <View style={styles.ruleItem}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success.main} />
+                  <Text style={styles.ruleText}>
+                    Maintain a friendly, positive, and constructive atmosphere
+                  </Text>
+                </View>
+                <View style={styles.ruleItem}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success.main} />
+                  <Text style={styles.ruleText}>
+                    Respect different perspectives and experiences
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* What You Can Do */}
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Ionicons name="rocket-outline" size={24} color={colors.primary.main} />
+                <Text style={styles.infoCardTitle}>What You Can Do</Text>
+              </View>
+              <View style={styles.featuresList}>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Ionicons name="chatbubbles" size={24} color={colors.primary.main} />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Connect & Chat</Text>
+                    <Text style={styles.featureText}>
+                      Engage in meaningful conversations with community members who share your goals
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Ionicons name="add-circle" size={24} color={colors.primary.main} />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Create Your Mastermind</Text>
+                    <Text style={styles.featureText}>
+                      Start your own community around a specific topic and help others grow
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Ionicons name="people" size={24} color={colors.primary.main} />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Seek & Offer Help</Text>
+                    <Text style={styles.featureText}>
+                      Share knowledge, ask questions, and find helping hands from experienced members
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Ionicons name="trending-up" size={24} color={colors.primary.main} />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Grow Together</Text>
+                    <Text style={styles.featureText}>
+                      Build lasting connections and accelerate your progress through collective wisdom
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* How to Get Started */}
+            <View style={styles.stepsCard}>
+              <Text style={styles.stepsTitle}>How to Get Started</Text>
+              <View style={styles.stepsList}>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>1</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Connect Your Wallet</Text>
+                    <Text style={styles.stepText}>
+                      Verify your Solana wallet to access Masterminds
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>2</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Choose Your Username</Text>
+                    <Text style={styles.stepText}>
+                      Set a unique username that represents you in the community
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>3</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Explore & Join</Text>
+                    <Text style={styles.stepText}>
+                      Browse Masterminds by category and join communities that align with your goals
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>4</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Start Contributing</Text>
+                    <Text style={styles.stepText}>
+                      Share your knowledge, ask questions, and help others on their journey
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Verification Button */}
+            <View style={styles.verifyContent}>
+              <Text style={styles.verifyTitle}>Ready to Begin?</Text>
+              <Text style={styles.verifyText}>
+                Verify once with your Solana wallet to enter Masterminds.
+              </Text>
+              <View style={{ alignItems: 'center', marginTop: spacing.lg }}>
+                <Pressable style={styles.primaryBtn} onPress={async () => {
+                  try {
+                    // Starting wallet verification
+                    const svc = new WalletService();
+                    // Use verifyOnce which opens the wallet picker/selector
+                    const acc = await svc.verifyOnce();
+                    // Wallet verification successful
+                    if (acc && acc.address) {
+                      await setVerified(acc.address);
+                    } else {
+                      Alert.alert('Wallet verification', 'No address returned from wallet. Please try again.');
+                    }
+                  } catch (e: any) {
+                    // Wallet verification error (handled by Alert)
+                    const errorMsg = e?.message || 'Verification failed. Please try again.';
+                    // Provide more helpful error message
+                    const displayMsg = errorMsg.includes('cancel') || errorMsg.includes('reject') 
+                      ? 'Connection was cancelled. Make sure to accept the connection in Phantom and wait for it to complete.'
+                      : errorMsg;
+                    // Suppress alerts while returning from wallet or when user cancelled
+                    if (displayMsg.toLowerCase().includes('cancel') || displayMsg.toLowerCase().includes('interrupted')) {
+                      return;
+                    }
+                    InteractionManager.runAfterInteractions(() => {
+                      Alert.alert('Wallet verification', displayMsg);
+                    });
+                  }
+                }}>
+                  <Text style={styles.primaryBtnText}>{useSiws ? 'Verify Seeker (SIWS)' : (seeker.isSeeker ? 'Verify with Solana Seeker' : 'Verify with Solana')}</Text>
+                </Pressable>
+              </View>
+              {seeker.isSeeker && (
+                <Text style={[styles.verifyText, { marginTop: spacing.xs, textAlign: 'center' }]}>
+                  Tip: When the Seeker wallet opens, complete the prompts and wait for the app to return automatically.
+                </Text>
+              )}
+            </View>
           </View>
-          {seeker.isSeeker && (
-            <Text style={[styles.verifyText, { marginTop: spacing.xs, textAlign: 'center' }]}>
-              Tip: When the Seeker wallet opens, complete the prompts and wait for the app to return automatically.
-            </Text>
-          )}
-        </View>
-        </View>
+        </ScrollView>
       </LinearGradient>
     );
   }
