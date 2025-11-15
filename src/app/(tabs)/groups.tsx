@@ -871,7 +871,19 @@ export default function GroupsScreen() {
                 {isMemberOfSelectedGroup && (
                   <View style={styles.modalButtons}>
                     <Pressable
-                      style={[styles.modalBtn, styles.openChatButton, { width: '100%' }]}
+                      style={{ 
+                        width: '100%',
+                        backgroundColor: colors.success.main + '50',
+                        borderColor: colors.success.main,
+                        borderWidth: 2,
+                        borderRadius: borderRadius.sm,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingHorizontal: spacing.lg,
+                        paddingVertical: spacing.md,
+                        gap: spacing.xs
+                      }}
                       onPress={() => {
                         // Find the local group ID (could be apiGroupId or local id)
                         const localGroup = groups.find(g => g.id === selectedGroup.id || g.apiGroupId === selectedGroup.id);
@@ -882,21 +894,42 @@ export default function GroupsScreen() {
                         router.push(`/masterminds/${groupIdForChat}`);
                       }}
                     >
-                      <Ionicons name="chatbubbles" size={24} color={colors.text.primary} style={{ marginRight: spacing.sm }} />
-                      <Text style={styles.openChatButtonText}>Open Chat</Text>
+                      <Ionicons name="chatbubbles" size={20} color={colors.success.main} />
+                      <Text style={{ 
+                        color: colors.success.main, 
+                        fontWeight: typography.weights.bold,
+                        fontSize: typography.sizes.md
+                      }}>Open Chat</Text>
                     </Pressable>
                     
                     {/* Leave Group Button - Only show for non-owners who are members */}
                     {selectedGroup.ownerAddress !== verifiedAddress && (
                       <Pressable
-                        style={[styles.modalBtn, styles.modalBtnDanger, { width: '100%', marginTop: spacing.sm }]}
+                        style={{ 
+                          width: '100%',
+                          backgroundColor: colors.error.main + '30',
+                          borderColor: colors.error.main,
+                          borderWidth: 2,
+                          borderRadius: borderRadius.sm,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          paddingHorizontal: spacing.lg,
+                          paddingVertical: spacing.md,
+                          gap: spacing.xs,
+                          marginTop: spacing.sm
+                        }}
                         onPress={() => {
                           setLeavingGroupId(selectedGroup.id);
                         }}
                         disabled={verifyingLeave}
                       >
-                        <Ionicons name="exit-outline" size={20} color={colors.error.main} style={{ marginRight: spacing.sm }} />
-                        <Text style={[styles.modalBtnText, styles.modalBtnDangerText]}>Leave Group</Text>
+                        <Ionicons name="exit-outline" size={20} color={colors.error.main} />
+                        <Text style={{ 
+                          color: colors.error.main, 
+                          fontWeight: typography.weights.bold,
+                          fontSize: typography.sizes.md
+                        }}>Leave Group</Text>
                       </Pressable>
                     )}
                   </View>
