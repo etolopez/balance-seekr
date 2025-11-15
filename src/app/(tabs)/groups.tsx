@@ -469,10 +469,17 @@ export default function GroupsScreen() {
         <View style={styles.headerRow}>
           <Text style={styles.title}>Masterminds</Text>
           <Pressable
-            style={styles.profileIconBtn}
             onPress={() => setShowEditModal(true)}
+            style={styles.profileGradientBtn}
           >
-            <Ionicons name="person-circle" size={32} color={colors.primary.main} />
+            <LinearGradient
+              colors={['#FF6B6B', '#C44569', '#8B3A5C']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.profileGradientBtnInner}
+            >
+              <Ionicons name="person" size={20} color={colors.text.primary} />
+            </LinearGradient>
           </Pressable>
         </View>
 
@@ -2056,13 +2063,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.lg,
   },
-  profileIconBtn: {
+  profileGradientBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
+    overflow: 'hidden',
+    ...shadows.sm,
+  },
+  profileGradientBtnInner: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(123, 163, 212, 0.1)',
   },
   profileDisplayRow: {
     flexDirection: 'row',
