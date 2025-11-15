@@ -3,14 +3,26 @@
 ## Security Incident
 
 **Date**: 2025-01-XX  
-**Issue**: API credentials were temporarily exposed in `RAILWAY_FIX_X_VARIABLES.md`
+**Issue**: API credentials were exposed in multiple documentation files and committed to Git
 
 ## What Happened
 
-The following credentials were accidentally committed to the repository in a documentation file:
+The following credentials were accidentally committed to the repository in documentation files:
 - X Bearer Token
 - X Access Token  
 - X Access Token Secret
+
+**Files affected:**
+- `RAILWAY_FIX_X_VARIABLES.md` (committed in commit `9fd3238`)
+- `RAILWAY_REMOVE_X_VARS.md`
+- `RAILWAY_REMOVE_SECRETS.md`
+- `RAILWAY_ENV_VS_SECRETS.md`
+
+## ⚠️ CRITICAL: Credentials Are in Git History
+
+**Even though we've removed them from current files, the credentials still exist in Git history.** If your repository is public, anyone can see them by viewing the commit history.
+
+**You MUST rotate these credentials immediately.**
 
 ## Immediate Actions Required
 
