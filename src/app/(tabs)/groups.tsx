@@ -2885,6 +2885,43 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     fontSize: typography.sizes.base,
   },
+  xAccountInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  xProfilePicture: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: colors.primary.main,
+  },
+  xAccountDetails: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  xAccountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  xHandleText: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+  },
+  xAccountHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+  },
   editProfileBtn: {
     borderWidth: 1.5,
     borderColor: colors.primary.main,
