@@ -29,6 +29,16 @@ export default function GroupsScreen() {
   const verified = useAppStore((s) => s.verified);
   const setUsername = useAppStore((s) => s.setUsername);
   const syncXAccount = useAppStore((s) => s.syncXAccount);
+  const fetchUserProfile = useAppStore((s) => s.fetchUserProfile);
+  
+  // Refetch user profile when wallet address changes
+  useEffect(() => {
+    if (verifiedAddress) {
+      fetchUserProfile(verifiedAddress).catch(() => {
+        // Silently handle errors - backend might not be available
+      });
+    }
+  }, [verifiedAddress, fetchUserProfile]);
   const groups = useAppStore((s) => s.groups);
   const publicGroups = useAppStore((s) => s.publicGroups);
   const createPublicGroup = useAppStore((s) => s.createPublicGroup);
