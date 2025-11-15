@@ -37,10 +37,15 @@ const oauthTokenStore = new Map();
  */
 router.get('/x/authorize', async (req, res) => {
   try {
+    console.log('[Auth] X OAuth authorize request received');
+    console.log('[Auth] X_API_KEY present:', !!X_API_KEY);
+    console.log('[Auth] X_API_SECRET present:', !!X_API_SECRET);
+    
     if (!X_API_KEY || !X_API_SECRET) {
+      console.error('[Auth] X API credentials missing');
       return res.status(500).json({
         success: false,
-        message: 'X API credentials not configured',
+        message: 'X API credentials not configured. Please add X_API_KEY and X_API_SECRET to Railway environment variables.',
       });
     }
 

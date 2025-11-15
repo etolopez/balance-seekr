@@ -43,13 +43,28 @@ export class XOAuthService {
       const redirectUri = `${backendUrl}/api/auth/x/callback?userAddress=${encodeURIComponent(userAddress)}`;
       
       // Step 1: Get authorization URL from backend
-      const authUrlResponse = await fetch(
-        `${backendUrl}/api/auth/x/authorize?redirect_uri=${encodeURIComponent(redirectUri)}&userAddress=${encodeURIComponent(userAddress)}`
-      );
+      const authUrl = `${backendUrl}/api/auth/x/authorize?redirect_uri=${encodeURIComponent(redirectUri)}&userAddress=${encodeURIComponent(userAddress)}`;
+      console.log('[XOAuth] Requesting auth URL from:', authUrl);
+      
+      const authUrlResponse = await fetch(authUrl);
 
       if (!authUrlResponse.ok) {
-        const error = await authUrlResponse.json().catch(() => ({ message: authUrlResponse.statusText }));
-        throw new Error(error.message || 'Failed to initiate X OAuth');
+        const errorText = await authUrlResponse.text().catch(() => authUrlResponse.statusText);
+        console.error('[XOAuth] Backend error response:', {
+          status: authUrlResponse.status,
+          statusText: authUrlResponse.statusText,
+          body: errorText
+        });
+        
+        let errorMessage = 'Failed to initiate X OAuth';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const { authUrl } = await authUrlResponse.json();
