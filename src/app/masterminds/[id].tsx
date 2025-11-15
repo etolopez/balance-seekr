@@ -1,10 +1,11 @@
 import { useLocalSearchParams, router } from 'expo-router';
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
+import { ApiService } from '../../services/api.service';
 import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
 
 export default function GroupChat() {
@@ -15,21 +16,77 @@ export default function GroupChat() {
   const sendMessage = useAppStore((s) => s.sendMessage);
   const verifiedAddress = useAppStore((s) => s.verifiedAddress);
   const username = useAppStore((s) => s.username);
+  const publicGroups = useAppStore((s) => s.publicGroups);
   const group = useMemo(() => groups.find(g => g.id === id), [groups, id]);
+  const publicGroup = useMemo(() => publicGroups.find(g => g.id === id || (g as any).apiGroupId === id), [publicGroups, id]);
+  const groupData = publicGroup || group;
   const groupMsgs = useMemo(() => messages.filter(m => m.groupId === id), [messages, id]);
   const [text, setText] = useState('');
   const listRef = useRef<FlatList>(null);
+  const apiService = new ApiService();
 
-  const onSend = () => {
-    if (!text.trim()) return;
-    sendMessage(id!, text.trim());
-    setText('');
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
+  // Fetch messages from backend on mount and periodically
+  useEffect(() => {
+    if (!id || !verifiedAddress) return;
+    
+    const fetchMessages = async () => {
+      try {
+        const backendMessages = await apiService.getGroupMessages(id);
+        // Update local messages with backend data (includes senderUsername)
+        if (backendMessages.length > 0) {
+          // Merge backend messages with local ones
+          const existingIds = new Set(messages.map(m => m.id));
+          const newMessages = backendMessages.filter(m => !existingIds.has(m.id));
+          
+          if (newMessages.length > 0) {
+            useAppStore.setState((s) => ({
+              messages: [...s.messages, ...newMessages.map(m => ({
+                id: m.id,
+                groupId: m.groupId,
+                senderAddress: m.senderAddress,
+                senderUsername: m.senderUsername,
+                content: m.content,
+                createdAt: m.createdAt,
+              }))]
+            }));
+          }
+        }
+      } catch (error) {
+        // Silently fail - backend might not be available
+      }
+    };
+
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval);
+  }, [id, verifiedAddress]);
+
+  const onSend = async () => {
+    if (!text.trim() || !id || !verifiedAddress) return;
+    
+    try {
+      // Send to backend first
+      await apiService.sendMessage(id, verifiedAddress, text.trim(), username || undefined);
+      
+      // Then add to local state
+      sendMessage(id, text.trim());
+      setText('');
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
+    } catch (error) {
+      // If backend fails, still send locally
+      sendMessage(id, text.trim());
+      setText('');
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
+    }
   };
 
   return (
     <LinearGradient colors={[colors.background.gradient.start, colors.background.gradient.end]} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         <View style={[styles.content, { paddingTop: Math.max(insets.top, spacing.xl) + spacing.lg }]}>
           {/* Back Button */}
           <Pressable style={styles.topBackBtn} onPress={() => router.back()}>
@@ -37,27 +94,37 @@ export default function GroupChat() {
             <Text style={styles.topBackBtnText}>Back</Text>
           </Pressable>
 
-          <Text style={styles.title}>{group?.name || 'Masterminds'}</Text>
+          <Text style={styles.title}>{groupData?.name || group?.name || 'Masterminds'}</Text>
           <FlatList
             ref={listRef}
             data={groupMsgs}
             keyExtractor={(m) => m.id}
             renderItem={({ item }) => {
-              // Show username if it's the current user, otherwise show wallet address
               const isMine = item.senderAddress === verifiedAddress;
-              const displayName = isMine && username 
-                ? username 
-                : item.senderAddress 
-                  ? `${item.senderAddress.slice(0,4)}…${item.senderAddress.slice(-4)}`
-                  : 'Unknown';
+              const isCreator = item.senderAddress === groupData?.ownerAddress || item.senderAddress === group?.ownerAddress;
+              
+              // Show username if available, otherwise show wallet address
+              const displayName = (item as any).senderUsername 
+                ? (item as any).senderUsername
+                : isMine && username 
+                  ? username 
+                  : item.senderAddress 
+                    ? `${item.senderAddress.slice(0,4)}…${item.senderAddress.slice(-4)}`
+                    : 'Unknown';
+              
               return (
-                <View style={[styles.msg, isMine ? styles.msgMine : styles.msgTheirs]}>
+                <View style={[
+                  styles.msg, 
+                  isMine ? styles.msgMine : styles.msgTheirs,
+                  isCreator && styles.msgCreator
+                ]}>
                   <Text style={styles.msgText}>{item.content}</Text>
                   <Text style={styles.msgMeta}>{displayName}</Text>
                 </View>
               );
             }}
-            contentContainerStyle={{ gap: spacing.sm, padding: spacing.lg }}
+            contentContainerStyle={{ gap: spacing.sm, padding: spacing.lg, paddingBottom: spacing.xl }}
+            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           />
           <View style={[styles.inputRow, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
             <TextInput
@@ -67,6 +134,8 @@ export default function GroupChat() {
               placeholderTextColor={colors.text.tertiary}
               style={styles.input}
               onSubmitEditing={onSend}
+              multiline
+              textAlignVertical="top"
             />
             <Pressable style={styles.sendBtn} onPress={onSend}>
               <Text style={styles.sendBtnText}>Send</Text>
@@ -108,6 +177,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.25)',
   },
+  msgCreator: {
+    backgroundColor: 'rgba(255, 165, 0, 0.25)', // Orange tint for creator messages
+    borderColor: 'rgba(255, 140, 0, 0.5)', // Orange border for creator
+    borderWidth: 2,
+  },
   msgText: {
     color: colors.text.primary,
     fontSize: typography.sizes.base,
@@ -129,6 +203,10 @@ const styles = StyleSheet.create({
   input: {
     ...components.input,
     flex: 1,
+    minHeight: 44,
+    maxHeight: 100,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
   sendBtn: {
     borderRadius: borderRadius.md,

@@ -355,7 +355,7 @@ type State = {
 
   // masterminds
   groups: { id: string; name: string; ownerAddress?: string | null; createdAt: string; isPublic?: boolean; joinPrice?: number; paymentAddress?: string; description?: string; apiGroupId?: string }[];
-  messages: { id: string; groupId: string; senderAddress?: string | null; content: string; createdAt: string }[];
+  messages: { id: string; groupId: string; senderAddress?: string | null; senderUsername?: string | null; content: string; createdAt: string }[];
   createGroup: (name: string) => void;
   createPublicGroup: (name: string, joinPrice: number, paymentAddress: string, category: string, description?: string, createPrice?: number, backgroundImage?: string) => Promise<void>;
   deleteGroup: (id: string) => void;
