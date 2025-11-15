@@ -484,7 +484,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.25)',
     marginTop: spacing.md,
-    marginHorizontal: -spacing['2xl'], // Negative margin to touch screen edges
+    marginLeft: -spacing['2xl'], // Negative margin to touch left edge
+    marginRight: -spacing['2xl'], // Negative margin to touch right edge
+    paddingLeft: spacing['2xl'], // Add padding back inside to maintain content spacing
+    paddingRight: spacing['2xl'], // Add padding back inside to maintain content spacing
     gap: spacing.xs,
     overflow: 'hidden',
     alignSelf: 'stretch', // Ensure it stretches to full width
