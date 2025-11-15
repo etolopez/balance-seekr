@@ -88,6 +88,8 @@ export default function GroupsScreen() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupImage, setEditingGroupImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showEditGroupModal, setShowEditGroupModal] = useState(false);
+  const [editingGroupPrice, setEditingGroupPrice] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isMemberOfSelectedGroup, setIsMemberOfSelectedGroup] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(false);
@@ -1840,55 +1842,25 @@ export default function GroupsScreen() {
                                     </Pressable>
                                   </Link>
                                   {isOwner && (
-                                    <>
-                                      <Pressable 
-                                        style={styles.myMastermindCardBtn} 
-                                        onPress={() => {
-                                          setShowEditModal(false);
-                                          setEditingGroupId(item.id);
-                                          const publicGroup = publicGroups.find(g => g.id === item.id || g.apiGroupId === item.id);
-                                          setEditingGroupImage(publicGroup?.backgroundImage || backgroundImage || null);
-                                        }}
-                                      >
-                                        <Text style={styles.myMastermindCardBtnText}>Edit</Text>
-                                      </Pressable>
-                                      <Pressable 
-                                        style={styles.myMastermindCardBtn} 
-                                        onPress={() => {
-                                          setShowEditModal(false);
-                                          setEditingJoinPriceGroupId(item.id);
-                                          setNewJoinPrice(String(item.joinPrice || 0));
-                                        }}
-                                      >
-                                        <Text style={styles.myMastermindCardBtnText}>Update Price</Text>
-                                      </Pressable>
-                                    </>
+                                    <Pressable 
+                                      style={styles.myMastermindCardBtn} 
+                                      onPress={() => {
+                                        setShowEditModal(false);
+                                        // Find the group and set up edit modal
+                                        const publicGroup = publicGroups.find(g => 
+                                          g.id === (item as any).apiGroupId || 
+                                          g.id === item.id || 
+                                          (g as any).apiGroupId === item.id
+                                        );
+                                        setEditingGroupId(item.id);
+                                        setEditingGroupImage(publicGroup?.backgroundImage || backgroundImage || null);
+                                        setEditingGroupPrice(String(item.joinPrice || 0));
+                                        setShowEditGroupModal(true);
+                                      }}
+                                    >
+                                      <Text style={styles.myMastermindCardBtnText}>Edit</Text>
+                                    </Pressable>
                                   )}
-                                  <Pressable 
-                                    style={styles.myMastermindCardBtn} 
-                                    onPress={() => {
-                                      setShowEditModal(false);
-                                      // Find the group name and backend ID for the confirmation modal
-                                      // item.id is the local ID, we need the backend UUID (apiGroupId)
-                                      const groupName = item.name;
-                                      const localApiGroupId = (item as any).apiGroupId; // Backend UUID stored in local group
-                                      const groupToDelete = publicGroups.find(g => 
-                                        g.id === localApiGroupId || 
-                                        g.id === item.id || 
-                                        (g as any).apiGroupId === item.id
-                                      );
-                                      
-                                      // Use backend UUID if available, otherwise fallback to local ID
-                                      const backendId = localApiGroupId || groupToDelete?.id || item.id;
-                                      const finalGroupName = groupToDelete?.name || groupName;
-                                      
-                                      setDeletingGroupId(backendId); // Use backend UUID for deletion
-                                      setDeletingGroupName(finalGroupName);
-                                      setShowDeleteConfirm(true);
-                                    }}
-                                  >
-                                    <Text style={styles.myMastermindCardBtnText}>Delete</Text>
-                                  </Pressable>
                                 </View>
                               </View>
                             </View>
