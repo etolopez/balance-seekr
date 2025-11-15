@@ -97,34 +97,13 @@ export class XOAuthService {
       this.currentUserAddress = userAddress;
       this.currentBackendUrl = backendUrl;
 
-      // Step 2: Try to open X app first, fallback to browser
-      // Check if X app is installed by trying to open twitter:// URL
-      const xAppUrl = `twitter://post?message=${encodeURIComponent('auth')}`;
-      const canOpenXApp = await Linking.canOpenURL(xAppUrl).catch(() => false);
-      
-      // Try to open in X app first (better UX, PIN is more visible)
-      let openedInApp = false;
-      if (canOpenXApp) {
-        try {
-          // Try to open the OAuth URL - if X app is installed, it should handle it
-          const twitterAuthUrl = xAuthUrl.replace('https://api.twitter.com', 'twitter://');
-          await Linking.openURL(xAuthUrl); // Still use https, but X app might intercept
-          openedInApp = true;
-        } catch (error) {
-          // Fallback to browser
-          openedInApp = false;
-        }
-      }
-
-      // Show instructions and open X
+      // Step 2: Show instructions and open X
+      // Note: The PIN code appears on the X authorization page after you click "Authorize"
+      // It's usually a 7-digit number displayed prominently on the page
       return new Promise((resolve, reject) => {
-        const instructionText = openedInApp
-          ? 'Opening X app... After authorizing, you will see a PIN code. Copy that PIN and return here to enter it.\n\n⚠️ The PIN appears on the authorization page - look carefully!'
-          : 'You will be redirected to X in your browser to authorize this app. After authorizing, X will show you a PIN code on the page. Copy that PIN and return here to enter it.\n\n⚠️ The PIN appears on the authorization page - look carefully!';
-
         Alert.alert(
           'Open X to Authenticate',
-          instructionText,
+          'You will be redirected to X to authorize this app.\n\n📌 IMPORTANT: After clicking "Authorize app" on X, you will see a PIN code (usually 7 digits) displayed on the page. This PIN is required to complete authentication.\n\n⚠️ The PIN appears AFTER you authorize - make sure to look for it on the authorization confirmation page!',
           [
             {
               text: 'Cancel',
@@ -135,11 +114,21 @@ export class XOAuthService {
               },
             },
             {
-              text: openedInApp ? 'Open X App' : 'Open in Browser',
+              text: 'Open X',
               onPress: async () => {
                 try {
-                  // Open the auth URL
+                  // Open the auth URL - this will open in browser or X app if installed
                   await Linking.openURL(xAuthUrl);
+                  
+                  // Show additional instructions after opening
+                  setTimeout(() => {
+                    Alert.alert(
+                      'Find the PIN Code',
+                      'After authorizing on X, look for a PIN code (usually 7 digits) on the page. It may appear:\n\n• In a highlighted box\n• Below the "Authorize app" button\n• On the confirmation page\n\nCopy the PIN and return to this app to enter it.',
+                      [{ text: 'Got it' }]
+                    );
+                  }, 1000);
+                  
                   // Resolve immediately - UI will show PIN modal
                   resolve({
                     screenName: '',
