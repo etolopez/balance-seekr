@@ -359,38 +359,67 @@ export default function GroupsScreen() {
                   ]
                 );
               } else {
-                // Free group - join without payment
-                try {
-                  await joinPublicGroup(group.id, 'free');
-                  
-                  // Add to local groups if not already there
-                  const existingGroup = groups.find(g => g.id === group.id || g.apiGroupId === group.id);
-                  if (!existingGroup) {
-                    const { uid, nowIso } = await import('../../utils/time');
-                    const localGroup = {
-                      id: uid(),
-                      name: group.name,
-                      ownerAddress: group.ownerAddress,
-                      createdAt: nowIso(),
-                      isPublic: true,
-                      joinPrice: group.joinPrice,
-                      paymentAddress: group.paymentAddress,
-                      description: group.description,
-                      apiGroupId: group.id,
-                    };
-                    const { dbApi } = await import('../../state/dbApi');
-                    dbApi.addGroup(localGroup as any);
-                    useAppStore.setState((s) => ({ groups: [localGroup, ...s.groups] }));
-                  }
-                  
-                  Alert.alert('Success', 'You have joined the group!');
-                  setIsMemberOfSelectedGroup(true); // Update membership state
-                  await fetchPublicGroups(); // Refresh list
-                } catch (error: any) {
-                  Alert.alert('Error', error.message || 'Failed to join group');
-                } finally {
-                  setJoiningGroupId(null);
-                }
+                // Free group - still require wallet verification
+                Alert.alert(
+                  'Verify Wallet',
+                  'Please verify with your Solana wallet to join this free group.',
+                  [
+                    { text: 'Cancel', style: 'cancel', onPress: () => setJoiningGroupId(null) },
+                    {
+                      text: 'Verify & Join',
+                      onPress: async () => {
+                        try {
+                          // Verify wallet even for free groups
+                          const walletService = new WalletService();
+                          const walletAccount = await walletService.verifyOnce();
+                          
+                          if (!walletAccount || !walletAccount.address) {
+                            Alert.alert('Error', 'Wallet verification failed. Please try again.');
+                            setJoiningGroupId(null);
+                            return;
+                          }
+                          
+                          // Ensure the verified address matches
+                          if (walletAccount.address !== verifiedAddress) {
+                            // Update verified address if different wallet was used
+                            await setVerified(walletAccount.address);
+                          }
+                          
+                          // Join the free group
+                          await joinPublicGroup(group.id, 'free');
+                          
+                          // Add to local groups if not already there
+                          const existingGroup = groups.find(g => g.id === group.id || g.apiGroupId === group.id);
+                          if (!existingGroup) {
+                            const { uid, nowIso } = await import('../../utils/time');
+                            const localGroup = {
+                              id: uid(),
+                              name: group.name,
+                              ownerAddress: group.ownerAddress,
+                              createdAt: nowIso(),
+                              isPublic: true,
+                              joinPrice: group.joinPrice,
+                              paymentAddress: group.paymentAddress,
+                              description: group.description,
+                              apiGroupId: group.id,
+                            };
+                            const { dbApi } = await import('../../state/dbApi');
+                            dbApi.addGroup(localGroup as any);
+                            useAppStore.setState((s) => ({ groups: [localGroup, ...s.groups] }));
+                          }
+                          
+                          Alert.alert('Success', 'You have joined the group!');
+                          setIsMemberOfSelectedGroup(true); // Update membership state
+                          await fetchPublicGroups(); // Refresh list
+                        } catch (error: any) {
+                          Alert.alert('Error', error.message || 'Failed to join group');
+                        } finally {
+                          setJoiningGroupId(null);
+                        }
+                      },
+                    },
+                  ]
+                );
               }
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to join group');
@@ -869,7 +898,7 @@ export default function GroupsScreen() {
                         <ActivityIndicator color={colors.text.primary} size="small" />
                       ) : (
                         <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>
-                          {selectedGroup.joinPrice === 0 ? 'Join for Free' : `Join for ${selectedGroup.joinPrice} SOL`}
+                          {(!selectedGroup.joinPrice || selectedGroup.joinPrice === 0) ? 'Join for Free' : `Join for ${selectedGroup.joinPrice} SOL`}
                         </Text>
                       )}
                     </Pressable>
