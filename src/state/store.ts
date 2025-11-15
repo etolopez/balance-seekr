@@ -1025,7 +1025,7 @@ export const useAppStore = create<State>((set, get) => ({
     }
   },
   sendMessage: (groupId, content) => set((s) => {
-    const m = { id: uid(), groupId, senderAddress: s.verifiedAddress ?? null, content, createdAt: nowIso() };
+    const m = { id: uid(), groupId, senderAddress: s.verifiedAddress ?? null, senderUsername: s.username ?? null, content, createdAt: nowIso() };
     dbApi.addMessage(m as any);
     return { messages: [...s.messages, m] };
   }),
