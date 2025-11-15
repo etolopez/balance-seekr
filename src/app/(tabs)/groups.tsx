@@ -2002,9 +2002,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.sizes['3xl'],
     fontWeight: typography.weights.bold,
-    marginBottom: spacing.xl,
-    textAlign: 'center',
     color: colors.text.primary,
+    flex: 1,
   },
   row: { flexDirection: 'row', gap: spacing.sm },
   input: { 
