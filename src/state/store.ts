@@ -908,13 +908,6 @@ export const useAppStore = create<State>((set, get) => ({
     try {
       const groups = await apiService.getPublicGroups(category);
       
-      // Debug: Log what we received from backend
-      if (category) {
-        console.log(`[Store] Fetched ${groups.length} groups for category "${category}" from backend`);
-      } else {
-        console.log(`[Store] Fetched ${groups.length} groups (all categories) from backend`);
-      }
-      
       // Merge with existing groups to preserve optimistic updates
       // If fetching with a category filter, merge intelligently
       if (category) {
@@ -939,7 +932,6 @@ export const useAppStore = create<State>((set, get) => ({
       } else {
         // Fetching all groups - replace entire list with backend data
         // This ensures deleted groups are removed
-        console.log(`[Store] Replacing all ${state.publicGroups.length} groups with ${groups.length} from backend`);
         set({ publicGroups: groups });
       }
     } catch (error) {
