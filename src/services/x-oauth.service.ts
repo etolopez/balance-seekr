@@ -63,17 +63,11 @@ export class XOAuthService {
 
       // Step 1: Get authorization URL from backend
       const authUrl = `${backendUrl}/api/auth/x/authorize?userAddress=${encodeURIComponent(userAddress)}`;
-      console.log('[XOAuth] Requesting auth URL from:', authUrl);
       
       const authUrlResponse = await fetch(authUrl);
 
       if (!authUrlResponse.ok) {
         const errorText = await authUrlResponse.text().catch(() => authUrlResponse.statusText);
-        console.error('[XOAuth] Backend error response:', {
-          status: authUrlResponse.status,
-          statusText: authUrlResponse.statusText,
-          body: errorText
-        });
         
         let errorMessage = 'Failed to initiate X OAuth';
         try {
@@ -145,7 +139,6 @@ export class XOAuthService {
         );
       });
     } catch (error: any) {
-      console.error('[XOAuth] Authentication error:', error);
       throw error;
     }
   }
@@ -155,17 +148,8 @@ export class XOAuthService {
    */
   async verifyPIN(pin: string): Promise<XOAuthResult> {
     const oauthData = this.getCurrentOAuthToken();
-    console.log('[XOAuth] verifyPIN called:', {
-      hasOAuthData: !!oauthData,
-      hasToken: !!oauthData?.oauthToken,
-      tokenPrefix: oauthData?.oauthToken?.substring(0, 10),
-      hasUserAddress: !!oauthData?.userAddress,
-      hasBackendUrl: !!oauthData?.backendUrl,
-      pinLength: pin.length
-    });
     
     if (!oauthData) {
-      console.error('[XOAuth] No OAuth data available for PIN verification');
       throw new Error('No pending PIN verification. Please start the OAuth flow again.');
     }
 
@@ -177,15 +161,6 @@ export class XOAuthService {
 
     try {
       // Step 3: Verify PIN with backend
-      console.log('[XOAuth] Sending PIN verification request:', {
-        backendUrl,
-        endpoint: `${backendUrl}/api/auth/x/verify-pin`,
-        hasOAuthToken: !!oauthToken,
-        tokenLength: oauthToken?.length,
-        pinLength: pin.trim().length,
-        hasUserAddress: !!userAddress
-      });
-      
       const verifyResponse = await fetch(`${backendUrl}/api/auth/x/verify-pin`, {
         method: 'POST',
         headers: {
@@ -198,23 +173,12 @@ export class XOAuthService {
         }),
       });
 
-      console.log('[XOAuth] PIN verification response:', {
-        status: verifyResponse.status,
-        statusText: verifyResponse.statusText,
-        ok: verifyResponse.ok
-      });
-
       if (!verifyResponse.ok) {
         const errorText = await verifyResponse.text().catch(() => verifyResponse.statusText);
-        console.error('[XOAuth] PIN verification failed:', {
-          status: verifyResponse.status,
-          errorText
-        });
         let errorMessage = 'Failed to verify PIN';
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.message || errorMessage;
-          console.error('[XOAuth] Parsed error message:', errorMessage);
         } catch {
           errorMessage = errorText || errorMessage;
         }

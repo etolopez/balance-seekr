@@ -37,12 +37,7 @@ const oauthTokenStore = new Map();
  */
 router.get('/x/authorize', async (req, res) => {
   try {
-    console.log('[Auth] X OAuth authorize request received');
-    console.log('[Auth] X_API_KEY present:', !!X_API_KEY);
-    console.log('[Auth] X_API_SECRET present:', !!X_API_SECRET);
-    
     if (!X_API_KEY || !X_API_SECRET) {
-      console.error('[Auth] X API credentials missing');
       return res.status(500).json({
         success: false,
         message: 'X API credentials not configured. Please add X_API_KEY and X_API_SECRET to Railway environment variables.',
@@ -73,7 +68,6 @@ router.get('/x/authorize', async (req, res) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Auth] X OAuth request_token error:', response.status, errorText);
       return res.status(500).json({
         success: false,
         message: 'Failed to initiate X OAuth',
@@ -98,13 +92,6 @@ router.get('/x/authorize', async (req, res) => {
     } else {
       oauthTokenStore.set(oauthToken, { oauthTokenSecret });
     }
-    
-    console.log('[Auth] Stored OAuth token:', {
-      tokenPrefix: oauthToken.substring(0, 10),
-      hasSecret: !!oauthTokenSecret,
-      hasUserAddress: !!userAddress,
-      storeSize: oauthTokenStore.size
-    });
 
     // Step 2: Generate authorization URL
     const authUrl = `https://api.twitter.com/oauth/authorize?oauth_token=${oauthToken}`;
@@ -134,16 +121,6 @@ router.post('/x/verify-pin', async (req, res) => {
   try {
     const { oauth_token, oauth_verifier, userAddress } = req.body;
 
-    console.log('[Auth] PIN verification request:', {
-      hasOAuthToken: !!oauth_token,
-      oauthTokenLength: oauth_token?.length,
-      oauthTokenPrefix: oauth_token?.substring(0, 10),
-      hasVerifier: !!oauth_verifier,
-      verifierLength: oauth_verifier?.length,
-      hasUserAddress: !!userAddress,
-      storeSize: oauthTokenStore.size
-    });
-
     if (!oauth_token || !oauth_verifier) {
       return res.status(400).json({
         success: false,
@@ -153,19 +130,8 @@ router.post('/x/verify-pin', async (req, res) => {
 
     // Retrieve stored token secret
     const stored = oauthTokenStore.get(oauth_token);
-    console.log('[Auth] Token lookup result:', {
-      found: !!stored,
-      hasSecret: !!stored?.oauthTokenSecret,
-      hasUserAddress: !!stored?.userAddress,
-      allTokens: Array.from(oauthTokenStore.keys()).map(k => k.substring(0, 10))
-    });
     
     if (!stored) {
-      console.error('[Auth] OAuth token not found in store:', {
-        requestedToken: oauth_token?.substring(0, 10),
-        storeSize: oauthTokenStore.size,
-        availableTokens: Array.from(oauthTokenStore.keys()).map(k => k.substring(0, 10))
-      });
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired OAuth token. Please start the authentication process again.',
@@ -194,7 +160,6 @@ router.post('/x/verify-pin', async (req, res) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Auth] X OAuth access_token error:', response.status, errorText);
       return res.status(500).json({
         success: false,
         message: 'Failed to complete X OAuth',
@@ -231,7 +196,6 @@ router.post('/x/verify-pin', async (req, res) => {
           isVerified = userData.data?.verified === true;
         }
       } catch (error) {
-        console.error('[Auth] Error checking verification status:', error);
         // Continue without verification status
       }
     }
@@ -249,7 +213,6 @@ router.post('/x/verify-pin', async (req, res) => {
           x_verified_at: isVerified ? new Date() : null,
         });
       } catch (error) {
-        console.error('[Auth] Error syncing user account:', error);
         // Continue even if sync fails
       }
     }
@@ -263,7 +226,6 @@ router.post('/x/verify-pin', async (req, res) => {
       synced: !!userAddress,
     });
   } catch (error) {
-    console.error('[Auth] Error handling X OAuth callback:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',

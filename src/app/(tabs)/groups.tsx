@@ -2298,13 +2298,7 @@ export default function GroupsScreen() {
                           const { dbApi } = await import('../../state/dbApi');
                           await dbApi.upsertPref('x_oauth_token', tokenData);
                           
-                          console.log('[Groups] Stored OAuth token:', { 
-                            hasToken: !!oauthData.oauthToken,
-                            tokenLength: oauthData.oauthToken?.length,
-                            storedLength: tokenData.length 
-                          });
-                          
-                          // Show PIN entry modal immediately
+                      // Show PIN entry modal immediately
                           setShowXPinModal(true);
                           setXPinCode('');
                         } catch (error: any) {
@@ -2467,7 +2461,7 @@ export default function GroupsScreen() {
                     const { dbApi } = await import('../../state/dbApi');
                     await dbApi.upsertPref('x_oauth_token', '');
                   } catch (error) {
-                    console.error('[Groups] Error clearing OAuth token:', error);
+                    // Silent fail
                   }
                 }}
               >
@@ -2507,7 +2501,7 @@ export default function GroupsScreen() {
                       const { dbApi } = await import('../../state/dbApi');
                       await dbApi.upsertPref('x_oauth_token', '');
                     } catch (error) {
-                      console.error('[Groups] Error clearing OAuth token:', error);
+                      // Silent fail
                     }
                   }}
                 >
@@ -2528,30 +2522,21 @@ export default function GroupsScreen() {
 
                     // If token is not in state, try loading from database
                     let tokenToUse = xOAuthToken;
-                    console.log('[Groups] Initial token check:', { 
-                      hasStateToken: !!xOAuthToken,
-                      stateTokenLength: xOAuthToken?.length 
-                    });
                     
                     if (!tokenToUse) {
                       try {
                         const { dbApi } = await import('../../state/dbApi');
                         const storedToken = await dbApi.getPref('x_oauth_token');
-                        console.log('[Groups] Loaded token from database:', { 
-                          hasStoredToken: !!storedToken,
-                          storedTokenLength: storedToken?.length 
-                        });
                         if (storedToken) {
                           tokenToUse = storedToken;
                           setXOAuthToken(storedToken);
                         }
                       } catch (error) {
-                        console.error('[Groups] Error loading OAuth token from database:', error);
+                        // Silent fail - will show error below
                       }
                     }
 
                     if (!tokenToUse) {
-                      console.error('[Groups] OAuth token is null when trying to verify PIN');
                       Alert.alert('Error', 'OAuth session expired. Please try again.');
                       setShowXPinModal(false);
                       setXPinCode('');
@@ -2560,7 +2545,7 @@ export default function GroupsScreen() {
                         const { dbApi } = await import('../../state/dbApi');
                         await dbApi.upsertPref('x_oauth_token', '');
                       } catch (e) {
-                        console.error('[Groups] Error clearing token:', e);
+                        // Silent fail
                       }
                       return;
                     }
@@ -2571,13 +2556,7 @@ export default function GroupsScreen() {
                       let oauthData;
                       try {
                         oauthData = JSON.parse(tokenToUse);
-                        console.log('[Groups] Parsed OAuth data:', { 
-                          hasToken: !!oauthData.oauthToken, 
-                          hasAddress: !!oauthData.userAddress,
-                          hasBackendUrl: !!oauthData.backendUrl 
-                        });
                       } catch (e) {
-                        console.warn('[Groups] Failed to parse OAuth token as JSON, using fallback:', e);
                         // Fallback: if it's not JSON, treat it as just the token (legacy)
                         const Constants = await import('expo-constants');
                         const backendUrl = Constants.default.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
@@ -2603,18 +2582,7 @@ export default function GroupsScreen() {
                       (xOAuth as any).currentUserAddress = oauthData.userAddress;
                       (xOAuth as any).currentBackendUrl = oauthData.backendUrl;
                       
-                      console.log('[Groups] Calling verifyPIN with token:', {
-                        hasToken: !!oauthData.oauthToken,
-                        tokenPrefix: oauthData.oauthToken?.substring(0, 10),
-                        pinLength: xPinCode.trim().length
-                      });
-                      
                       const result = await xOAuth.verifyPIN(xPinCode.trim());
-                      
-                      console.log('[Groups] PIN verification successful:', {
-                        screenName: result.screenName,
-                        verified: result.verified
-                      });
                       
                       // Update store directly with OAuth result
                       const { dbApi } = await import('../../state/dbApi');
@@ -2633,11 +2601,6 @@ export default function GroupsScreen() {
                       await dbApi2.upsertPref('x_oauth_token', '');
                       Alert.alert('Success', `X account @${result.screenName} synced successfully!`);
                     } catch (error: any) {
-                      console.error('[Groups] PIN verification error:', {
-                        message: error.message,
-                        stack: error.stack,
-                        errorType: error.constructor.name
-                      });
                       Alert.alert('Error', error.message || 'Failed to verify PIN');
                     } finally {
                       setVerifyingPin(false);
