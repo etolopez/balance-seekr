@@ -1079,11 +1079,18 @@ export default function GroupsScreen() {
                     const { run } = await import('../../db/client');
                     await run('DELETE FROM mastermind_members WHERE groupId=? AND userAddress=?', [leavingGroupId, verifiedAddress]);
 
-                    // Remove from local groups if it's only in local state
+                    // Remove from local groups if user is not the owner
+                    // (Owners should keep the group in their list even if they're not "members")
                     const localGroup = groups.find(g => g.id === leavingGroupId || g.apiGroupId === leavingGroupId);
-                    if (localGroup && !publicGroups.find(g => g.id === leavingGroupId)) {
+                    const isOwner = localGroup?.ownerAddress === verifiedAddress;
+                    
+                    if (localGroup && !isOwner) {
+                      // Remove from local groups since user is no longer a member
                       useAppStore.setState((s) => ({
-                        groups: s.groups.filter(g => g.id !== leavingGroupId && g.apiGroupId !== leavingGroupId)
+                        groups: s.groups.filter(g => {
+                          const groupIdMatch = g.id === leavingGroupId || g.apiGroupId === leavingGroupId;
+                          return !groupIdMatch;
+                        })
                       }));
                     }
 
@@ -1095,7 +1102,7 @@ export default function GroupsScreen() {
                     setSelectedGroup(null);
                     setLeavingGroupId(null);
 
-                    // Refresh groups list
+                    // Refresh groups list to ensure UI is updated
                     await fetchPublicGroups();
 
                     Alert.alert('Success', 'You have left the group.');
@@ -2022,19 +2029,8 @@ export default function GroupsScreen() {
               <View style={styles.detailSection}>
                 <Text style={styles.label}>My Masterminds</Text>
                 {(() => {
-                  // Only show groups that exist on the backend (in publicGroups)
-                  // This ensures we don't show orphaned local groups
-                  const myPublicGroups = groups.filter(g => {
-                    if (!g.isPublic) return false;
-                    // Check if this group exists in publicGroups (backend)
-                    // Match by apiGroupId (backend UUID) or by id if it's a backend UUID
-                    const existsInBackend = publicGroups.some(pg => 
-                      pg.id === (g as any).apiGroupId || 
-                      pg.id === g.id ||
-                      (pg as any).apiGroupId === g.id
-                    );
-                    return existsInBackend;
-                  });
+                  // Use the state that's updated via useEffect
+                  const myPublicGroups = myMastermindsGroups;
                   
                   return myPublicGroups.length > 0 ? (
                     <View style={{ marginTop: spacing.sm }}>
