@@ -115,13 +115,6 @@ export default function GroupsScreen() {
     ? allGroups.filter(g => g.category === selectedCategory)
     : allGroups;
   
-  // Debug logging to help diagnose category filter issues
-  // Only log once to avoid spam
-  useEffect(() => {
-    if (selectedCategory && filteredGroups.length === 0 && allGroups.length > 0) {
-      // Category filter debug logging removed
-  }, [selectedCategory, filteredGroups.length, allGroups.length]);
-  
   const displayGroups = filteredGroups;
 
   // Sync tempUsername with store username when it changes
