@@ -2275,14 +2275,20 @@ export default function GroupsScreen() {
                       
                       await xOAuth.authenticate(verifiedAddress);
                       
+                      // Get OAuth token for PIN verification
+                      const oauthData = xOAuth.getCurrentOAuthToken();
+                      if (!oauthData) {
+                        throw new Error('Failed to get OAuth token');
+                      }
+                      
+                      // Store OAuth token in state for PIN verification
+                      setXOAuthToken(oauthData.oauthToken);
+                      
                       // Show PIN entry modal
                       setShowXPinModal(true);
                       setXPinCode('');
                     } catch (error: any) {
-                      // Only show error if it's not the initial resolve (which happens immediately)
-                      if (!error.message?.includes('PIN')) {
-                        Alert.alert('Error', error.message || 'Failed to initiate X OAuth');
-                      }
+                      Alert.alert('Error', error.message || 'Failed to initiate X OAuth');
                     } finally {
                       setSyncingX(false);
                     }
