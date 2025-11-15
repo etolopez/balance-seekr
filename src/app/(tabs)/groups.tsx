@@ -2034,22 +2034,40 @@ export default function GroupsScreen() {
                               const groupToShow = { ...finalGroup, backgroundImage: latestGroup?.backgroundImage || backgroundImage } as GroupForDisplay;
                               
                               // Since this is from "My Masterminds", user should be a member
-                              // Set membership to true optimistically, then verify
+                              // Check local database first to confirm membership
                               const isOwner = groupToShow.ownerAddress === verifiedAddress;
-                              setIsMemberOfSelectedGroup(true); // Optimistically set to true
+                              let isMember = isOwner; // Owner is always a member
                               
+                              if (!isOwner && verifiedAddress) {
+                                // Check local database for membership
+                                try {
+                                  const { dbApi } = await import('../../state/dbApi');
+                                  const localMember = await dbApi.getMember(groupToShow.id, verifiedAddress);
+                                  isMember = !!localMember;
+                                } catch (error) {
+                                  console.error('[Groups] Error checking local membership:', error);
+                                  // If local check fails, assume member since it's in "My Masterminds"
+                                  isMember = true;
+                                }
+                              }
+                              
+                              // Set membership state before opening modal
+                              setIsMemberOfSelectedGroup(isMember);
                               setSelectedGroup(groupToShow);
                               setShowGroupDetail(true);
                               
-                              // Verify membership with backend (but don't block UI)
-                              if (verifiedAddress && !isOwner) {
+                              // Verify membership with backend in background (but don't change UI if already true)
+                              if (verifiedAddress && !isOwner && isMember) {
                                 setCheckingMembership(true);
                                 try {
-                                  const isMember = await apiService.checkMembership(groupToShow.id, verifiedAddress);
-                                  setIsMemberOfSelectedGroup(isMember);
+                                  const backendIsMember = await apiService.checkMembership(groupToShow.id, verifiedAddress);
+                                  // Only update if backend says not a member (might have left on another device)
+                                  if (!backendIsMember) {
+                                    setIsMemberOfSelectedGroup(false);
+                                  }
                                 } catch (error) {
-                                  console.error('[Groups] Error checking membership:', error);
-                                  // If check fails, keep optimistic true since it's in "My Masterminds"
+                                  console.error('[Groups] Error checking backend membership:', error);
+                                  // Keep local membership state if backend check fails
                                 } finally {
                                   setCheckingMembership(false);
                                 }
