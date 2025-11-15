@@ -752,36 +752,40 @@ export default function GroupsScreen() {
                         setSelectedGroup(groupToShow);
                         setShowGroupDetail(true);
                         
-                        // Check if user is a member - check local database first, then backend
+                        // Check if user is a member - check local database first (source of truth after leaving)
                         if (verifiedAddress) {
                           setCheckingMembership(true);
                           try {
                             const isOwner = groupToShow.ownerAddress === verifiedAddress;
                             
-                            // Check local database first for immediate response
+                            // Check local database first - this is the source of truth
+                            // If user left the group, the membership record is deleted from local DB
                             let isMember = isOwner;
                             if (!isOwner) {
                               try {
                                 const { dbApi } = await import('../../state/dbApi');
                                 const localMember = await dbApi.getMember(groupToShow.id, verifiedAddress);
                                 isMember = !!localMember;
+                                
+                                // If local DB says not a member, trust it (user likely just left)
+                                // Only check backend if local says they ARE a member (to verify)
+                                if (isMember) {
+                                  // Local says member - verify with backend
+                                  try {
+                                    const backendIsMember = await apiService.checkMembership(groupToShow.id, verifiedAddress);
+                                    // If backend says not a member, trust backend (might have left on another device)
+                                    if (!backendIsMember) {
+                                      isMember = false;
+                                    }
+                                  } catch (error) {
+                                    console.error('[Groups] Error checking backend membership:', error);
+                                    // Keep local membership state if backend check fails
+                                  }
+                                }
+                                // If local says NOT a member, trust it - don't check backend
                               } catch (error) {
                                 console.error('[Groups] Error checking local membership:', error);
                                 isMember = false;
-                              }
-                            }
-                            
-                            // Also check backend to ensure consistency
-                            if (!isOwner) {
-                              try {
-                                const backendIsMember = await apiService.checkMembership(groupToShow.id, verifiedAddress);
-                                // Use backend result if local check failed or if backend says not a member
-                                if (!isMember || !backendIsMember) {
-                                  isMember = backendIsMember;
-                                }
-                              } catch (error) {
-                                console.error('[Groups] Error checking backend membership:', error);
-                                // Keep local membership state if backend check fails
                               }
                             }
                             
