@@ -111,6 +111,7 @@ export default function GroupsScreen() {
   const [verifyingDelete, setVerifyingDelete] = useState(false);
   const [leavingGroupId, setLeavingGroupId] = useState<string | null>(null);
   const [verifyingLeave, setVerifyingLeave] = useState(false);
+  const [verifyingWallet, setVerifyingWallet] = useState(false);
   const [myMastermindsGroups, setMyMastermindsGroups] = useState<any[]>([]);
   const apiService = new ApiService();
   const seeker = detectSeeker();
@@ -731,35 +732,57 @@ export default function GroupsScreen() {
                 Verify once with your Solana wallet to enter Masterminds.
               </Text>
               <View style={{ alignItems: 'center', marginTop: spacing.lg }}>
-                <Pressable style={styles.primaryBtn} onPress={async () => {
-                  try {
-                    // Starting wallet verification
-                    const svc = new WalletService();
-                    // Use verifyOnce which opens the wallet picker/selector
-                    const acc = await svc.verifyOnce();
-                    // Wallet verification successful
-                    if (acc && acc.address) {
-                      await setVerified(acc.address);
-                    } else {
-                      Alert.alert('Wallet verification', 'No address returned from wallet. Please try again.');
+                <Pressable 
+                  style={[styles.primaryBtn, verifyingWallet && styles.primaryBtnDisabled]} 
+                  onPress={async () => {
+                    if (verifyingWallet) return; // Prevent double-tap
+                    
+                    setVerifyingWallet(true);
+                    try {
+                      // Starting wallet verification
+                      const svc = new WalletService();
+                      // Use verifyOnce which opens the wallet picker/selector
+                      const acc = await svc.verifyOnce();
+                      // Wallet verification successful
+                      if (acc && acc.address) {
+                        // Set verified address immediately (don't await fetchUserProfile to avoid blocking)
+                        await setVerified(acc.address);
+                        // Fetch user profile in background (non-blocking)
+                        fetchUserProfile(acc.address).catch(() => {
+                          // Silently handle errors - backend might not be available
+                        });
+                      } else {
+                        Alert.alert('Wallet verification', 'No address returned from wallet. Please try again.');
+                      }
+                    } catch (e: any) {
+                      // Wallet verification error (handled by Alert)
+                      const errorMsg = e?.message || 'Verification failed. Please try again.';
+                      // Provide more helpful error message
+                      const displayMsg = errorMsg.includes('cancel') || errorMsg.includes('reject') 
+                        ? 'Connection was cancelled. Make sure to accept the connection in Phantom and wait for it to complete.'
+                        : errorMsg;
+                      // Suppress alerts while returning from wallet or when user cancelled
+                      if (displayMsg.toLowerCase().includes('cancel') || displayMsg.toLowerCase().includes('interrupted')) {
+                        setVerifyingWallet(false);
+                        return;
+                      }
+                      InteractionManager.runAfterInteractions(() => {
+                        Alert.alert('Wallet verification', displayMsg);
+                      });
+                    } finally {
+                      setVerifyingWallet(false);
                     }
-                  } catch (e: any) {
-                    // Wallet verification error (handled by Alert)
-                    const errorMsg = e?.message || 'Verification failed. Please try again.';
-                    // Provide more helpful error message
-                    const displayMsg = errorMsg.includes('cancel') || errorMsg.includes('reject') 
-                      ? 'Connection was cancelled. Make sure to accept the connection in Phantom and wait for it to complete.'
-                      : errorMsg;
-                    // Suppress alerts while returning from wallet or when user cancelled
-                    if (displayMsg.toLowerCase().includes('cancel') || displayMsg.toLowerCase().includes('interrupted')) {
-                      return;
-                    }
-                    InteractionManager.runAfterInteractions(() => {
-                      Alert.alert('Wallet verification', displayMsg);
-                    });
-                  }
-                }}>
-                  <Text style={styles.primaryBtnText}>{useSiws ? 'Verify Seeker (SIWS)' : (seeker.isSeeker ? 'Verify with Solana Seeker' : 'Verify with Solana')}</Text>
+                  }}
+                  disabled={verifyingWallet}
+                >
+                  {verifyingWallet ? (
+                    <>
+                      <ActivityIndicator size="small" color={colors.text.primary} style={{ marginRight: spacing.sm }} />
+                      <Text style={styles.primaryBtnText}>Verifying...</Text>
+                    </>
+                  ) : (
+                    <Text style={styles.primaryBtnText}>{useSiws ? 'Verify Seeker (SIWS)' : (seeker.isSeeker ? 'Verify with Solana Seeker' : 'Verify with Solana')}</Text>
+                  )}
                 </Pressable>
               </View>
               {seeker.isSeeker && (

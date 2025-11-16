@@ -73,8 +73,6 @@ export class WalletService {
         try {
           // Authorize with cluster - this opens the wallet picker/selector
           // The Mobile Wallet Adapter will show available wallets (Phantom, Solflare, etc.)
-          console.log('[WalletService] Opening wallet picker with identity URI:', WalletService.APP_IDENTITY.uri);
-          
           // The authorize call will:
           // 1. Show wallet picker if multiple wallets installed
           // 2. Open default wallet if only one installed

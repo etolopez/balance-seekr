@@ -566,9 +566,13 @@ export const useAppStore = create<State>((set, get) => ({
     dbApi.upsertPref('verified.at', nowIso());
     set(() => ({ verifiedAddress: normalizedAddress, verifiedAt: nowIso() }));
     
-    // Fetch user profile from backend when wallet is connected
+    // Fetch user profile from backend when wallet is connected (non-blocking)
+    // This is done in the background to avoid blocking the UI
     const { fetchUserProfile } = get();
-    await fetchUserProfile(normalizedAddress);
+    fetchUserProfile(normalizedAddress).catch(() => {
+      // Silently handle errors - backend might not be available
+      // The user can still use the app without profile data
+    });
   },
   disconnectWallet: () => {
     dbApi.upsertPref('verified.address', '');
