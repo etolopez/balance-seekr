@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TextInput, Pressable, Modal, ScrollView } from "react-native";
+import { StyleSheet, Text, View, TextInput, Pressable, Modal, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useState, useMemo } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -89,11 +89,17 @@ export default function HabitsScreen() {
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      <ScrollView 
-        style={styles.content} 
-        contentContainerStyle={{ paddingTop: Math.max(insets.top, spacing.xl) }}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <ScrollView 
+          style={styles.content} 
+          contentContainerStyle={{ paddingTop: Math.max(insets.top, spacing.xl), paddingBottom: spacing.xl }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         <Text style={styles.title}>Habits & Goals</Text>
         
         {/* Add Habit Section */}
@@ -243,20 +249,24 @@ export default function HabitsScreen() {
 
         {/* Edit Habit Modal */}
         <Modal visible={editVisible} animationType="slide" transparent>
-          <View style={styles.modalWrap}>
-            <View style={styles.modalCard}>
-              <View style={styles.modalHeader}>
-                <Ionicons name="create" size={24} color={colors.primary.main} />
-                <Text style={styles.modalTitle}>Edit Habit</Text>
-              </View>
-              <TextInput
-                value={editName}
-                onChangeText={setEditName}
-                placeholder="Habit name"
-                placeholderTextColor={colors.text.tertiary}
-                style={styles.modalInput}
-                autoFocus
-              />
+          <KeyboardAvoidingView 
+            style={{ flex: 1 }} 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <View style={styles.modalWrap}>
+              <View style={styles.modalCard}>
+                <View style={styles.modalHeader}>
+                  <Ionicons name="create" size={24} color={colors.primary.main} />
+                  <Text style={styles.modalTitle}>Edit Habit</Text>
+                </View>
+                <TextInput
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Habit name"
+                  placeholderTextColor={colors.text.tertiary}
+                  style={styles.modalInput}
+                  autoFocus
+                />
               <View style={styles.modalButtonRow}>
                 <Pressable
                   style={styles.modalSecondaryBtn}
@@ -614,7 +624,8 @@ export default function HabitsScreen() {
             </View>
           </View>
         </Modal>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
