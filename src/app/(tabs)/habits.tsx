@@ -301,6 +301,7 @@ export default function HabitsScreen() {
               </View>
             </View>
           </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* Goals Section */}
