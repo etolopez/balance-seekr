@@ -615,6 +615,64 @@ export default function GroupsScreen() {
               </View>
             </View>
 
+            {/* Earning Opportunities */}
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Ionicons name="cash-outline" size={24} color={colors.secondary.main} />
+                <Text style={styles.infoCardTitle}>Earning Opportunities</Text>
+              </View>
+              <Text style={styles.infoCardText}>
+                When you create a Mastermind, you can choose to grow your community for free or charge a fee for members to join. 
+                Every time someone joins your paid Mastermind, you receive the amount you set.
+              </Text>
+              <View style={styles.featuresList}>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Ionicons name="wallet-outline" size={24} color={colors.secondary.main} />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Create Your Mastermind</Text>
+                    <Text style={styles.featureText}>
+                      It costs {PLATFORM_CREATE_FEE} SOL to create a Mastermind. This one-time fee helps maintain the platform.
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Ionicons name="gift-outline" size={24} color={colors.secondary.main} />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Free or Paid</Text>
+                    <Text style={styles.featureText}>
+                      Set your Mastermind as free to join, or charge a fee. You decide what works best for your community.
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Ionicons name="trending-up-outline" size={24} color={colors.secondary.main} />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Earn from Members</Text>
+                    <Text style={styles.featureText}>
+                      When someone joins your paid Mastermind, you receive the full join fee directly to your wallet.
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Ionicons name="people-outline" size={24} color={colors.secondary.main} />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Grow Your Community</Text>
+                    <Text style={styles.featureText}>
+                      Build a free community to help others, or monetize your expertise by charging for access to your Mastermind.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
             {/* How to Get Started */}
             <View style={styles.stepsCard}>
               <Text style={styles.stepsTitle}>How to Get Started</Text>
