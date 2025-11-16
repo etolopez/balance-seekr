@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
 import { todayYMD, getFiveMinuteInterval } from '../../utils/time';
 import { colors, typography, spacing, borderRadius, shadows } from '../../config/theme';
+import * as Haptics from 'expo-haptics';
+import { playBeep } from '../../audio/sounds';
 
 type GoalCategory = 'main' | 'health' | 'financial' | 'personalGrowth' | 'relationship';
 
@@ -52,6 +54,7 @@ export default function HomeScreen() {
   const dailyQuote = useAppStore((s) => s.dailyQuote);
   const habits = useAppStore((s) => s.habits);
   const tasks = useAppStore((s) => s.tasks);
+  const toggleTask = useAppStore((s) => s.toggleTask);
   const logs = useAppStore((s) => s.logs);
   const getTodayHabitLog = useAppStore((s) => s.getTodayHabitLog);
   
@@ -373,25 +376,42 @@ export default function HomeScreen() {
           {tasks.length > 0 && (
             <View style={styles.habitsSection}>
               <View style={styles.habitsList}>
-                {tasks.map((task, index) => (
-                  <View 
-                    key={task.id} 
-                    style={[
-                      styles.taskItem,
-                      { backgroundColor: getTaskColor(index) }
-                    ]}
-                  >
-                    <Text style={styles.taskText}>{task.title}</Text>
-                    {/* Status indicator overlay in top right corner */}
-                    <View style={styles.habitStatusIndicator}>
-                      {task.done ? (
-                        <Ionicons name="checkmark-circle" size={24} color={colors.success.main} />
-                      ) : (
-                        <Ionicons name="ellipse" size={20} color={colors.text.tertiary} />
-                      )}
-                    </View>
-                  </View>
-                ))}
+                {tasks.map((task, index) => {
+                  // Handle task completion with haptics and sound
+                  const handleToggleTask = () => {
+                    const willBeCompleted = !task.done;
+                    toggleTask(task.id);
+                    
+                    // If task is being completed (not uncompleted), trigger haptics and sound
+                    if (willBeCompleted) {
+                      // Small vibration
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});
+                      // Success sound (bundled asset with fallback)
+                      playBeep().catch(()=>{});
+                    }
+                  };
+
+                  return (
+                    <Pressable 
+                      key={task.id} 
+                      style={[
+                        styles.taskItem,
+                        { backgroundColor: getTaskColor(index) }
+                      ]}
+                      onPress={handleToggleTask}
+                    >
+                      <Text style={styles.taskText}>{task.title}</Text>
+                      {/* Status indicator overlay in top right corner */}
+                      <View style={styles.habitStatusIndicator}>
+                        {task.done ? (
+                          <Ionicons name="checkmark-circle" size={24} color={colors.success.main} />
+                        ) : (
+                          <Ionicons name="ellipse" size={20} color={colors.text.tertiary} />
+                        )}
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
           )}
