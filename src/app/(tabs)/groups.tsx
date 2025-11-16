@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, InteractionManager, Modal, ScrollView, ActivityIndicator, RefreshControl, Image } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, InteractionManager, Modal, ScrollView, ActivityIndicator, RefreshControl, Image, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
@@ -2113,25 +2113,78 @@ export default function GroupsScreen() {
 
                     setIsCreatingPublic(true);
                     try {
-                      const createMessage = 'Public group created! You can find it in the Discover tab.';
+                      const groupName = publicGroupName.trim();
+                      const groupDescription = publicGroupDescription.trim();
                       
                       await createPublicGroup(
-                        publicGroupName.trim(),
+                        groupName,
                         joinPrice,
                         publicGroupPaymentAddress.trim(),
                         publicGroupCategory,
-                        publicGroupDescription.trim() || undefined,
+                        groupDescription || undefined,
                         PLATFORM_CREATE_FEE,
                         publicGroupBackgroundImage || undefined
                       );
-                      Alert.alert('Success', createMessage);
-                      setShowPublicModal(false);
-                      setPublicGroupName('');
-                      setPublicGroupDescription('');
-                      setPublicGroupJoinPrice('0');
-                      setPublicGroupCategory('');
-                      setPublicGroupBackgroundImage(null);
-                      setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
+                      
+                      // Get the created group from publicGroups to get its ID
+                      const createdGroup = publicGroups.find(g => 
+                        g.name === groupName && 
+                        g.ownerAddress === verifiedAddress
+                      ) || publicGroups[0]; // Fallback to first group if not found
+                      
+                      // Create shareable message
+                      const joinPriceText = joinPrice === 0 ? 'free' : `${joinPrice} SOL`;
+                      const shareMessage = `Hey! I created a Mastermind on Balance Seeker called "${groupName}"${groupDescription ? ` - ${groupDescription}` : ''}.\n\nJoin for ${joinPriceText} and let's grow together! 🚀\n\n#BalanceSeeker #Mastermind${publicGroupCategory ? ` #${publicGroupCategory.replace(/\s+/g, '')}` : ''}`;
+                      
+                      // Show success alert with share option
+                      Alert.alert(
+                        'Mastermind Created! 🎉',
+                        'Your Mastermind has been created successfully. Would you like to share it?',
+                        [
+                          {
+                            text: 'Not Now',
+                            style: 'cancel',
+                            onPress: () => {
+                              setShowPublicModal(false);
+                              setPublicGroupName('');
+                              setPublicGroupDescription('');
+                              setPublicGroupJoinPrice('0');
+                              setPublicGroupCategory('');
+                              setPublicGroupBackgroundImage(null);
+                              setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
+                            }
+                          },
+                          {
+                            text: 'Share',
+                            onPress: async () => {
+                              try {
+                                const result = await Share.share({
+                                  message: shareMessage,
+                                  title: `Join my Mastermind: ${groupName}`,
+                                });
+                                
+                                if (result.action === Share.sharedAction) {
+                                  // User shared successfully
+                                  if (result.activityType) {
+                                    // Shared via specific activity (e.g., X, WhatsApp)
+                                  }
+                                }
+                              } catch (error: any) {
+                                Alert.alert('Error', 'Failed to share. Please try again.');
+                              }
+                              
+                              // Close modal and reset form regardless of share result
+                              setShowPublicModal(false);
+                              setPublicGroupName('');
+                              setPublicGroupDescription('');
+                              setPublicGroupJoinPrice('0');
+                              setPublicGroupCategory('');
+                              setPublicGroupBackgroundImage(null);
+                              setPublicGroupPaymentAddress(DEFAULT_JOIN_PAYMENT_ADDRESS);
+                            }
+                          }
+                        ]
+                      );
                       
                       // Refresh groups with current category filter if active
                       // This ensures the newly created group appears in the filtered view
