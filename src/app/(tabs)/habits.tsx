@@ -215,36 +215,42 @@ export default function HabitsScreen() {
         )}
 
         <Modal visible={modalVisible} animationType="slide" transparent>
-          <View style={styles.modalWrap}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>
-                {modalCompleted ? 'How did you feel after?' : 'What did you do instead?'}
-              </Text>
-              <TextInput
-                placeholder={modalCompleted ? 'e.g., Calm, focused...' : 'e.g., Took a walk, meetings...'}
-                placeholderTextColor={colors.text.tertiary}
-                value={modalNote}
-                onChangeText={setModalNote}
-                style={styles.modalInput}
-                multiline
-              />
-              <View style={styles.modalButtonRow}>
-                <Pressable style={styles.modalPrimaryBtn} onPress={saveModal}>
-                  <LinearGradient
-                    colors={[colors.primary.gradient.start, colors.primary.gradient.end]}
-                    style={styles.modalPrimaryBtnGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <Text style={styles.modalPrimaryBtnText}>Save</Text>
-                  </LinearGradient>
-                </Pressable>
-                <Pressable style={styles.modalSecondaryBtn} onPress={() => setModalVisible(false)}>
-                  <Text style={styles.modalSecondaryBtnText}>Cancel</Text>
-                </Pressable>
+          <KeyboardAvoidingView 
+            style={{ flex: 1 }} 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <View style={styles.modalWrap}>
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>
+                  {modalCompleted ? 'How did you feel after?' : 'What did you do instead?'}
+                </Text>
+                <TextInput
+                  placeholder={modalCompleted ? 'e.g., Calm, focused...' : 'e.g., Took a walk, meetings...'}
+                  placeholderTextColor={colors.text.tertiary}
+                  value={modalNote}
+                  onChangeText={setModalNote}
+                  style={styles.modalInput}
+                  multiline
+                  textAlignVertical="top"
+                />
+                <View style={styles.modalButtonRow}>
+                  <Pressable style={styles.modalPrimaryBtn} onPress={saveModal}>
+                    <LinearGradient
+                      colors={[colors.primary.gradient.start, colors.primary.gradient.end]}
+                      style={styles.modalPrimaryBtnGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      <Text style={styles.modalPrimaryBtnText}>Save</Text>
+                    </LinearGradient>
+                  </Pressable>
+                  <Pressable style={styles.modalSecondaryBtn} onPress={() => setModalVisible(false)}>
+                    <Text style={styles.modalSecondaryBtnText}>Cancel</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* Edit Habit Modal */}
