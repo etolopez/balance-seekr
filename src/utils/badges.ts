@@ -114,7 +114,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_7',
       name: 'Journal Week',
-      description: 'Write in your journal every day for 7 days',
+      description: 'Write 350+ words in your journal every day for 7 days',
       icon: 'book',
       category: 'journal',
       isStreak: true,
@@ -123,7 +123,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_14',
       name: 'Journal Fortnight',
-      description: 'Write in your journal every day for 2 weeks',
+      description: 'Write 350+ words in your journal every day for 2 weeks',
       icon: 'book-outline',
       category: 'journal',
       isStreak: true,
@@ -132,7 +132,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_30',
       name: 'Journal Month',
-      description: 'Write in your journal every day for 1 month',
+      description: 'Write 350+ words in your journal every day for 1 month',
       icon: 'calendar',
       category: 'journal',
       isStreak: true,
@@ -141,7 +141,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_60',
       name: 'Journal Two Months',
-      description: 'Write in your journal every day for 2 months',
+      description: 'Write 350+ words in your journal every day for 2 months',
       icon: 'calendar-outline',
       category: 'journal',
       isStreak: true,
@@ -150,7 +150,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_180',
       name: 'Journal Half Year',
-      description: 'Write in your journal every day for 6 months',
+      description: 'Write 350+ words in your journal every day for 6 months',
       icon: 'time',
       category: 'journal',
       isStreak: true,
@@ -159,7 +159,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_365',
       name: 'Journal Year',
-      description: 'Write in your journal every day for 1 year',
+      description: 'Write 350+ words in your journal every day for 1 year',
       icon: 'star',
       category: 'journal',
       isStreak: true,
@@ -282,18 +282,29 @@ export function hasCompletedThreeTasksToday(
 }
 
 /**
- * Calculate journal streak (consecutive days with at least 1 journal entry)
+ * Calculate word count for a journal entry
+ */
+function getWordCount(content: string): number {
+  if (!content || typeof content !== 'string') return 0;
+  return content.trim().split(/\s+/).filter(word => word.length > 0).length;
+}
+
+/**
+ * Calculate journal streak (consecutive days with at least 1 journal entry of 350+ words)
  */
 export function calculateJournalStreak(
-  journal: { createdAt: string }[]
+  journal: { createdAt: string; content: string }[]
 ): number {
   const today = todayYMD();
   const journalDates = new Set<string>();
   
-  // Get all dates with journal entries
+  // Get all dates with journal entries that are 350+ words
   journal.forEach(entry => {
-    const date = isoToLocalYMD(entry.createdAt);
-    journalDates.add(date);
+    const wordCount = getWordCount(entry.content || '');
+    if (wordCount >= 350) {
+      const date = isoToLocalYMD(entry.createdAt);
+      journalDates.add(date);
+    }
   });
   
   // Calculate streak backwards from today
@@ -419,9 +430,9 @@ export function calculateEarnedBadges(
     if (badge) earned.push({ ...badge, earnedAt: today });
   }
   
-  // Check journal first 500+ words badge
+  // Check journal first 500+ words badge (Deep Reflection)
   const hasLongJournalEntry = journal.some(entry => {
-    const wordCount = (entry.content || '').trim().split(/\s+/).filter(word => word.length > 0).length;
+    const wordCount = getWordCount(entry.content || '');
     return wordCount >= 500;
   });
   
@@ -430,7 +441,7 @@ export function calculateEarnedBadges(
     if (badge) {
       // Find the first long entry date
       const firstLongEntry = journal.find(entry => {
-        const wordCount = (entry.content || '').trim().split(/\s+/).filter(word => word.length > 0).length;
+        const wordCount = getWordCount(entry.content || '');
         return wordCount >= 500;
       });
       earned.push({ ...badge, earnedAt: firstLongEntry ? isoToLocalYMD(firstLongEntry.createdAt) : today });
