@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
   },
   badgeItem: {
     alignItems: 'center',
