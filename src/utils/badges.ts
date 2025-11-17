@@ -107,7 +107,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_first_500',
       name: 'Deep Reflection',
-      description: 'Write your first journal entry with 500+ words',
+      description: 'Write your first journal entry with 500+ characters',
       icon: 'document-text',
       category: 'journal',
       isStreak: false,
@@ -116,7 +116,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_7',
       name: 'Journal Week',
-      description: 'Write 350+ words in your journal every day for 7 days',
+      description: 'Write 350+ characters in your journal every day for 7 days',
       icon: 'book',
       category: 'journal',
       isStreak: true,
@@ -333,7 +333,7 @@ function getWordCount(content: string): number {
 }
 
 /**
- * Calculate journal streak (consecutive days with at least 1 journal entry of 350+ words)
+ * Calculate journal streak (consecutive days with at least 1 journal entry of 350+ characters)
  */
 export function calculateJournalStreak(
   journal: { createdAt: string; content: string }[]
@@ -341,10 +341,10 @@ export function calculateJournalStreak(
   const today = todayYMD();
   const journalDates = new Set<string>();
   
-  // Get all dates with journal entries that are 350+ words
+  // Get all dates with journal entries that are 350+ characters
   journal.forEach(entry => {
-    const wordCount = getWordCount(entry.content || '');
-    if (wordCount >= 350) {
+    const charCount = (entry.content || '').trim().length;
+    if (charCount >= 350) {
       const date = isoToLocalYMD(entry.createdAt);
       journalDates.add(date);
     }
