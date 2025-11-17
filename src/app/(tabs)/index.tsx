@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, Image, Modal } from "react-native";
+import { StyleSheet, Text, View, Pressable, ScrollView, Image, Modal, Share, Alert } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,6 +63,8 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<GoalCategory>('main');
   const [quoteInterval, setQuoteInterval] = useState(getFiveMinuteInterval());
   const [showBadgesModal, setShowBadgesModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   
   // Calculate earned badges (now async, so we use state)
   const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
