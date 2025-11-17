@@ -510,20 +510,65 @@ export async function calculateEarnedBadges(
   }
   
   // Check journal first 500+ words badge (Deep Reflection)
-  const hasLongJournalEntry = journal.some(entry => {
-    const wordCount = getWordCount(entry.content || '');
-    return wordCount >= 500;
-  });
+  // Query database directly to ensure we check all entries, including encrypted ones
+  let hasLongJournalEntry = false;
+  let firstLongEntry: { createdAt: string; content: string } | null = null;
+  
+  try {
+    // Query all journal entries from database
+    const dbJournal = await all<{ id: string; createdAt: string; content: string; iv: string | null }>(
+      'SELECT id, createdAt, content, iv FROM journal_entries ORDER BY createdAt ASC'
+    );
+    
+    // Decrypt entries if needed (check if encryption is enabled by checking for iv field)
+    const { decryptString, isWebCryptoAvailable } = await import('../crypto/crypto');
+    const { getOrCreateKey } = await import('../crypto/keystore');
+    const encryptionEnabled = isWebCryptoAvailable();
+    
+    for (const entry of dbJournal) {
+      let content = entry.content;
+      
+      // Decrypt if encrypted
+      if (entry.iv && encryptionEnabled) {
+        try {
+          const key = await getOrCreateKey();
+          content = await decryptString(entry.content, entry.iv, key);
+        } catch (error) {
+          // If decryption fails, skip this entry
+          continue;
+        }
+      }
+      
+      const wordCount = getWordCount(content || '');
+      if (wordCount >= 500) {
+        hasLongJournalEntry = true;
+        if (!firstLongEntry) {
+          firstLongEntry = { createdAt: entry.createdAt, content };
+        }
+        break; // Found first long entry
+      }
+    }
+  } catch (error) {
+    // Fallback to in-memory journal if database query fails
+    hasLongJournalEntry = journal.some(entry => {
+      const wordCount = getWordCount(entry.content || '');
+      return wordCount >= 500;
+    });
+    if (hasLongJournalEntry) {
+      firstLongEntry = journal.find(entry => {
+        const wordCount = getWordCount(entry.content || '');
+        return wordCount >= 500;
+      }) || null;
+    }
+  }
   
   if (hasLongJournalEntry) {
     const badge = allBadges.find(b => b.id === 'journal_first_500');
     if (badge && !storedBadgesMap.has('journal_first_500')) {
-      // Find the first long entry date
-      const firstLongEntry = journal.find(entry => {
-        const wordCount = getWordCount(entry.content || '');
-        return wordCount >= 500;
-      });
-      const earnedBadge = { ...badge, earnedAt: firstLongEntry ? isoToLocalYMD(firstLongEntry.createdAt) : today };
+      const earnedBadge = { 
+        ...badge, 
+        earnedAt: firstLongEntry ? isoToLocalYMD(firstLongEntry.createdAt) : today 
+      };
       newlyEarned.push(earnedBadge);
       try {
         await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
