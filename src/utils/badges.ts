@@ -242,12 +242,14 @@ export async function calculateTaskStreak(
     );
     
     // Count completed tasks per day from database
-    dbTasks.forEach(task => {
-      if (task.completedAt) {
-        const date = isoToLocalYMD(task.completedAt);
-        completedTasksByDate.set(date, (completedTasksByDate.get(date) || 0) + 1);
-      }
-    });
+    if (dbTasks && Array.isArray(dbTasks)) {
+      dbTasks.forEach(task => {
+        if (task.completedAt) {
+          const date = isoToLocalYMD(task.completedAt);
+          completedTasksByDate.set(date, (completedTasksByDate.get(date) || 0) + 1);
+        }
+      });
+    }
   } catch (error) {
     // Fallback to in-memory tasks if database query fails
     tasks.forEach(task => {
@@ -294,7 +296,7 @@ export async function hasCompletedThreeTasksToday(
       'SELECT completedAt FROM tasks WHERE done = 1 AND completedAt IS NOT NULL AND date(completedAt) = ?',
       [today]
     );
-    completedToday = dbTasks.length;
+    completedToday = dbTasks && Array.isArray(dbTasks) ? dbTasks.length : 0;
   } catch (error) {
     // Fallback to in-memory tasks if database query fails
     tasks.forEach(task => {

@@ -68,7 +68,16 @@ export default function HomeScreen() {
   const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
   
   useEffect(() => {
-    calculateEarnedBadges(tasks, journal, habits, logs).then(setEarnedBadges);
+    // Wrap in async function to handle errors properly
+    (async () => {
+      try {
+        const badges = await calculateEarnedBadges(tasks, journal, habits, logs);
+        setEarnedBadges(badges);
+      } catch (error) {
+        console.error('[Home] Error calculating badges:', error);
+        setEarnedBadges([]); // Set empty array on error
+      }
+    })();
   }, [tasks, journal, habits, logs]);
   
   // Get highest streak badges for each category
