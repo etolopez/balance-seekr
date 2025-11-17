@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, Image } from "react-native";
+import { StyleSheet, Text, View, Pressable, ScrollView, Image, Modal } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { todayYMD, getFiveMinuteInterval } from '../../utils/time';
 import { colors, typography, spacing, borderRadius, shadows } from '../../config/theme';
 import * as Haptics from 'expo-haptics';
 import { playBeep } from '../../audio/sounds';
+import { calculateEarnedBadges, getHighestStreakBadges, getAllBadges, type Badge } from '../../utils/badges';
 
 type GoalCategory = 'main' | 'health' | 'financial' | 'personalGrowth' | 'relationship';
 
@@ -56,10 +57,41 @@ export default function HomeScreen() {
   const tasks = useAppStore((s) => s.tasks);
   const toggleTask = useAppStore((s) => s.toggleTask);
   const logs = useAppStore((s) => s.logs);
+  const journal = useAppStore((s) => s.journal);
   const getTodayHabitLog = useAppStore((s) => s.getTodayHabitLog);
   
   const [selectedCategory, setSelectedCategory] = useState<GoalCategory>('main');
   const [quoteInterval, setQuoteInterval] = useState(getFiveMinuteInterval());
+  const [showBadgesModal, setShowBadgesModal] = useState(false);
+  
+  // Calculate earned badges
+  const earnedBadges = useMemo(() => {
+    return calculateEarnedBadges(tasks, journal, habits, logs);
+  }, [tasks, journal, habits, logs]);
+  
+  // Get highest streak badges for each category
+  const highestStreakBadges = useMemo(() => {
+    return getHighestStreakBadges(earnedBadges);
+  }, [earnedBadges]);
+  
+  // Get all badges to display (daily + highest streak for each category)
+  const displayBadges = useMemo(() => {
+    const badges: Badge[] = [];
+    
+    // Add daily badges
+    const taskDaily = earnedBadges.find(b => b.id === 'task_daily');
+    if (taskDaily) badges.push(taskDaily);
+    
+    const habitDaily = earnedBadges.find(b => b.id === 'habit_daily');
+    if (habitDaily) badges.push(habitDaily);
+    
+    // Add highest streak badges (only one per category)
+    if (highestStreakBadges.task) badges.push(highestStreakBadges.task);
+    if (highestStreakBadges.journal) badges.push(highestStreakBadges.journal);
+    if (highestStreakBadges.habit) badges.push(highestStreakBadges.habit);
+    
+    return badges;
+  }, [earnedBadges, highestStreakBadges]);
   
   // Update quote interval every 5 minutes
   useEffect(() => {
@@ -416,11 +448,139 @@ export default function HomeScreen() {
             </View>
           )}
 
+          {/* Badges Section */}
+          <View style={styles.badgesSection}>
+            <View style={styles.badgesHeader}>
+              <Text style={styles.badgesTitle}>Your Badges</Text>
+              <Pressable 
+                style={styles.aboutBadgesBtn}
+                onPress={() => setShowBadgesModal(true)}
+              >
+                <Ionicons name="information-circle-outline" size={18} color={colors.text.secondary} />
+                <Text style={styles.aboutBadgesText}>About Badges</Text>
+              </Pressable>
+            </View>
+            
+            {displayBadges.length > 0 ? (
+              <View style={styles.badgesContainer}>
+                {displayBadges.map((badge) => (
+                  <View key={badge.id} style={styles.badgeItem}>
+                    <View style={styles.badgeIconContainer}>
+                      <Ionicons 
+                        name={badge.icon as any} 
+                        size={32} 
+                        color={badge.category === 'task' ? colors.primary.main : badge.category === 'journal' ? colors.secondary.main : colors.success.main} 
+                      />
+                    </View>
+                    <Text style={styles.badgeName} numberOfLines={1}>{badge.name}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.noBadgesContainer}>
+                <Ionicons name="trophy-outline" size={32} color={colors.text.tertiary} />
+                <Text style={styles.noBadgesText}>Complete tasks, habits, and journal entries to earn badges!</Text>
+              </View>
+            )}
+          </View>
+
           {/* Daily Quote Section */}
           <View style={styles.quoteCard}>
             <Ionicons name="sparkles" size={20} color={colors.text.tertiary} style={styles.quoteIcon} />
             <Text style={styles.quoteText}>"{quote}"</Text>
           </View>
+          
+          {/* About Badges Modal */}
+          <Modal
+            visible={showBadgesModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowBadgesModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+                    <Ionicons name="trophy" size={24} color={colors.primary.main} />
+                    <Text style={styles.modalTitle}>About Badges</Text>
+                  </View>
+                  <Pressable
+                    style={styles.modalCloseBtn}
+                    onPress={() => setShowBadgesModal(false)}
+                  >
+                    <Ionicons name="close" size={20} color={colors.text.primary} />
+                  </Pressable>
+                </View>
+                
+                <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                  <Text style={styles.modalSubtitle}>
+                    Earn badges by completing tasks, maintaining habits, and journaling consistently!
+                  </Text>
+                  
+                  {/* Task Badges */}
+                  <View style={styles.badgeCategorySection}>
+                    <Text style={styles.badgeCategoryTitle}>Task Badges</Text>
+                    {getAllBadges()
+                      .filter(b => b.category === 'task')
+                      .map(badge => (
+                        <View key={badge.id} style={styles.badgeInfoItem}>
+                          <View style={styles.badgeInfoHeader}>
+                            <Ionicons name={badge.icon as any} size={20} color={colors.primary.main} />
+                            <Text style={styles.badgeInfoName}>{badge.name}</Text>
+                            {earnedBadges.some(b => b.id === badge.id) && (
+                              <Ionicons name="checkmark-circle" size={16} color={colors.success.main} style={{ marginLeft: spacing.xs }} />
+                            )}
+                          </View>
+                          <Text style={styles.badgeInfoDescription}>{badge.description}</Text>
+                        </View>
+                      ))}
+                  </View>
+                  
+                  {/* Journal Badges */}
+                  <View style={styles.badgeCategorySection}>
+                    <Text style={styles.badgeCategoryTitle}>Journal Badges</Text>
+                    {getAllBadges()
+                      .filter(b => b.category === 'journal')
+                      .map(badge => (
+                        <View key={badge.id} style={styles.badgeInfoItem}>
+                          <View style={styles.badgeInfoHeader}>
+                            <Ionicons name={badge.icon as any} size={20} color={colors.secondary.main} />
+                            <Text style={styles.badgeInfoName}>{badge.name}</Text>
+                            {earnedBadges.some(b => b.id === badge.id) && (
+                              <Ionicons name="checkmark-circle" size={16} color={colors.success.main} style={{ marginLeft: spacing.xs }} />
+                            )}
+                          </View>
+                          <Text style={styles.badgeInfoDescription}>{badge.description}</Text>
+                        </View>
+                      ))}
+                  </View>
+                  
+                  {/* Habit Badges */}
+                  <View style={styles.badgeCategorySection}>
+                    <Text style={styles.badgeCategoryTitle}>Habit Badges</Text>
+                    {getAllBadges()
+                      .filter(b => b.category === 'habit')
+                      .map(badge => (
+                        <View key={badge.id} style={styles.badgeInfoItem}>
+                          <View style={styles.badgeInfoHeader}>
+                            <Ionicons name={badge.icon as any} size={20} color={colors.success.main} />
+                            <Text style={styles.badgeInfoName}>{badge.name}</Text>
+                            {earnedBadges.some(b => b.id === badge.id) && (
+                              <Ionicons name="checkmark-circle" size={16} color={colors.success.main} style={{ marginLeft: spacing.xs }} />
+                            )}
+                          </View>
+                          <Text style={styles.badgeInfoDescription}>{badge.description}</Text>
+                        </View>
+                      ))}
+                  </View>
+                  
+                  <Text style={styles.badgeNote}>
+                    💡 Streak badges are time-sensitive - only your highest streak badge is shown. Keep your streak going to unlock higher badges!
+                  </Text>
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
 
           {/* Settings Button */}
           <Link href="/settings" asChild>
@@ -523,6 +683,159 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: typography.sizes.base,
     lineHeight: 22,
+  },
+  badgesSection: {
+    width: '100%',
+    maxWidth: 480,
+    marginBottom: spacing.lg,
+  },
+  badgesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  badgesTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+  },
+  aboutBadgesBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  aboutBadgesText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+  },
+  badgesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    justifyContent: 'flex-start',
+  },
+  badgeItem: {
+    alignItems: 'center',
+    width: 80,
+  },
+  badgeIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    ...shadows.sm,
+  },
+  badgeName: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.primary,
+    textAlign: 'center',
+    fontWeight: typography.weights.semibold,
+  },
+  noBadgesContainer: {
+    alignItems: 'center',
+    padding: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  noBadgesText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background.main,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    maxHeight: '90%',
+    paddingBottom: spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalScroll: {
+    padding: spacing.lg,
+  },
+  modalSubtitle: {
+    fontSize: typography.sizes.base,
+    color: colors.text.secondary,
+    marginBottom: spacing.lg,
+    lineHeight: 22,
+  },
+  badgeCategorySection: {
+    marginBottom: spacing.xl,
+  },
+  badgeCategoryTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
+  },
+  badgeInfoItem: {
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  badgeInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  badgeInfoName: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.primary,
+    flex: 1,
+  },
+  badgeInfoDescription: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginLeft: 28, // Align with icon
+    lineHeight: 20,
+  },
+  badgeNote: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.tertiary,
+    fontStyle: 'italic',
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: borderRadius.md,
   },
   quoteCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
