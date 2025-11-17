@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, Image, Modal, Share, Alert } from "react-native";
+import { StyleSheet, Text, View, Pressable, ScrollView, Image, Modal, Share, Alert, Dimensions } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,8 @@ import { colors, typography, spacing, borderRadius, shadows } from '../../config
 import * as Haptics from 'expo-haptics';
 import { playBeep } from '../../audio/sounds';
 import { calculateEarnedBadges, getHighestStreakBadges, getAllBadges, type Badge } from '../../utils/badges';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type GoalCategory = 'main' | 'health' | 'financial' | 'personalGrowth' | 'relationship';
 
@@ -875,14 +877,14 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   badgesScrollView: {
-    width: '100%',
+    width: SCREEN_WIDTH, // Use full screen width
     marginLeft: -spacing['2xl'], // Extend beyond parent padding on left
-    marginRight: -spacing['2xl'], // Extend beyond parent padding on right
   },
   badgesCarousel: {
     flexDirection: 'row',
     gap: spacing.md,
-    paddingHorizontal: spacing.lg, // Add padding inside the scrollable content
+    paddingLeft: spacing['2xl'] + spacing.lg, // Match parent padding + extra padding
+    paddingRight: spacing['2xl'] + spacing.lg, // Match parent padding on right so last badge is fully visible
   },
   badgesCarouselCentered: {
     justifyContent: 'center',
