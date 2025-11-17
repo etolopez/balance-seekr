@@ -130,6 +130,15 @@ export default function HomeScreen() {
   const deepReflectionBadge = useMemo(() => {
     return earnedBadges.find(b => b.id === 'journal_first_500') || null;
   }, [earnedBadges]);
+
+  // Combine all badges for display (regular badges + Deep Reflection)
+  const allDisplayBadges = useMemo(() => {
+    const badges = [...displayBadges];
+    if (deepReflectionBadge) {
+      badges.push(deepReflectionBadge);
+    }
+    return badges;
+  }, [displayBadges, deepReflectionBadge]);
   
   // Update quote interval every 5 minutes
   useEffect(() => {
@@ -499,53 +508,45 @@ export default function HomeScreen() {
               </Pressable>
             </View>
             
-            {displayBadges.length > 0 || deepReflectionBadge ? (
-              <View style={styles.badgesWrapper}>
-                <View style={[styles.badgesContainer, displayBadges.length === 3 && !deepReflectionBadge && styles.badgesContainerThree]}>
-                  {displayBadges.map((badge) => (
-                    <Pressable
-                      key={badge.id}
-                      style={styles.badgeItem}
-                      onPress={() => {
-                        setSelectedBadge(badge);
-                        setShowShareModal(true);
-                      }}
-                    >
-                      <View style={styles.badgeIconContainer}>
-                        <Ionicons 
-                          name={badge.icon as any} 
-                          size={32} 
-                          color={badge.category === 'task' ? colors.primary.main : badge.category === 'journal' ? colors.secondary.main : colors.success.main} 
-                        />
-                      </View>
-                      <Text style={styles.badgeName} numberOfLines={1}>{badge.name}</Text>
-                    </Pressable>
-                  ))}
-                  {/* Add empty spaces if we have 3 badges and no Deep Reflection */}
-                  {displayBadges.length === 3 && !deepReflectionBadge && (
-                    <View style={styles.badgeItem} />
-                  )}
-                </View>
-                {/* Deep Reflection badge on the right */}
-                {deepReflectionBadge && (
+            {allDisplayBadges.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={[
+                  styles.badgesCarousel,
+                  allDisplayBadges.length <= 3 && styles.badgesCarouselCentered
+                ]}
+                style={styles.badgesScrollView}
+              >
+                {allDisplayBadges.map((badge) => (
                   <Pressable
-                    style={styles.specialBadgeItem}
+                    key={badge.id}
+                    style={styles.badgeItem}
                     onPress={() => {
-                      setSelectedBadge(deepReflectionBadge);
+                      setSelectedBadge(badge);
                       setShowShareModal(true);
                     }}
                   >
-                    <View style={styles.specialBadgeIconContainer}>
+                    <View style={[
+                      styles.badgeIconContainer,
+                      badge.id === 'journal_first_500' && styles.specialBadgeIconContainer
+                    ]}>
                       <Ionicons 
-                        name={deepReflectionBadge.icon as any} 
+                        name={badge.icon as any} 
                         size={32} 
-                        color={colors.secondary.main} 
+                        color={
+                          badge.category === 'task' 
+                            ? colors.primary.main 
+                            : badge.category === 'journal' 
+                            ? colors.secondary.main 
+                            : colors.success.main
+                        } 
                       />
                     </View>
-                    <Text style={styles.badgeName} numberOfLines={1}>{deepReflectionBadge.name}</Text>
+                    <Text style={styles.badgeName} numberOfLines={1}>{badge.name}</Text>
                   </Pressable>
-                )}
-              </View>
+                ))}
+              </ScrollView>
             ) : (
               <View style={styles.noBadgesContainer}>
                 <Ionicons name="trophy-outline" size={32} color={colors.text.tertiary} />
@@ -864,32 +865,21 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.text.secondary,
   },
-  badgesWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    justifyContent: 'center',
-    flexWrap: 'wrap',
+  badgesScrollView: {
+    width: '100%',
   },
-  badgesContainer: {
+  badgesCarousel: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.md,
-    justifyContent: 'center',
-    flex: 1,
-    minWidth: 240, // Minimum width for 3 badges
+    paddingHorizontal: spacing.md,
   },
-  badgesContainerThree: {
-    // When there are exactly 3 badges and no Deep Reflection, show 3 spaces
-    maxWidth: 280, // Width for 3 badges
+  badgesCarouselCentered: {
+    justifyContent: 'center',
   },
   badgeItem: {
     alignItems: 'center',
     width: 80,
-  },
-  specialBadgeItem: {
-    alignItems: 'center',
-    width: 80,
+    marginRight: spacing.xs,
   },
   specialBadgeIconContainer: {
     width: 64,
