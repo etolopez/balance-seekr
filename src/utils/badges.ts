@@ -549,6 +549,8 @@ export async function calculateEarnedBadges(
       }
     }
   } catch (error) {
+    // Log error for debugging
+    console.error('[Badges] Error checking journal entries:', error);
     // Fallback to in-memory journal if database query fails
     hasLongJournalEntry = journal.some(entry => {
       const wordCount = getWordCount(entry.content || '');

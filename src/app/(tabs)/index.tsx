@@ -80,6 +80,23 @@ export default function HomeScreen() {
     })();
   }, [tasks, journal, habits, logs]);
   
+  // Also recalculate badges when journal length changes (new entry added)
+  useEffect(() => {
+    // Small delay to ensure database is updated
+    const timer = setTimeout(() => {
+      (async () => {
+        try {
+          const badges = await calculateEarnedBadges(tasks, journal, habits, logs);
+          setEarnedBadges(badges);
+        } catch (error) {
+          console.error('[Home] Error recalculating badges after journal update:', error);
+        }
+      })();
+    }, 500); // 500ms delay to allow database write to complete
+    
+    return () => clearTimeout(timer);
+  }, [journal.length]);
+  
   // Get highest streak badges for each category
   const highestStreakBadges = useMemo(() => {
     return getHighestStreakBadges(earnedBadges);
