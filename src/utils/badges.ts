@@ -49,7 +49,7 @@ export function getAllBadges(): Badge[] {
     // Task badges
     {
       id: 'task_daily',
-      name: 'Task Master',
+      name: 'Task Starter',
       description: 'Complete at least 3 tasks in a day',
       icon: 'checkmark-circle',
       category: 'task',
@@ -58,7 +58,7 @@ export function getAllBadges(): Badge[] {
     },
     {
       id: 'task_streak_7',
-      name: 'Task Champion',
+      name: 'Multi-Tasker',
       description: 'Complete at least 3 tasks daily for 7 days',
       icon: 'trophy',
       category: 'task',
@@ -67,7 +67,7 @@ export function getAllBadges(): Badge[] {
     },
     {
       id: 'task_streak_14',
-      name: 'Task Two Weeks',
+      name: 'Task Keeper',
       description: 'Complete at least 3 tasks daily for 2 weeks',
       icon: 'calendar',
       category: 'task',
@@ -76,7 +76,7 @@ export function getAllBadges(): Badge[] {
     },
     {
       id: 'task_streak_30',
-      name: 'Task Month',
+      name: 'Task Master',
       description: 'Complete at least 3 tasks daily for 1 month',
       icon: 'calendar-outline',
       category: 'task',
@@ -85,7 +85,7 @@ export function getAllBadges(): Badge[] {
     },
     {
       id: 'task_streak_180',
-      name: 'Task Half Year',
+      name: 'Task Hero',
       description: 'Complete at least 3 tasks daily for 6 months',
       icon: 'time',
       category: 'task',
@@ -94,7 +94,7 @@ export function getAllBadges(): Badge[] {
     },
     {
       id: 'task_streak_365',
-      name: 'Task Year',
+      name: 'Task Legend',
       description: 'Complete at least 3 tasks daily for 1 year',
       icon: 'star',
       category: 'task',
