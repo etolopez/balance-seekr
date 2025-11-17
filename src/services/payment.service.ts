@@ -1,7 +1,9 @@
 import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, VersionedTransaction } from '@solana/web3.js';
+import { getAssociatedTokenAddress, createTransferInstruction, getAccount, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { getConnection, CLUSTER } from '../config/solana';
+import { getUSDCMintAddress, PLATFORM_CREATE_FEE_USDC } from '../config/platform';
 import bs58 from 'bs58';
 
 /**
@@ -336,6 +338,177 @@ export class PaymentService {
       }
       
       throw new Error(`Payment failed: ${errorMsg}`);
+    }
+  }
+
+  /**
+   * Create a USDC payment transaction for creating a public Mastermind group
+   * @param recipientAddress - The address to receive the payment (platform)
+   * @param amountUSDC - Amount in USDC to pay (e.g., 6.9)
+   * @param payerAddress - The already-connected wallet address (optional, will authorize if not provided)
+   * @returns Transaction signature
+   */
+  async payToCreateGroupUSDC(recipientAddress: string, amountUSDC: number, payerAddress?: string): Promise<string> {
+    this.assertDevClientAndroid();
+    
+    try {
+      // @ts-ignore lazy import
+      const { transact } = await import('@solana-mobile/mobile-wallet-adapter-protocol');
+      const connection: Connection = getConnection();
+      
+      // Store signature outside transact callback so we can access it even if transact throws
+      let capturedSignature: string | null = null;
+      let transactError: any = null;
+
+      try {
+        const res = await transact(async (wallet: any) => {
+          // Always authorize first to establish wallet session
+          const { accounts } = await wallet.authorize({ 
+            cluster: CLUSTER, 
+            identity: PaymentService.APP_IDENTITY as any 
+          });
+          
+          if (!accounts || accounts.length === 0) {
+            throw new Error('No accounts returned from wallet authorization');
+          }
+
+          const account = accounts[0];
+          let finalPayerAddress = typeof account === 'string' ? account : (account.address || account.publicKey || account);
+          
+          // If payerAddress was provided, verify it matches the authorized account
+          if (payerAddress) {
+            const providedPayer = addressToPublicKey(payerAddress);
+            const authorizedPayer = addressToPublicKey(finalPayerAddress);
+            if (!providedPayer.equals(authorizedPayer)) {
+              throw new Error('Authorized wallet does not match the provided payer address');
+            }
+          }
+          
+          if (!finalPayerAddress || typeof finalPayerAddress !== 'string') {
+            throw new Error('Invalid payer address');
+          }
+          
+          const payer = addressToPublicKey(finalPayerAddress);
+          const recipient = addressToPublicKey(recipientAddress);
+          const usdcMint = new PublicKey(getUSDCMintAddress());
+
+          // Get associated token addresses for payer and recipient
+          const payerTokenAccount = await getAssociatedTokenAddress(usdcMint, payer);
+          const recipientTokenAccount = await getAssociatedTokenAddress(usdcMint, recipient);
+
+          // Check if recipient token account exists, if not, we'll need to create it
+          // For now, we'll assume it exists or the wallet will handle it
+          // USDC uses 6 decimals, so multiply by 1,000,000
+          const amountUSDCWithDecimals = Math.floor(amountUSDC * 1_000_000);
+
+          // Create USDC transfer instruction
+          const transferIx = createTransferInstruction(
+            payerTokenAccount,      // source
+            recipientTokenAccount,  // destination
+            payer,                  // owner
+            amountUSDCWithDecimals,  // amount (in smallest unit)
+            [],                     // multiSigners
+            TOKEN_PROGRAM_ID        // token program
+          );
+
+          // Get recent blockhash and build transaction
+          const { blockhash } = await connection.getLatestBlockhash('finalized');
+          const tx = new Transaction({ feePayer: payer, recentBlockhash: blockhash }).add(transferIx);
+
+          // Serialize transaction to base64
+          const serializedTx = tx.serialize({
+            requireAllSignatures: false,
+            verifySignatures: false,
+          });
+          
+          const base64Tx = toBase64(serializedTx);
+          
+          // Sign and send transaction
+          let signedTxs: any;
+          let signature: string | null = null;
+          
+          try {
+            signedTxs = await wallet.signAndSendTransactions({ 
+              payloads: [base64Tx]
+            });
+
+            // Extract signature from response
+            if (signedTxs && typeof signedTxs === 'object' && 'signatures' in signedTxs) {
+              const sigs = (signedTxs as any).signatures;
+              if (Array.isArray(sigs) && sigs.length > 0) {
+                signature = sigs[0];
+              }
+            } else if (Array.isArray(signedTxs) && signedTxs.length > 0) {
+              signature = typeof signedTxs[0] === 'string' ? signedTxs[0] : signedTxs[0].signature || '';
+            } else if (typeof signedTxs === 'string') {
+              signature = signedTxs;
+            } else {
+              signature = (signedTxs as any)?.signature || '';
+            }
+            
+            if (signature) {
+              signature = base64ToBase58(signature);
+              capturedSignature = signature;
+            }
+          } catch (walletError: any) {
+            const errorString = JSON.stringify(walletError);
+            const errorMsg = walletError?.message || String(walletError);
+            
+            const signatureMatch = errorString.match(/"signature":\s*"([^"]+)"/) || 
+                                   errorMsg.match(/signature[:\s]+([A-Za-z0-9]{88,})/i);
+            if (signatureMatch) {
+              signature = base64ToBase58(signatureMatch[1]);
+              capturedSignature = signature;
+            }
+            
+            transactError = walletError;
+          }
+
+          // Verify transaction if we have signature
+          if (signature) {
+            try {
+              await connection.confirmTransaction(signature, 'confirmed');
+              return signature;
+            } catch (confirmError: any) {
+              throw new Error('Transaction was not successfully submitted to the network');
+            }
+          }
+
+          throw new Error('No transaction signature returned from wallet. The transaction may have been cancelled.');
+        });
+        
+        return res as string;
+      } catch (e: any) {
+        // If transact threw an error BUT we captured a signature, the transaction likely succeeded
+        if (capturedSignature) {
+          try {
+            await connection.confirmTransaction(capturedSignature, 'confirmed');
+            return capturedSignature;
+          } catch (verifyError: any) {
+            // If we can't verify, fall through to error handling
+          }
+        }
+        
+        transactError = e;
+        throw e;
+      }
+    } catch (e: any) {
+      const errorMsg = e?.message || e?.toString() || 'Unknown error';
+      const lc = String(errorMsg).toLowerCase();
+      
+      if (errorMsg.includes('not successfully submitted') || errorMsg.includes('No transaction signature')) {
+        throw e;
+      }
+      
+      if (lc.includes('cancel')) {
+        throw new Error('Payment was cancelled or the wallet app was closed before completion. Please try again and wait for the transaction to complete.');
+      }
+      
+      if (lc.includes('requires android') || lc.includes('dev client')) {
+        throw new Error('Payment requires Android Dev Client. Please build the app with: npx expo run:android');
+      }
+      
+      throw new Error(`USDC payment failed: ${errorMsg}`);
     }
   }
 
