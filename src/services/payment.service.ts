@@ -1,5 +1,6 @@
 import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, VersionedTransaction } from '@solana/web3.js';
-import { getAssociatedTokenAddress, createTransferInstruction, getAccount, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+// Lazy import SPL token functions to avoid Buffer issues at module load time
+// These will be imported dynamically when payToCreateGroupUSDC is called
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { getConnection, CLUSTER } from '../config/solana';
@@ -391,6 +392,9 @@ export class PaymentService {
           const payer = addressToPublicKey(finalPayerAddress);
           const recipient = addressToPublicKey(recipientAddress);
           const usdcMint = new PublicKey(getUSDCMintAddress());
+
+          // Lazy import SPL token functions (must be done inside async function after polyfills are loaded)
+          const { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } = await import('@solana/spl-token');
 
           // Get associated token addresses for payer and recipient
           const payerTokenAccount = await getAssociatedTokenAddress(usdcMint, payer);

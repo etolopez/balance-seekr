@@ -7,10 +7,17 @@ import { setAudioModeAsync } from 'expo-audio';
 // import { polyfillWebCrypto } from 'expo-standard-web-crypto';
 // polyfillWebCrypto();
 
-// Buffer
+// Buffer - Must be set up before any modules that use it
 import { Buffer } from 'buffer';
 // @ts-ignore
-if (!globalThis.Buffer) globalThis.Buffer = Buffer;
+if (typeof globalThis.Buffer === 'undefined') {
+  globalThis.Buffer = Buffer;
+}
+// Also set on global for compatibility
+if (typeof global.Buffer === 'undefined') {
+  // @ts-ignore
+  global.Buffer = Buffer;
+}
 
 // Configure audio so cues play even in iOS silent mode and duck on Android
 (async () => {
