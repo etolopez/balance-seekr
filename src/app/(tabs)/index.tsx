@@ -498,7 +498,14 @@ export default function HomeScreen() {
             {displayBadges.length > 0 ? (
               <View style={styles.badgesContainer}>
                 {displayBadges.map((badge) => (
-                  <View key={badge.id} style={styles.badgeItem}>
+                  <Pressable
+                    key={badge.id}
+                    style={styles.badgeItem}
+                    onPress={() => {
+                      setSelectedBadge(badge);
+                      setShowShareModal(true);
+                    }}
+                  >
                     <View style={styles.badgeIconContainer}>
                       <Ionicons 
                         name={badge.icon as any} 
@@ -507,7 +514,7 @@ export default function HomeScreen() {
                       />
                     </View>
                     <Text style={styles.badgeName} numberOfLines={1}>{badge.name}</Text>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             ) : (
@@ -870,6 +877,94 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: 'rgba(255, 255, 255, 0.1)', // More opaque for better readability
     borderRadius: borderRadius.md,
+  },
+  // Share Badge Modal Styles
+  shareBadgePreview: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: spacing.lg,
+  },
+  shareBadgeIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  shareBadgeName: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  shareBadgeDescription: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  shareMessagePreview: {
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  shareMessageLabel: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
+  },
+  shareMessageText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    lineHeight: 20,
+  },
+  shareActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  shareBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  shareBtnCancel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  shareBtnCancelText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.secondary,
+  },
+  shareBtnPrimary: {
+    backgroundColor: colors.primary.main,
+  },
+  shareBtnPrimaryText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
   },
   quoteCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
