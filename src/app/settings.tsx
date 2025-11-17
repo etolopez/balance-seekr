@@ -12,12 +12,8 @@ export default function SettingsScreen() {
   const lowMotion = useAppStore((s) => s.lowMotion);
   const setLowMotion = useAppStore((s) => s.setLowMotion);
   const resetAll = useAppStore((s) => s.resetAll);
-  const encryptionEnabled = useAppStore((s) => s.encryptionEnabled);
-  const setEncryptionEnabled = useAppStore((s) => s.setEncryptionEnabled);
   const cuesHaptics = useAppStore((s) => s.cuesHaptics);
   const setCuesHaptics = useAppStore((s) => s.setCuesHaptics);
-  const cuesAudio = useAppStore((s) => s.cuesAudio);
-  const setCuesAudio = useAppStore((s) => s.setCuesAudio);
   const dataRetentionDays = useAppStore((s) => s.dataRetentionDays);
   const setDataRetentionDays = useAppStore((s) => s.setDataRetentionDays);
   const performDataCleanup = useAppStore((s) => s.performDataCleanup);
