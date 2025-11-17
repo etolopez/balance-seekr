@@ -419,6 +419,24 @@ export function calculateEarnedBadges(
     if (badge) earned.push({ ...badge, earnedAt: today });
   }
   
+  // Check journal first 500+ words badge
+  const hasLongJournalEntry = journal.some(entry => {
+    const wordCount = (entry.content || '').trim().split(/\s+/).filter(word => word.length > 0).length;
+    return wordCount >= 500;
+  });
+  
+  if (hasLongJournalEntry) {
+    const badge = allBadges.find(b => b.id === 'journal_first_500');
+    if (badge) {
+      // Find the first long entry date
+      const firstLongEntry = journal.find(entry => {
+        const wordCount = (entry.content || '').trim().split(/\s+/).filter(word => word.length > 0).length;
+        return wordCount >= 500;
+      });
+      earned.push({ ...badge, earnedAt: firstLongEntry ? isoToLocalYMD(firstLongEntry.createdAt) : today });
+    }
+  }
+  
   // Check task streak badges (only highest - sorted by days descending)
   const taskStreakBadges = [
     { id: 'task_streak_365' as BadgeType, days: 365 },
