@@ -520,6 +520,8 @@ export async function calculateEarnedBadges(
       'SELECT id, createdAt, content, iv FROM journal_entries ORDER BY createdAt ASC'
     );
     
+    console.log('[Badges] Checking journal entries for 500+ words. Total entries:', dbJournal.length);
+    
     // Decrypt entries if needed (check if encryption is enabled by checking for iv field)
     const { decryptString, isWebCryptoAvailable } = await import('../crypto/crypto');
     const { getOrCreateKey } = await import('../crypto/keystore');
@@ -534,13 +536,17 @@ export async function calculateEarnedBadges(
           const key = await getOrCreateKey();
           content = await decryptString(entry.content, entry.iv, key);
         } catch (error) {
+          console.error('[Badges] Failed to decrypt journal entry:', entry.id, error);
           // If decryption fails, skip this entry
           continue;
         }
       }
       
       const wordCount = getWordCount(content || '');
+      console.log('[Badges] Journal entry word count:', wordCount, 'Content length:', content?.length);
+      
       if (wordCount >= 500) {
+        console.log('[Badges] Found 500+ word journal entry! Word count:', wordCount);
         hasLongJournalEntry = true;
         if (!firstLongEntry) {
           firstLongEntry = { createdAt: entry.createdAt, content };
@@ -564,9 +570,12 @@ export async function calculateEarnedBadges(
     }
   }
   
+  console.log('[Badges] Has long journal entry:', hasLongJournalEntry, 'Already stored:', storedBadgesMap.has('journal_first_500'));
+  
   if (hasLongJournalEntry) {
     const badge = allBadges.find(b => b.id === 'journal_first_500');
     if (badge && !storedBadgesMap.has('journal_first_500')) {
+      console.log('[Badges] Awarding journal_first_500 badge');
       const earnedBadge = { 
         ...badge, 
         earnedAt: firstLongEntry ? isoToLocalYMD(firstLongEntry.createdAt) : today 
@@ -574,9 +583,12 @@ export async function calculateEarnedBadges(
       newlyEarned.push(earnedBadge);
       try {
         await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
+        console.log('[Badges] Saved journal_first_500 badge to database');
       } catch (error) {
-        // If save fails, continue
+        console.error('[Badges] Failed to save journal_first_500 badge:', error);
       }
+    } else if (storedBadgesMap.has('journal_first_500')) {
+      console.log('[Badges] journal_first_500 badge already stored, skipping');
     }
   }
   
