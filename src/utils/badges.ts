@@ -291,12 +291,23 @@ export async function hasCompletedThreeTasksToday(
   let completedToday = 0;
   
   try {
-    // Query database for tasks completed today (including deleted ones)
+    // Query database for all completed tasks (including deleted ones)
+    // Filter by date in JavaScript to ensure accurate date comparison
     const dbTasks = await all<{ completedAt: string }>(
-      'SELECT completedAt FROM tasks WHERE done = 1 AND completedAt IS NOT NULL AND date(completedAt) = ?',
-      [today]
+      'SELECT completedAt FROM tasks WHERE done = 1 AND completedAt IS NOT NULL'
     );
-    completedToday = dbTasks && Array.isArray(dbTasks) ? dbTasks.length : 0;
+    
+    if (dbTasks && Array.isArray(dbTasks)) {
+      // Filter tasks completed today using JavaScript date comparison
+      dbTasks.forEach(task => {
+        if (task.completedAt) {
+          const date = isoToLocalYMD(task.completedAt);
+          if (date === today) {
+            completedToday++;
+          }
+        }
+      });
+    }
   } catch (error) {
     // Fallback to in-memory tasks if database query fails
     tasks.forEach(task => {
