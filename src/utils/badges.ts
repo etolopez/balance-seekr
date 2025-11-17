@@ -520,8 +520,6 @@ export async function calculateEarnedBadges(
       'SELECT id, createdAt, content, iv FROM journal_entries ORDER BY createdAt ASC'
     );
     
-    console.log('[Badges] Checking journal entries for 500+ characters. Total entries:', dbJournal.length);
-    
     // Decrypt entries if needed (check if encryption is enabled by checking for iv field)
     const { decryptString, isWebCryptoAvailable } = await import('../crypto/crypto');
     const { getOrCreateKey } = await import('../crypto/keystore');
@@ -543,10 +541,8 @@ export async function calculateEarnedBadges(
       }
       
       const charCount = (content || '').trim().length;
-      console.log('[Badges] Journal entry character count:', charCount, '/ 500 required');
       
       if (charCount >= 500) {
-        console.log('[Badges] ✓ Found 500+ character journal entry! Character count:', charCount);
         hasLongJournalEntry = true;
         if (!firstLongEntry) {
           firstLongEntry = { createdAt: entry.createdAt, content };
@@ -570,15 +566,9 @@ export async function calculateEarnedBadges(
     }
   }
   
-  console.log('[Badges] Has long journal entry (500+ characters):', hasLongJournalEntry, 'Already stored:', storedBadgesMap.has('journal_first_500'));
-  if (!hasLongJournalEntry) {
-    console.log('[Badges] ⚠️ No 500+ character entry found. Need 500+ characters for Deep Reflection badge.');
-  }
-  
   if (hasLongJournalEntry) {
     const badge = allBadges.find(b => b.id === 'journal_first_500');
     if (badge && !storedBadgesMap.has('journal_first_500')) {
-      console.log('[Badges] Awarding journal_first_500 badge');
       const earnedBadge = { 
         ...badge, 
         earnedAt: firstLongEntry ? isoToLocalYMD(firstLongEntry.createdAt) : today 
@@ -586,12 +576,9 @@ export async function calculateEarnedBadges(
       newlyEarned.push(earnedBadge);
       try {
         await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
-        console.log('[Badges] Saved journal_first_500 badge to database');
       } catch (error) {
         console.error('[Badges] Failed to save journal_first_500 badge:', error);
       }
-    } else if (storedBadgesMap.has('journal_first_500')) {
-      console.log('[Badges] journal_first_500 badge already stored, skipping');
     }
   }
   
