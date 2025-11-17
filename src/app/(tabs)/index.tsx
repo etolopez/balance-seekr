@@ -517,6 +517,7 @@ export default function HomeScreen() {
                   allDisplayBadges.length <= 3 && styles.badgesCarouselCentered
                 ]}
                 style={styles.badgesScrollView}
+                contentInsetAdjustmentBehavior="never"
               >
                 {allDisplayBadges.map((badge) => (
                   <Pressable
@@ -842,6 +843,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 480,
     marginBottom: spacing.lg,
+    overflow: 'visible',
   },
   badgesHeader: {
     flexDirection: 'row',
@@ -867,11 +869,12 @@ const styles = StyleSheet.create({
   },
   badgesScrollView: {
     width: '100%',
+    marginHorizontal: -spacing['2xl'], // Extend beyond parent padding to reach screen edges
   },
   badgesCarousel: {
     flexDirection: 'row',
     gap: spacing.md,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg, // Add padding inside the scrollable content
   },
   badgesCarouselCentered: {
     justifyContent: 'center',
