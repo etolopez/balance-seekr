@@ -170,5 +170,38 @@ export const dbApi = {
 
   updateGroupJoinPrice: (groupId: string, joinPrice: number) =>
     run('UPDATE mastermind_groups SET joinPrice=? WHERE id=?', [joinPrice, groupId]),
+
+  // Badge persistence
+  getEarnedBadges: async () => {
+    const badges = await all<any>('SELECT * FROM badges ORDER BY earnedAt DESC');
+    return badges.map((b: any) => ({
+      id: b.badgeType,
+      badgeType: b.badgeType,
+      earnedAt: b.earnedAt,
+      category: b.category,
+      name: b.name,
+      description: b.description,
+      icon: b.icon,
+      isStreak: b.isStreak === 1,
+      daysRequired: b.daysRequired,
+    }));
+  },
+
+  saveBadge: async (badge: any) => {
+    await run(
+      'INSERT OR REPLACE INTO badges (id, badgeType, earnedAt, category, name, description, icon, isStreak, daysRequired) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        badge.id || badge.badgeType,
+        badge.badgeType || badge.id,
+        badge.earnedAt,
+        badge.category,
+        badge.name,
+        badge.description,
+        badge.icon,
+        badge.isStreak ? 1 : 0,
+        badge.daysRequired || 0,
+      ]
+    );
+  },
 };
 

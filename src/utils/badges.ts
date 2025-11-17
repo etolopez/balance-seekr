@@ -9,6 +9,7 @@
 
 import { todayYMD, yesterdayYMD, isoToLocalYMD } from './time';
 import { all } from '../db/client';
+import { dbApi } from '../state/dbApi';
 
 export type BadgeType = 
   | 'task_daily' 
@@ -445,6 +446,7 @@ export function hasCompletedAllHabitsToday(
 
 /**
  * Calculate all earned badges
+ * Merges stored badges (persistent) with newly calculated badges
  */
 export async function calculateEarnedBadges(
   tasks: { done: boolean; completedAt?: string | null }[],
@@ -453,8 +455,23 @@ export async function calculateEarnedBadges(
   logs: { habitId: string; date: string; completed: boolean }[]
 ): Promise<Badge[]> {
   const allBadges = getAllBadges();
-  const earned: Badge[] = [];
   const today = todayYMD();
+  
+  // Load previously earned badges from database (persistent)
+  let storedBadges: Badge[] = [];
+  try {
+    storedBadges = await dbApi.getEarnedBadges();
+  } catch (error) {
+    // If database query fails, continue with empty stored badges
+  }
+  
+  // Create a map of stored badges by badgeType for quick lookup
+  const storedBadgesMap = new Map<string, Badge>();
+  storedBadges.forEach(badge => {
+    storedBadgesMap.set(badge.id, badge);
+  });
+  
+  const newlyEarned: Badge[] = [];
   
   // Calculate streaks (task streak now queries database directly)
   const [taskStreak, journalStreak, habitStreak] = await Promise.all([
@@ -467,12 +484,29 @@ export async function calculateEarnedBadges(
   const hasThreeTasksToday = await hasCompletedThreeTasksToday(tasks);
   if (hasThreeTasksToday) {
     const badge = allBadges.find(b => b.id === 'task_daily');
-    if (badge) earned.push({ ...badge, earnedAt: today });
+    if (badge && !storedBadgesMap.has('task_daily')) {
+      const earnedBadge = { ...badge, earnedAt: today };
+      newlyEarned.push(earnedBadge);
+      // Save to database
+      try {
+        await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
+      } catch (error) {
+        // If save fails, continue (badge will be recalculated next time)
+      }
+    }
   }
   
   if (hasCompletedAllHabitsToday(habits, logs)) {
     const badge = allBadges.find(b => b.id === 'habit_daily');
-    if (badge) earned.push({ ...badge, earnedAt: today });
+    if (badge && !storedBadgesMap.has('habit_daily')) {
+      const earnedBadge = { ...badge, earnedAt: today };
+      newlyEarned.push(earnedBadge);
+      try {
+        await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
+      } catch (error) {
+        // If save fails, continue
+      }
+    }
   }
   
   // Check journal first 500+ words badge (Deep Reflection)
@@ -483,13 +517,19 @@ export async function calculateEarnedBadges(
   
   if (hasLongJournalEntry) {
     const badge = allBadges.find(b => b.id === 'journal_first_500');
-    if (badge) {
+    if (badge && !storedBadgesMap.has('journal_first_500')) {
       // Find the first long entry date
       const firstLongEntry = journal.find(entry => {
         const wordCount = getWordCount(entry.content || '');
         return wordCount >= 500;
       });
-      earned.push({ ...badge, earnedAt: firstLongEntry ? isoToLocalYMD(firstLongEntry.createdAt) : today });
+      const earnedBadge = { ...badge, earnedAt: firstLongEntry ? isoToLocalYMD(firstLongEntry.createdAt) : today };
+      newlyEarned.push(earnedBadge);
+      try {
+        await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
+      } catch (error) {
+        // If save fails, continue
+      }
     }
   }
   
@@ -507,8 +547,23 @@ export async function calculateEarnedBadges(
     if (taskStreak >= days) {
       const badge = allBadges.find(b => b.id === id);
       if (badge) {
-        earned.push({ ...badge, earnedAt: today });
-        break; // Only add highest badge
+        // For streak badges, check if we already have a higher one stored
+        const hasHigherStreak = taskStreakBadges.some(({ id: higherId, days: higherDays }) => {
+          if (higherDays <= days) return false;
+          return storedBadgesMap.has(higherId);
+        });
+        
+        // Only add if we don't have this badge or a higher one
+        if (!storedBadgesMap.has(id) && !hasHigherStreak) {
+          const earnedBadge = { ...badge, earnedAt: today };
+          newlyEarned.push(earnedBadge);
+          try {
+            await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
+          } catch (error) {
+            // If save fails, continue
+          }
+        }
+        break; // Only process highest badge
       }
     }
   }
@@ -527,8 +582,21 @@ export async function calculateEarnedBadges(
     if (journalStreak >= days) {
       const badge = allBadges.find(b => b.id === id);
       if (badge) {
-        earned.push({ ...badge, earnedAt: today });
-        break; // Only add highest badge
+        const hasHigherStreak = journalStreakBadges.some(({ id: higherId, days: higherDays }) => {
+          if (higherDays <= days) return false;
+          return storedBadgesMap.has(higherId);
+        });
+        
+        if (!storedBadgesMap.has(id) && !hasHigherStreak) {
+          const earnedBadge = { ...badge, earnedAt: today };
+          newlyEarned.push(earnedBadge);
+          try {
+            await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
+          } catch (error) {
+            // If save fails, continue
+          }
+        }
+        break; // Only process highest badge
       }
     }
   }
@@ -546,13 +614,35 @@ export async function calculateEarnedBadges(
     if (habitStreak >= days) {
       const badge = allBadges.find(b => b.id === id);
       if (badge) {
-        earned.push({ ...badge, earnedAt: today });
-        break; // Only add highest badge
+        const hasHigherStreak = habitStreakBadges.some(({ id: higherId, days: higherDays }) => {
+          if (higherDays <= days) return false;
+          return storedBadgesMap.has(higherId);
+        });
+        
+        if (!storedBadgesMap.has(id) && !hasHigherStreak) {
+          const earnedBadge = { ...badge, earnedAt: today };
+          newlyEarned.push(earnedBadge);
+          try {
+            await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
+          } catch (error) {
+            // If save fails, continue
+          }
+        }
+        break; // Only process highest badge
       }
     }
   }
   
-  return earned;
+  // Merge stored badges with newly earned badges
+  // Stored badges take precedence (they persist even if data is deleted)
+  const allEarnedBadges = [...storedBadges, ...newlyEarned];
+  
+  // Remove duplicates (in case a badge was both stored and newly earned)
+  const uniqueBadges = Array.from(
+    new Map(allEarnedBadges.map(badge => [badge.id, badge])).values()
+  );
+  
+  return uniqueBadges;
 }
 
 /**

@@ -94,6 +94,18 @@ export async function initDb(): Promise<void> {
       joinPricePaid REAL NOT NULL,
       UNIQUE(groupId, userAddress)
     );
+    CREATE TABLE IF NOT EXISTS badges (
+      id TEXT PRIMARY KEY NOT NULL,
+      badgeType TEXT NOT NULL,
+      earnedAt TEXT NOT NULL,
+      category TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      isStreak INTEGER DEFAULT 0,
+      daysRequired INTEGER DEFAULT 0,
+      UNIQUE(badgeType)
+    );
   `);
 }
 
