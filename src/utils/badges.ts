@@ -12,6 +12,10 @@ import { todayYMD, yesterdayYMD, isoToLocalYMD } from './time';
 export type BadgeType = 
   | 'task_daily' 
   | 'task_streak_7'
+  | 'task_streak_14'
+  | 'task_streak_30'
+  | 'task_streak_180'
+  | 'task_streak_365'
   | 'journal_streak_7' 
   | 'journal_streak_14' 
   | 'journal_streak_30' 
@@ -59,6 +63,42 @@ export function getAllBadges(): Badge[] {
       category: 'task',
       isStreak: true,
       daysRequired: 7,
+    },
+    {
+      id: 'task_streak_14',
+      name: 'Task Two Weeks',
+      description: 'Complete at least 3 tasks daily for 2 weeks',
+      icon: 'calendar',
+      category: 'task',
+      isStreak: true,
+      daysRequired: 14,
+    },
+    {
+      id: 'task_streak_30',
+      name: 'Task Month',
+      description: 'Complete at least 3 tasks daily for 1 month',
+      icon: 'calendar-outline',
+      category: 'task',
+      isStreak: true,
+      daysRequired: 30,
+    },
+    {
+      id: 'task_streak_180',
+      name: 'Task Half Year',
+      description: 'Complete at least 3 tasks daily for 6 months',
+      icon: 'time',
+      category: 'task',
+      isStreak: true,
+      daysRequired: 180,
+    },
+    {
+      id: 'task_streak_365',
+      name: 'Task Year',
+      description: 'Complete at least 3 tasks daily for 1 year',
+      icon: 'star',
+      category: 'task',
+      isStreak: true,
+      daysRequired: 365,
     },
     // Journal badges
     {
@@ -369,10 +409,24 @@ export function calculateEarnedBadges(
     if (badge) earned.push({ ...badge, earnedAt: today });
   }
   
-  // Check task streak badges
-  if (taskStreak >= 7) {
-    const badge = allBadges.find(b => b.id === 'task_streak_7');
-    if (badge) earned.push({ ...badge, earnedAt: today });
+  // Check task streak badges (only highest - sorted by days descending)
+  const taskStreakBadges = [
+    { id: 'task_streak_365' as BadgeType, days: 365 },
+    { id: 'task_streak_180' as BadgeType, days: 180 },
+    { id: 'task_streak_30' as BadgeType, days: 30 },
+    { id: 'task_streak_14' as BadgeType, days: 14 },
+    { id: 'task_streak_7' as BadgeType, days: 7 },
+  ];
+  
+  // Find the highest badge the user qualifies for
+  for (const { id, days } of taskStreakBadges) {
+    if (taskStreak >= days) {
+      const badge = allBadges.find(b => b.id === id);
+      if (badge) {
+        earned.push({ ...badge, earnedAt: today });
+        break; // Only add highest badge
+      }
+    }
   }
   
   // Check journal streak badges (only highest)
