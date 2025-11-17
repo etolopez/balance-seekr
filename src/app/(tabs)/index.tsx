@@ -64,9 +64,11 @@ export default function HomeScreen() {
   const [quoteInterval, setQuoteInterval] = useState(getFiveMinuteInterval());
   const [showBadgesModal, setShowBadgesModal] = useState(false);
   
-  // Calculate earned badges
-  const earnedBadges = useMemo(() => {
-    return calculateEarnedBadges(tasks, journal, habits, logs);
+  // Calculate earned badges (now async, so we use state)
+  const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
+  
+  useEffect(() => {
+    calculateEarnedBadges(tasks, journal, habits, logs).then(setEarnedBadges);
   }, [tasks, journal, habits, logs]);
   
   // Get highest streak badges for each category

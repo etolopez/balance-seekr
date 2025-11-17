@@ -8,6 +8,7 @@
  */
 
 import { todayYMD, yesterdayYMD, isoToLocalYMD } from './time';
+import { all } from '../db/client';
 
 export type BadgeType = 
   | 'task_daily' 
@@ -225,20 +226,37 @@ export function getAllBadges(): Badge[] {
 
 /**
  * Calculate task streak (consecutive days with 3+ completed tasks)
+ * Queries database directly to include deleted tasks that were completed
  */
-export function calculateTaskStreak(
+export async function calculateTaskStreak(
   tasks: { done: boolean; completedAt?: string | null }[]
-): number {
+): Promise<number> {
   const today = todayYMD();
   const completedTasksByDate = new Map<string, number>();
   
-  // Count completed tasks per day
-  tasks.forEach(task => {
-    if (task.done && task.completedAt) {
-      const date = isoToLocalYMD(task.completedAt);
-      completedTasksByDate.set(date, (completedTasksByDate.get(date) || 0) + 1);
-    }
-  });
+  try {
+    // Query database for all completed tasks (including deleted ones)
+    // This ensures tasks completed and deleted on the same day still count
+    const dbTasks = await all<{ completedAt: string | null }>(
+      'SELECT completedAt FROM tasks WHERE done = 1 AND completedAt IS NOT NULL'
+    );
+    
+    // Count completed tasks per day from database
+    dbTasks.forEach(task => {
+      if (task.completedAt) {
+        const date = isoToLocalYMD(task.completedAt);
+        completedTasksByDate.set(date, (completedTasksByDate.get(date) || 0) + 1);
+      }
+    });
+  } catch (error) {
+    // Fallback to in-memory tasks if database query fails
+    tasks.forEach(task => {
+      if (task.done && task.completedAt) {
+        const date = isoToLocalYMD(task.completedAt);
+        completedTasksByDate.set(date, (completedTasksByDate.get(date) || 0) + 1);
+      }
+    });
+  }
   
   // Calculate streak backwards from today
   let streak = 0;
@@ -262,21 +280,32 @@ export function calculateTaskStreak(
 
 /**
  * Check if user completed 3+ tasks today
+ * Queries database directly to include deleted tasks that were completed today
  */
-export function hasCompletedThreeTasksToday(
+export async function hasCompletedThreeTasksToday(
   tasks: { done: boolean; completedAt?: string | null }[]
-): boolean {
+): Promise<boolean> {
   const today = todayYMD();
   let completedToday = 0;
   
-  tasks.forEach(task => {
-    if (task.done && task.completedAt) {
-      const date = isoToLocalYMD(task.completedAt);
-      if (date === today) {
-        completedToday++;
+  try {
+    // Query database for tasks completed today (including deleted ones)
+    const dbTasks = await all<{ completedAt: string }>(
+      'SELECT completedAt FROM tasks WHERE done = 1 AND completedAt IS NOT NULL AND date(completedAt) = ?',
+      [today]
+    );
+    completedToday = dbTasks.length;
+  } catch (error) {
+    // Fallback to in-memory tasks if database query fails
+    tasks.forEach(task => {
+      if (task.done && task.completedAt) {
+        const date = isoToLocalYMD(task.completedAt);
+        if (date === today) {
+          completedToday++;
+        }
       }
-    }
-  });
+    });
+  }
   
   return completedToday >= 3;
 }
@@ -404,23 +433,26 @@ export function hasCompletedAllHabitsToday(
 /**
  * Calculate all earned badges
  */
-export function calculateEarnedBadges(
+export async function calculateEarnedBadges(
   tasks: { done: boolean; completedAt?: string | null }[],
   journal: { createdAt: string; content: string }[],
   habits: { id: string }[],
   logs: { habitId: string; date: string; completed: boolean }[]
-): Badge[] {
+): Promise<Badge[]> {
   const allBadges = getAllBadges();
   const earned: Badge[] = [];
   const today = todayYMD();
   
-  // Calculate streaks
-  const taskStreak = calculateTaskStreak(tasks);
-  const journalStreak = calculateJournalStreak(journal);
-  const habitStreak = calculateHabitStreak(habits, logs);
+  // Calculate streaks (task streak now queries database directly)
+  const [taskStreak, journalStreak, habitStreak] = await Promise.all([
+    calculateTaskStreak(tasks),
+    Promise.resolve(calculateJournalStreak(journal)),
+    Promise.resolve(calculateHabitStreak(habits, logs)),
+  ]);
   
   // Check daily badges
-  if (hasCompletedThreeTasksToday(tasks)) {
+  const hasThreeTasksToday = await hasCompletedThreeTasksToday(tasks);
+  if (hasThreeTasksToday) {
     const badge = allBadges.find(b => b.id === 'task_daily');
     if (badge) earned.push({ ...badge, earnedAt: today });
   }
