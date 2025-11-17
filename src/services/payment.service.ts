@@ -4,7 +4,6 @@ import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, Ve
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { getConnection, CLUSTER } from '../config/solana';
-import { getUSDCMintAddress, PLATFORM_CREATE_FEE_USDC } from '../config/platform';
 import bs58 from 'bs58';
 
 /**

@@ -737,25 +737,25 @@ export const useAppStore = create<State>((set, get) => ({
     }
 
     // Import platform config
-    const { PLATFORM_CREATE_FEE_USDC, PLATFORM_PAYMENT_ADDRESS } = await import('../config/platform');
+    const { PLATFORM_CREATE_FEE, PLATFORM_PAYMENT_ADDRESS } = await import('../config/platform');
     
-    // Use provided createPrice or default platform fee (in USDC)
-    const feeUSDC = createPrice ?? PLATFORM_CREATE_FEE_USDC;
+    // Use provided createPrice or default platform fee (in SOL)
+    const fee = createPrice ?? PLATFORM_CREATE_FEE;
     
     if (!PLATFORM_PAYMENT_ADDRESS) {
       throw new Error('Platform payment address not configured. Please set EXPO_PUBLIC_PLATFORM_ADDRESS.');
     }
 
     try {
-      // Step 1: Pay creation fee to platform in USDC
+      // Step 1: Pay creation fee to platform in SOL
       // Use the already-connected wallet address (no need to re-authorize)
-      console.log('[Store] Starting USDC payment for group creation...');
-      const paymentSignature = await paymentService.payToCreateGroupUSDC(
+      console.log('[Store] Starting payment for group creation...');
+      const paymentSignature = await paymentService.payToCreateGroup(
         PLATFORM_PAYMENT_ADDRESS, 
-        feeUSDC,
+        fee,
         state.verifiedAddress // Pass the already-connected wallet address
       );
-      console.log('[Store] USDC payment successful, signature:', paymentSignature?.substring(0, 20) + '...');
+      console.log('[Store] Payment successful, signature:', paymentSignature?.substring(0, 20) + '...');
 
       // Delay to ensure transaction is fully confirmed and indexed on RPC nodes
       // The payment service already confirms, but backend verification might need more time
@@ -773,7 +773,7 @@ export const useAppStore = create<State>((set, get) => ({
         paymentAddress, // Address to receive join payments (can be owner or platform)
         description,
         createPaymentSignature: paymentSignature,
-        createPrice: feeUSDC, // Store USDC amount
+        createPrice: fee, // Store SOL amount
         backgroundImage, // Cloudinary URL for background image
         category, // Required category
       });

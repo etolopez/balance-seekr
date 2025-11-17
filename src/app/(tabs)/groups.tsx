@@ -12,7 +12,7 @@ import { uploadImageToCloudinary } from '../../services/image.service';
 import { detectSeeker } from '../../services/seeker';
 import { PROGRAM_ID } from '../../config/solana';
 import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
-import { PLATFORM_CREATE_FEE_USDC, PLATFORM_PAYMENT_ADDRESS, DEFAULT_JOIN_PAYMENT_ADDRESS, PLATFORM_JOIN_FEE_PERCENTAGE } from '../../config/platform';
+import { PLATFORM_CREATE_FEE, PLATFORM_PAYMENT_ADDRESS, DEFAULT_JOIN_PAYMENT_ADDRESS, PLATFORM_JOIN_FEE_PERCENTAGE } from '../../config/platform';
 
 /**
  * Groups Screen - Create and manage Mastermind groups
@@ -634,7 +634,7 @@ export default function GroupsScreen() {
                   <View style={styles.featureContent}>
                     <Text style={styles.featureTitle}>Create Your Mastermind</Text>
                     <Text style={styles.featureText}>
-                      It costs {PLATFORM_CREATE_FEE_USDC} USDC to create a Mastermind. This one-time fee helps maintain the platform.
+                      It costs {PLATFORM_CREATE_FEE} SOL to create a Mastermind. This one-time fee helps maintain the platform.
                     </Text>
                   </View>
                 </View>
@@ -1957,7 +1957,7 @@ export default function GroupsScreen() {
             <ScrollView>
               <Text style={styles.modalTitle}>Create Public Mastermind</Text>
               <Text style={styles.modalSubtitle}>
-                Public groups are discoverable by everyone. You'll pay {PLATFORM_CREATE_FEE_USDC} USDC to create.
+                Public groups are discoverable by everyone. You'll pay {PLATFORM_CREATE_FEE} SOL to create.
               </Text>
 
               <Text style={styles.label}>Group Name *</Text>
@@ -2210,7 +2210,7 @@ export default function GroupsScreen() {
                   {isCreatingPublic ? (
                     <ActivityIndicator color={colors.text.primary} />
                   ) : (
-                    <Text style={styles.primaryBtnText}>Create & Pay {PLATFORM_CREATE_FEE_USDC} USDC</Text>
+                    <Text style={styles.primaryBtnText}>Create & Pay {PLATFORM_CREATE_FEE} SOL</Text>
                   )}
                 </Pressable>
               </View>
@@ -2431,7 +2431,7 @@ export default function GroupsScreen() {
                 </Pressable>
                 <Text style={styles.hint}>
                   {xHandle 
-                    ? `Public groups require a ${PLATFORM_CREATE_FEE_USDC} USDC creation fee`
+                    ? `Public groups require a ${PLATFORM_CREATE_FEE} SOL creation fee`
                     : 'Sync your X account to create a Mastermind'
                   }
                 </Text>
