@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.background.main,
+    backgroundColor: '#1a1a2e', // Solid dark background for better readability
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '90%',
@@ -805,10 +805,10 @@ const styles = StyleSheet.create({
   badgeInfoItem: {
     marginBottom: spacing.md,
     padding: spacing.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)', // More opaque for better readability
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   badgeInfoHeader: {
     flexDirection: 'row',
@@ -830,11 +830,11 @@ const styles = StyleSheet.create({
   },
   badgeNote: {
     fontSize: typography.sizes.sm,
-    color: colors.text.tertiary,
+    color: colors.text.secondary, // More visible color
     fontStyle: 'italic',
     marginTop: spacing.lg,
     padding: spacing.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // More opaque for better readability
     borderRadius: borderRadius.md,
   },
   quoteCard: {
