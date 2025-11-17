@@ -168,7 +168,7 @@ export function getAllBadges(): Badge[] {
     // Habit badges
     {
       id: 'habit_daily',
-      name: 'Habit Hero',
+      name: 'Habit Starter',
       description: 'Complete all your habits in a day',
       icon: 'flame',
       category: 'habit',
@@ -186,7 +186,7 @@ export function getAllBadges(): Badge[] {
     },
     {
       id: 'habit_streak_30',
-      name: 'Habit Month',
+      name: 'Habit Hero',
       description: 'Complete all habits every day for 1 month',
       icon: 'calendar',
       category: 'habit',
@@ -195,7 +195,7 @@ export function getAllBadges(): Badge[] {
     },
     {
       id: 'habit_streak_60',
-      name: 'Habit Two Months',
+      name: 'Epic Habits',
       description: 'Complete all habits every day for 2 months',
       icon: 'calendar-outline',
       category: 'habit',
@@ -204,7 +204,7 @@ export function getAllBadges(): Badge[] {
     },
     {
       id: 'habit_streak_90',
-      name: 'Habit Three Months',
+      name: 'Legendary Habit Keeper',
       description: 'Complete all habits every day for 3 months',
       icon: 'trophy',
       category: 'habit',
