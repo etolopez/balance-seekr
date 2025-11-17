@@ -76,7 +76,22 @@ export default function SettingsScreen() {
         <Text style={styles.title}>Settings</Text>
         <View style={styles.section}>
           <View style={styles.row}>
-            <Text style={styles.label}>Low Motion</Text>
+            <View style={styles.labelContainer}>
+              <Text style={styles.label}>Haptic Feedback</Text>
+              <Text style={styles.labelHint}>Vibration feedback for task completion and interactions</Text>
+            </View>
+            <Switch
+              value={cuesHaptics}
+              onValueChange={setCuesHaptics}
+              trackColor={{ false: colors.border.medium, true: colors.primary.light }}
+              thumbColor={cuesHaptics ? colors.primary.main : colors.background.secondary}
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.labelContainer}>
+              <Text style={styles.label}>Low Motion</Text>
+              <Text style={styles.labelHint}>Reduce animations for better accessibility</Text>
+            </View>
             <Switch
               value={lowMotion}
               onValueChange={setLowMotion}
@@ -84,33 +99,6 @@ export default function SettingsScreen() {
               thumbColor={lowMotion ? colors.primary.main : colors.background.secondary}
             />
           </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Encrypt Journal (Dev Client)</Text>
-          <Switch
-            value={encryptionEnabled}
-            onValueChange={setEncryptionEnabled}
-            trackColor={{ false: colors.border.medium, true: colors.secondary.light }}
-            thumbColor={encryptionEnabled ? colors.secondary.main : colors.background.secondary}
-          />
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Phase Haptics</Text>
-          <Switch
-            value={cuesHaptics}
-            onValueChange={setCuesHaptics}
-            trackColor={{ false: colors.border.medium, true: colors.primary.light }}
-            thumbColor={cuesHaptics ? colors.primary.main : colors.background.secondary}
-          />
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Phase Audio (Dev Client)</Text>
-          <Switch
-            value={cuesAudio}
-            onValueChange={setCuesAudio}
-            trackColor={{ false: colors.border.medium, true: colors.secondary.light }}
-            thumbColor={cuesAudio ? colors.secondary.main : colors.background.secondary}
-          />
-        </View>
         </View>
         
         {/* Data Retention Section */}
@@ -175,9 +163,6 @@ export default function SettingsScreen() {
             <Text style={styles.resetText}>Reset Local Data</Text>
           </LinearGradient>
         </Pressable>
-        <Text style={styles.note}>
-          Note: Encryption and Skia visuals require a Dev Client; Expo Go build uses plaintext journal storage and simpler visuals.
-        </Text>
       </ScrollView>
     </LinearGradient>
   );
@@ -217,11 +202,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  label: {
+  labelContainer: {
     flex: 1,
+  },
+  label: {
     fontSize: typography.sizes.base,
     color: colors.text.primary,
     fontWeight: typography.weights.medium,
+    marginBottom: spacing.xs,
+  },
+  labelHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.tertiary,
+    lineHeight: 16,
   },
   reset: {
     marginTop: spacing.md,

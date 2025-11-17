@@ -564,7 +564,7 @@ export default function HomeScreen() {
                     <View style={styles.shareMessagePreview}>
                       <Text style={styles.shareMessageLabel}>Your message:</Text>
                       <Text style={styles.shareMessageText}>
-                        🏆 I just earned the "{selectedBadge.name}" badge on Balance Seekr! {selectedBadge.isStreak ? `I've been ${selectedBadge.description.toLowerCase()}!` : selectedBadge.description} 🚀{'\n\n'}Are you up for the challenge? Join me on my journey to better balance and growth! 💪{'\n\n'}#BalanceSeeker #PersonalGrowth #Wellness
+                        🏆 I just earned the "{selectedBadge.name}" badge on Balance Seekr! {selectedBadge.isStreak ? `I've been ${selectedBadge.description.toLowerCase()}!` : selectedBadge.description} 🚀{'\n\n'}Are you up for the challenge? Join me on my journey to better balance and growth! 💪
                       </Text>
                     </View>
                     
@@ -580,7 +580,7 @@ export default function HomeScreen() {
                         onPress={async () => {
                           if (!selectedBadge) return;
                           
-                          const shareMessage = `🏆 I just earned the "${selectedBadge.name}" badge on Balance Seekr! ${selectedBadge.isStreak ? `I've been ${selectedBadge.description.toLowerCase()}!` : selectedBadge.description} 🚀\n\nAre you up for the challenge? Join me on my journey to better balance and growth! 💪\n\n#BalanceSeeker #PersonalGrowth #Wellness`;
+                          const shareMessage = `🏆 I just earned the "${selectedBadge.name}" badge on Balance Seekr! ${selectedBadge.isStreak ? `I've been ${selectedBadge.description.toLowerCase()}!` : selectedBadge.description} 🚀\n\nAre you up for the challenge? Join me on my journey to better balance and growth! 💪`;
                           
                           try {
                             const result = await Share.share({
