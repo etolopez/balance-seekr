@@ -1,9 +1,9 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 
-// Defaults: Use devnet for testing/development
+// Production: Using mainnet-beta
 // You can override these via Expo env vars if desired.
-// For production, set EXPO_PUBLIC_SOLANA_CLUSTER=mainnet-beta and EXPO_PUBLIC_SOLANA_RPC=https://api.mainnet-beta.solana.com
-export const CLUSTER: 'devnet' | 'mainnet-beta' = (process.env.EXPO_PUBLIC_SOLANA_CLUSTER as any) || 'devnet';
+// For development/testing, set EXPO_PUBLIC_SOLANA_CLUSTER=devnet and EXPO_PUBLIC_SOLANA_RPC=https://api.devnet.solana.com
+export const CLUSTER: 'devnet' | 'mainnet-beta' = (process.env.EXPO_PUBLIC_SOLANA_CLUSTER as any) || 'mainnet-beta';
 export const SOLANA_RPC = process.env.EXPO_PUBLIC_SOLANA_RPC || (CLUSTER === 'devnet' 
   ? 'https://api.devnet.solana.com' 
   : 'https://api.mainnet-beta.solana.com');
