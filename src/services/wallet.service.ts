@@ -48,8 +48,8 @@ export type WalletSiwsResult = { address: string; signInResult: any; signInPaylo
 
 export class WalletService {
   private static readonly APP_IDENTITY = {
-    name: 'Solana Seeker',
-    uri: 'https://solanaseeker.app',
+    name: 'Balance Seekr',
+    uri: 'https://balanceseekr.app',
     icon: 'favicon.ico',
   } as const;
   private assertDevClientAndroid() {
@@ -239,9 +239,9 @@ export class WalletService {
       // @ts-ignore lazy import
       const { transact } = await import('@solana-mobile/mobile-wallet-adapter-protocol');
       const payload: SiwsPayload = {
-        domain: 'solanaseeker.app',
-        statement: 'Sign in to verify Seeker ownership',
-        uri: 'https://solanaseeker.app',
+        domain: 'balanceseekr.app',
+        statement: 'Sign in to verify Balance Seekr ownership',
+        uri: 'https://balanceseekr.app',
       };
       const res = await transact(async (wallet: any) => {
         const auth = await wallet.authorize({

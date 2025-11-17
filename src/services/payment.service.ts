@@ -81,8 +81,8 @@ function addressToPublicKey(address: string): PublicKey {
  */
 export class PaymentService {
   private static readonly APP_IDENTITY = {
-    name: 'Solana Seeker',
-    uri: 'https://solanaseeker.app',
+    name: 'Balance Seekr',
+    uri: 'https://balanceseekr.app',
     icon: 'favicon.ico',
   } as const;
 

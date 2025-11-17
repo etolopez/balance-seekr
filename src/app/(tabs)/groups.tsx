@@ -781,7 +781,7 @@ export default function GroupsScreen() {
                       <Text style={styles.primaryBtnText}>Verifying...</Text>
                     </>
                   ) : (
-                    <Text style={styles.primaryBtnText}>{useSiws ? 'Verify Seeker (SIWS)' : (seeker.isSeeker ? 'Verify with Solana Seeker' : 'Verify with Solana')}</Text>
+                    <Text style={styles.primaryBtnText}>{useSiws ? 'Verify Balance Seekr (SIWS)' : (seeker.isSeeker ? 'Verify with Balance Seekr' : 'Verify with Solana')}</Text>
                   )}
                 </Pressable>
               </View>

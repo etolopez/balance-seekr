@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Solana Seeker",
-    "slug": "solana-seeker",
+    "name": "Balance Seekr",
+    "slug": "balance-seekr",
     "version": "1.0.0",
-    "scheme": "solanaseeker",
+    "scheme": "balanceseekr",
     "orientation": "portrait",
     "extra": {
       "apiUrl": "https://balance-seekr-production.up.railway.app"
@@ -13,13 +13,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.solanaseeker"
+      "bundleIdentifier": "com.balanceseekr.app"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#000000"
       },
-      "package": "com.anonymous.solanaseeker",
+      "package": "com.balanceseekr.app",
+      "versionCode": 1,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -29,7 +30,7 @@
           ],
           "data": [
             {
-              "scheme": "solanaseeker"
+              "scheme": "balanceseekr"
             }
           ]
         }
