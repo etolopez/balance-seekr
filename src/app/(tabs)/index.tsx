@@ -74,7 +74,7 @@ export default function HomeScreen() {
     return getHighestStreakBadges(earnedBadges);
   }, [earnedBadges]);
   
-  // Get all badges to display (daily + highest streak for each category)
+  // Get all badges to display (daily + special + highest streak for each category)
   const displayBadges = useMemo(() => {
     const badges: Badge[] = [];
     
@@ -84,6 +84,10 @@ export default function HomeScreen() {
     
     const habitDaily = earnedBadges.find(b => b.id === 'habit_daily');
     if (habitDaily) badges.push(habitDaily);
+    
+    // Add special journal badge (first 500+ words)
+    const journalFirst500 = earnedBadges.find(b => b.id === 'journal_first_500');
+    if (journalFirst500) badges.push(journalFirst500);
     
     // Add highest streak badges (only one per category)
     if (highestStreakBadges.task) badges.push(highestStreakBadges.task);
