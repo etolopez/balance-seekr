@@ -11,6 +11,22 @@ import * as Haptics from 'expo-haptics';
 import { playBeep2 } from '../../audio/sounds';
 
 /**
+ * Calculate word count for a text string
+ */
+function getWordCount(text: string): number {
+  if (!text || typeof text !== 'string') return 0;
+  return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+}
+
+/**
+ * Calculate character count for a text string
+ */
+function getCharacterCount(text: string): number {
+  if (!text || typeof text !== 'string') return 0;
+  return text.trim().length;
+}
+
+/**
  * Journal Writing Prompts - A comprehensive list of prompts to inspire journaling
  * Covers gratitude, reflection, growth, emotions, relationships, and daily experiences
  */
@@ -220,6 +236,11 @@ export default function JournalScreen() {
             multiline
             textAlignVertical="top"
           />
+          <View style={styles.wordCountContainer}>
+            <Text style={styles.wordCountText}>
+              {getWordCount(content)} {getWordCount(content) === 1 ? 'word' : 'words'} • {getCharacterCount(content)} characters
+            </Text>
+          </View>
           <Pressable
             style={styles.save}
             disabled={!(title.trim().length > 0 || content.trim().length > 0)}
@@ -511,5 +532,14 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     textAlign: 'center',
     marginTop: spacing.md,
+  },
+  wordCountContainer: {
+    alignSelf: 'flex-end',
+    marginTop: spacing.xs,
+  },
+  wordCountText: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.tertiary,
+    fontStyle: 'italic',
   },
 });

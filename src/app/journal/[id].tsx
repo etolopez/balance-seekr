@@ -10,6 +10,22 @@ import * as Haptics from 'expo-haptics';
 import { playBeep2 } from '../../audio/sounds';
 
 /**
+ * Calculate word count for a text string
+ */
+function getWordCount(text: string): number {
+  if (!text || typeof text !== 'string') return 0;
+  return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+}
+
+/**
+ * Calculate character count for a text string
+ */
+function getCharacterCount(text: string): number {
+  if (!text || typeof text !== 'string') return 0;
+  return text.trim().length;
+}
+
+/**
  * Journal Detail Screen - Edit and delete journal entries
  * Allows users to edit title and content, and delete entries with confirmation
  */
@@ -96,19 +112,33 @@ export default function JournalDetail() {
         )}
         
         {/* Meta Information */}
-        <Text style={styles.meta}>{new Date(entry.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Text>
+        <View style={styles.metaContainer}>
+          <Text style={styles.meta}>{new Date(entry.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Text>
+          {!isEditing && (
+            <Text style={styles.wordCountText}>
+              {getWordCount(content)} {getWordCount(content) === 1 ? 'word' : 'words'} • {getCharacterCount(content)} characters
+            </Text>
+          )}
+        </View>
         
         {/* Content */}
         {isEditing ? (
-          <TextInput 
-            value={content} 
-            onChangeText={setContent} 
-            placeholder="Write something..." 
-            placeholderTextColor={colors.text.tertiary} 
-            style={styles.contentInput} 
-            multiline 
-            textAlignVertical="top"
-          />
+          <>
+            <TextInput 
+              value={content} 
+              onChangeText={setContent} 
+              placeholder="Write something..." 
+              placeholderTextColor={colors.text.tertiary} 
+              style={styles.contentInput} 
+              multiline 
+              textAlignVertical="top"
+            />
+            <View style={styles.wordCountContainer}>
+              <Text style={styles.wordCountText}>
+                {getWordCount(content)} {getWordCount(content) === 1 ? 'word' : 'words'} • {getCharacterCount(content)} characters
+              </Text>
+            </View>
+          </>
         ) : (
           <Text style={styles.contentDisplay}>{content || 'No content'}</Text>
         )}
@@ -179,10 +209,22 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
+  metaContainer: {
+    marginBottom: spacing.xl,
+    gap: spacing.xs,
+  },
   meta: {
     color: colors.text.secondary,
     fontSize: typography.sizes.sm,
-    marginBottom: spacing.xl,
+  },
+  wordCountContainer: {
+    alignSelf: 'flex-end',
+    marginTop: spacing.xs,
+  },
+  wordCountText: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.tertiary,
+    fontStyle: 'italic',
   },
   contentInput: {
     fontSize: typography.sizes.base,
