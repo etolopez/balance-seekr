@@ -958,17 +958,17 @@ export default function GroupsScreen() {
                       <View style={styles.discoverCardContent}>
                         <View style={styles.discoverCardHeader}>
                           <Text style={styles.discoverCardTitle}>{item.name}</Text>
-                          {item.category && (
-                            <View style={styles.categoryBadge}>
-                              <Text style={styles.categoryBadgeText}>{item.category}</Text>
-                            </View>
-                          )}
                         </View>
                         <View style={styles.discoverCardMeta}>
                           <Text style={styles.discoverCardMetaText}>by {creatorName}</Text>
                           <Text style={styles.discoverCardMetaText}>•</Text>
                           <Text style={styles.discoverCardMetaText}>{memberText}</Text>
                         </View>
+                        {item.category && (
+                          <View style={[styles.categoryBadge, { marginTop: spacing.xs, alignSelf: 'flex-start' }]}>
+                            <Text style={styles.categoryBadgeText}>{item.category}</Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                   </Pressable>
@@ -1095,17 +1095,17 @@ export default function GroupsScreen() {
                         <View style={styles.discoverCardContent}>
                           <View style={styles.discoverCardHeader}>
                             <Text style={styles.discoverCardTitle}>{item.name}</Text>
-                            {item.category && (
-                              <View style={styles.categoryBadge}>
-                                <Text style={styles.categoryBadgeText}>{item.category}</Text>
-                              </View>
-                            )}
                           </View>
                           <View style={styles.discoverCardMeta}>
                             <Text style={styles.discoverCardMetaText}>by {creatorName}</Text>
                             <Text style={styles.discoverCardMetaText}>•</Text>
                             <Text style={styles.discoverCardMetaText}>{memberText}</Text>
                           </View>
+                          {item.category && (
+                            <View style={[styles.categoryBadge, { marginTop: spacing.xs, alignSelf: 'flex-start' }]}>
+                              <Text style={styles.categoryBadgeText}>{item.category}</Text>
+                            </View>
+                          )}
                         </View>
                       </View>
                     </Pressable>
@@ -3909,10 +3909,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   discoverCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
     marginBottom: spacing.xs,
   },
   // Open Chat Button Styles
