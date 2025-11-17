@@ -509,7 +509,7 @@ export async function calculateEarnedBadges(
     }
   }
   
-  // Check journal first 500+ words badge (Deep Reflection)
+  // Check journal first 500+ characters badge (Deep Reflection)
   // Query database directly to ensure we check all entries, including encrypted ones
   let hasLongJournalEntry = false;
   let firstLongEntry: { createdAt: string; content: string } | null = null;
@@ -520,7 +520,7 @@ export async function calculateEarnedBadges(
       'SELECT id, createdAt, content, iv FROM journal_entries ORDER BY createdAt ASC'
     );
     
-    console.log('[Badges] Checking journal entries for 500+ words. Total entries:', dbJournal.length);
+    console.log('[Badges] Checking journal entries for 500+ characters. Total entries:', dbJournal.length);
     
     // Decrypt entries if needed (check if encryption is enabled by checking for iv field)
     const { decryptString, isWebCryptoAvailable } = await import('../crypto/crypto');
@@ -542,12 +542,11 @@ export async function calculateEarnedBadges(
         }
       }
       
-      const wordCount = getWordCount(content || '');
-      maxWordCount = Math.max(maxWordCount, wordCount);
-      console.log('[Badges] Journal entry word count:', wordCount, '/ 500 required', 'Content length:', content?.length, 'characters');
+      const charCount = (content || '').trim().length;
+      console.log('[Badges] Journal entry character count:', charCount, '/ 500 required');
       
-      if (wordCount >= 500) {
-        console.log('[Badges] ✓ Found 500+ word journal entry! Word count:', wordCount);
+      if (charCount >= 500) {
+        console.log('[Badges] ✓ Found 500+ character journal entry! Character count:', charCount);
         hasLongJournalEntry = true;
         if (!firstLongEntry) {
           firstLongEntry = { createdAt: entry.createdAt, content };
@@ -560,20 +559,20 @@ export async function calculateEarnedBadges(
     console.error('[Badges] Error checking journal entries:', error);
     // Fallback to in-memory journal if database query fails
     hasLongJournalEntry = journal.some(entry => {
-      const wordCount = getWordCount(entry.content || '');
-      return wordCount >= 500;
+      const charCount = (entry.content || '').trim().length;
+      return charCount >= 500;
     });
     if (hasLongJournalEntry) {
       firstLongEntry = journal.find(entry => {
-        const wordCount = getWordCount(entry.content || '');
-        return wordCount >= 500;
+        const charCount = (entry.content || '').trim().length;
+        return charCount >= 500;
       }) || null;
     }
   }
   
-  console.log('[Badges] Has long journal entry (500+ words):', hasLongJournalEntry, 'Already stored:', storedBadgesMap.has('journal_first_500'));
+  console.log('[Badges] Has long journal entry (500+ characters):', hasLongJournalEntry, 'Already stored:', storedBadgesMap.has('journal_first_500'));
   if (!hasLongJournalEntry) {
-    console.log('[Badges] ⚠️ No 500+ word entry found. Note: 500+ WORDS required, not characters. Average word length is ~5 characters, so you need ~2500+ characters for 500 words.');
+    console.log('[Badges] ⚠️ No 500+ character entry found. Need 500+ characters for Deep Reflection badge.');
   }
   
   if (hasLongJournalEntry) {
