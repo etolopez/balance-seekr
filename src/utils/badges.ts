@@ -18,6 +18,7 @@ export type BadgeType =
   | 'task_streak_30'
   | 'task_streak_180'
   | 'task_streak_365'
+  | 'journal_daily'
   | 'journal_first_500'
   | 'journal_streak_7' 
   | 'journal_streak_14' 
@@ -105,9 +106,18 @@ export function getAllBadges(): Badge[] {
     },
     // Journal badges
     {
+      id: 'journal_daily',
+      name: 'Journal Starter',
+      description: 'Write 150+ words in your journal today',
+      icon: 'book',
+      category: 'journal',
+      isStreak: false,
+      daysRequired: 1,
+    },
+    {
       id: 'journal_first_500',
       name: 'Deep Reflection',
-      description: 'Write your first journal entry with 500+ characters',
+      description: 'Write a journal entry with 300+ words',
       icon: 'document-text',
       category: 'journal',
       isStreak: false,
@@ -116,7 +126,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_7',
       name: 'Journal Week',
-      description: 'Write 350+ characters in your journal every day for 7 days',
+      description: 'Write 150+ words in your journal every day for 7 days',
       icon: 'book',
       category: 'journal',
       isStreak: true,
@@ -125,7 +135,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_14',
       name: 'Journal Fortnight',
-      description: 'Write 350+ words in your journal every day for 2 weeks',
+      description: 'Write 150+ words in your journal every day for 2 weeks',
       icon: 'book-outline',
       category: 'journal',
       isStreak: true,
@@ -134,7 +144,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_30',
       name: 'Journal Month',
-      description: 'Write 350+ words in your journal every day for 1 month',
+      description: 'Write 150+ words in your journal every day for 1 month',
       icon: 'calendar',
       category: 'journal',
       isStreak: true,
@@ -143,7 +153,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_60',
       name: 'Journal Two Months',
-      description: 'Write 350+ words in your journal every day for 2 months',
+      description: 'Write 150+ words in your journal every day for 2 months',
       icon: 'calendar-outline',
       category: 'journal',
       isStreak: true,
@@ -152,7 +162,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_180',
       name: 'Journal Half Year',
-      description: 'Write 350+ words in your journal every day for 6 months',
+      description: 'Write 150+ words in your journal every day for 6 months',
       icon: 'time',
       category: 'journal',
       isStreak: true,
@@ -161,7 +171,7 @@ export function getAllBadges(): Badge[] {
     {
       id: 'journal_streak_365',
       name: 'Journal Year',
-      description: 'Write 350+ words in your journal every day for 1 year',
+      description: 'Write 150+ words in your journal every day for 1 year',
       icon: 'star',
       category: 'journal',
       isStreak: true,
@@ -333,7 +343,7 @@ function getWordCount(content: string): number {
 }
 
 /**
- * Calculate journal streak (consecutive days with at least 1 journal entry of 350+ characters)
+ * Calculate journal streak (consecutive days with at least 1 journal entry of 150+ words)
  */
 export function calculateJournalStreak(
   journal: { createdAt: string; content: string }[]
@@ -341,10 +351,10 @@ export function calculateJournalStreak(
   const today = todayYMD();
   const journalDates = new Set<string>();
   
-  // Get all dates with journal entries that are 350+ characters
+  // Get all dates with journal entries that are 150+ words
   journal.forEach(entry => {
-    const charCount = (entry.content || '').trim().length;
-    if (charCount >= 350) {
+    const wordCount = getWordCount(entry.content || '');
+    if (wordCount >= 150) {
       const date = isoToLocalYMD(entry.createdAt);
       journalDates.add(date);
     }
@@ -445,6 +455,65 @@ export function hasCompletedAllHabitsToday(
 }
 
 /**
+ * Check if user wrote 150+ words in journal today
+ * Queries database directly to include encrypted entries
+ */
+export async function hasWritten150WordsToday(
+  journal: { createdAt: string; content: string }[]
+): Promise<boolean> {
+  const today = todayYMD();
+  let totalWords = 0;
+  
+  try {
+    // Query all journal entries from database
+    // We'll filter by date in JavaScript to ensure accurate date comparison
+    const dbJournal = await all<{ id: string; createdAt: string; content: string; iv: string | null }>(
+      'SELECT id, createdAt, content, iv FROM journal_entries'
+    );
+    
+    // Filter entries for today
+    const todayEntries = dbJournal.filter(entry => {
+      const entryDate = isoToLocalYMD(entry.createdAt);
+      return entryDate === today;
+    });
+    
+    // Decrypt entries if needed
+    const { decryptString, isWebCryptoAvailable } = await import('../crypto/crypto');
+    const { getOrCreateKey } = await import('../crypto/keystore');
+    const encryptionEnabled = isWebCryptoAvailable();
+    
+    for (const entry of todayEntries) {
+      let content = entry.content;
+      
+      // Decrypt if encrypted
+      if (entry.iv && encryptionEnabled) {
+        try {
+          const key = await getOrCreateKey();
+          content = await decryptString(entry.content, entry.iv, key);
+        } catch (error) {
+          console.error('[Badges] Failed to decrypt journal entry:', entry.id, error);
+          continue;
+        }
+      }
+      
+      totalWords += getWordCount(content);
+    }
+  } catch (error) {
+    // Fallback to in-memory journal if database query fails
+    const todayEntries = journal.filter(entry => {
+      const entryDate = isoToLocalYMD(entry.createdAt);
+      return entryDate === today;
+    });
+    
+    totalWords = todayEntries.reduce((sum, entry) => {
+      return sum + getWordCount(entry.content || '');
+    }, 0);
+  }
+  
+  return totalWords >= 150;
+}
+
+/**
  * Calculate all earned badges
  * Merges stored badges (persistent) with newly calculated badges
  */
@@ -474,10 +543,11 @@ export async function calculateEarnedBadges(
   const newlyEarned: Badge[] = [];
   
   // Calculate streaks (task streak now queries database directly)
-  const [taskStreak, journalStreak, habitStreak] = await Promise.all([
+  const [taskStreak, journalStreak, habitStreak, has150WordsToday] = await Promise.all([
     calculateTaskStreak(tasks),
     Promise.resolve(calculateJournalStreak(journal)),
     Promise.resolve(calculateHabitStreak(habits, logs)),
+    hasWritten150WordsToday(journal),
   ]);
   
   // Check daily badges
@@ -496,6 +566,20 @@ export async function calculateEarnedBadges(
     }
   }
   
+  // Check journal daily badge (150+ words today)
+  if (has150WordsToday) {
+    const badge = allBadges.find(b => b.id === 'journal_daily');
+    if (badge && !storedBadgesMap.has('journal_daily')) {
+      const earnedBadge = { ...badge, earnedAt: today };
+      newlyEarned.push(earnedBadge);
+      try {
+        await dbApi.saveBadge({ ...earnedBadge, badgeType: earnedBadge.id });
+      } catch (error) {
+        // If save fails, continue
+      }
+    }
+  }
+  
   if (hasCompletedAllHabitsToday(habits, logs)) {
     const badge = allBadges.find(b => b.id === 'habit_daily');
     if (badge && !storedBadgesMap.has('habit_daily')) {
@@ -509,10 +593,11 @@ export async function calculateEarnedBadges(
     }
   }
   
-  // Check journal first 500+ characters badge (Deep Reflection)
+  // Check journal 300+ words badge (Deep Reflection)
   // Query database directly to ensure we check all entries, including encrypted ones
-  let hasLongJournalEntry = false;
-  let firstLongEntry: { createdAt: string; content: string } | null = null;
+  // Can be earned at any time, not just the first entry
+  let hasDeepReflectionEntry = false;
+  let deepReflectionEntry: { createdAt: string; content: string } | null = null;
   
   try {
     // Query all journal entries from database
@@ -540,38 +625,38 @@ export async function calculateEarnedBadges(
         }
       }
       
-      const charCount = (content || '').trim().length;
+      const wordCount = getWordCount(content);
       
-      if (charCount >= 500) {
-        hasLongJournalEntry = true;
-        if (!firstLongEntry) {
-          firstLongEntry = { createdAt: entry.createdAt, content };
+      if (wordCount >= 300) {
+        hasDeepReflectionEntry = true;
+        if (!deepReflectionEntry) {
+          deepReflectionEntry = { createdAt: entry.createdAt, content };
         }
-        break; // Found first long entry
+        // Don't break - check all entries to find the earliest one
       }
     }
   } catch (error) {
     // Log error for debugging
     console.error('[Badges] Error checking journal entries:', error);
     // Fallback to in-memory journal if database query fails
-    hasLongJournalEntry = journal.some(entry => {
-      const charCount = (entry.content || '').trim().length;
-      return charCount >= 500;
+    hasDeepReflectionEntry = journal.some(entry => {
+      const wordCount = getWordCount(entry.content || '');
+      return wordCount >= 300;
     });
-    if (hasLongJournalEntry) {
-      firstLongEntry = journal.find(entry => {
-        const charCount = (entry.content || '').trim().length;
-        return charCount >= 500;
+    if (hasDeepReflectionEntry) {
+      deepReflectionEntry = journal.find(entry => {
+        const wordCount = getWordCount(entry.content || '');
+        return wordCount >= 300;
       }) || null;
     }
   }
   
-  if (hasLongJournalEntry) {
+  if (hasDeepReflectionEntry) {
     const badge = allBadges.find(b => b.id === 'journal_first_500');
     if (badge && !storedBadgesMap.has('journal_first_500')) {
       const earnedBadge = { 
         ...badge, 
-        earnedAt: firstLongEntry ? isoToLocalYMD(firstLongEntry.createdAt) : today 
+        earnedAt: deepReflectionEntry ? isoToLocalYMD(deepReflectionEntry.createdAt) : today 
       };
       newlyEarned.push(earnedBadge);
       try {
