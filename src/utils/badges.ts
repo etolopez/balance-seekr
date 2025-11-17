@@ -543,10 +543,11 @@ export async function calculateEarnedBadges(
       }
       
       const wordCount = getWordCount(content || '');
-      console.log('[Badges] Journal entry word count:', wordCount, 'Content length:', content?.length);
+      maxWordCount = Math.max(maxWordCount, wordCount);
+      console.log('[Badges] Journal entry word count:', wordCount, '/ 500 required', 'Content length:', content?.length, 'characters');
       
       if (wordCount >= 500) {
-        console.log('[Badges] Found 500+ word journal entry! Word count:', wordCount);
+        console.log('[Badges] ✓ Found 500+ word journal entry! Word count:', wordCount);
         hasLongJournalEntry = true;
         if (!firstLongEntry) {
           firstLongEntry = { createdAt: entry.createdAt, content };
@@ -570,7 +571,10 @@ export async function calculateEarnedBadges(
     }
   }
   
-  console.log('[Badges] Has long journal entry:', hasLongJournalEntry, 'Already stored:', storedBadgesMap.has('journal_first_500'));
+  console.log('[Badges] Has long journal entry (500+ words):', hasLongJournalEntry, 'Already stored:', storedBadgesMap.has('journal_first_500'));
+  if (!hasLongJournalEntry) {
+    console.log('[Badges] ⚠️ No 500+ word entry found. Note: 500+ WORDS required, not characters. Average word length is ~5 characters, so you need ~2500+ characters for 500 words.');
+  }
   
   if (hasLongJournalEntry) {
     const badge = allBadges.find(b => b.id === 'journal_first_500');
