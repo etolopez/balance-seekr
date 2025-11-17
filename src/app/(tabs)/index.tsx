@@ -525,6 +525,89 @@ export default function HomeScreen() {
             )}
           </View>
 
+          {/* Share Badge Modal */}
+          <Modal
+            visible={showShareModal}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowShareModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalHeaderLeft}>
+                    <Ionicons name="share-social" size={24} color={colors.text.primary} />
+                    <Text style={styles.modalTitle}>Share Your Badge</Text>
+                  </View>
+                  <Pressable
+                    style={styles.modalCloseBtn}
+                    onPress={() => setShowShareModal(false)}
+                  >
+                    <Ionicons name="close" size={24} color={colors.text.secondary} />
+                  </Pressable>
+                </View>
+                
+                {selectedBadge && (
+                  <>
+                    <View style={styles.shareBadgePreview}>
+                      <View style={styles.shareBadgeIconContainer}>
+                        <Ionicons 
+                          name={selectedBadge.icon as any} 
+                          size={48} 
+                          color={selectedBadge.category === 'task' ? colors.primary.main : selectedBadge.category === 'journal' ? colors.secondary.main : colors.success.main} 
+                        />
+                      </View>
+                      <Text style={styles.shareBadgeName}>{selectedBadge.name}</Text>
+                      <Text style={styles.shareBadgeDescription}>{selectedBadge.description}</Text>
+                    </View>
+                    
+                    <View style={styles.shareMessagePreview}>
+                      <Text style={styles.shareMessageLabel}>Your message:</Text>
+                      <Text style={styles.shareMessageText}>
+                        🏆 I just earned the "{selectedBadge.name}" badge on Balance Seekr! {selectedBadge.isStreak ? `I've been ${selectedBadge.description.toLowerCase()}!` : selectedBadge.description} 🚀{'\n\n'}Are you up for the challenge? Join me on my journey to better balance and growth! 💪{'\n\n'}#BalanceSeeker #PersonalGrowth #Wellness
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.shareActions}>
+                      <Pressable
+                        style={[styles.shareBtn, styles.shareBtnCancel]}
+                        onPress={() => setShowShareModal(false)}
+                      >
+                        <Text style={styles.shareBtnCancelText}>Cancel</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.shareBtn, styles.shareBtnPrimary]}
+                        onPress={async () => {
+                          if (!selectedBadge) return;
+                          
+                          const shareMessage = `🏆 I just earned the "${selectedBadge.name}" badge on Balance Seekr! ${selectedBadge.isStreak ? `I've been ${selectedBadge.description.toLowerCase()}!` : selectedBadge.description} 🚀\n\nAre you up for the challenge? Join me on my journey to better balance and growth! 💪\n\n#BalanceSeeker #PersonalGrowth #Wellness`;
+                          
+                          try {
+                            const result = await Share.share({
+                              message: shareMessage,
+                              title: `I earned the ${selectedBadge.name} badge!`,
+                            });
+                            
+                            if (result.action === Share.sharedAction) {
+                              setShowShareModal(false);
+                              setSelectedBadge(null);
+                              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                            }
+                          } catch (error: any) {
+                            Alert.alert('Error', 'Failed to share. Please try again.');
+                          }
+                        }}
+                      >
+                        <Ionicons name="share-social" size={18} color={colors.text.primary} />
+                        <Text style={styles.shareBtnPrimaryText}>Share to X</Text>
+                      </Pressable>
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+          </Modal>
+
           {/* Daily Quote Section */}
           <View style={styles.quoteCard}>
             <Ionicons name="sparkles" size={20} color={colors.text.tertiary} style={styles.quoteIcon} />
