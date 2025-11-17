@@ -496,16 +496,18 @@ export default function HomeScreen() {
           )}
 
           {/* Badges Section */}
-          <View style={styles.badgesSection}>
-            <View style={styles.badgesHeader}>
-              <Text style={styles.badgesTitle}>Your Badges</Text>
-              <Pressable 
-                style={styles.aboutBadgesBtn}
-                onPress={() => setShowBadgesModal(true)}
-              >
-                <Ionicons name="information-circle-outline" size={18} color={colors.text.secondary} />
-                <Text style={styles.aboutBadgesText}>About Badges</Text>
-              </Pressable>
+          <View style={styles.badgesSectionWrapper}>
+            <View style={styles.badgesSection}>
+              <View style={styles.badgesHeader}>
+                <Text style={styles.badgesTitle}>Your Badges</Text>
+                <Pressable 
+                  style={styles.aboutBadgesBtn}
+                  onPress={() => setShowBadgesModal(true)}
+                >
+                  <Ionicons name="information-circle-outline" size={18} color={colors.text.secondary} />
+                  <Text style={styles.aboutBadgesText}>About Badges</Text>
+                </Pressable>
+              </View>
             </View>
             
             {allDisplayBadges.length > 0 ? (
@@ -549,9 +551,11 @@ export default function HomeScreen() {
                 ))}
               </ScrollView>
             ) : (
-              <View style={styles.noBadgesContainer}>
-                <Ionicons name="trophy-outline" size={32} color={colors.text.tertiary} />
-                <Text style={styles.noBadgesText}>Complete tasks, habits, and journal entries to earn badges!</Text>
+              <View style={styles.badgesSection}>
+                <View style={styles.noBadgesContainer}>
+                  <Ionicons name="trophy-outline" size={32} color={colors.text.tertiary} />
+                  <Text style={styles.noBadgesText}>Complete tasks, habits, and journal entries to earn badges!</Text>
+                </View>
               </View>
             )}
           </View>
@@ -839,11 +843,14 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     lineHeight: 22,
   },
+  badgesSectionWrapper: {
+    width: '100%',
+    marginBottom: spacing.lg,
+  },
   badgesSection: {
     width: '100%',
     maxWidth: 480,
-    marginBottom: spacing.lg,
-    overflow: 'visible',
+    alignSelf: 'center',
   },
   badgesHeader: {
     flexDirection: 'row',
@@ -869,7 +876,8 @@ const styles = StyleSheet.create({
   },
   badgesScrollView: {
     width: '100%',
-    marginHorizontal: -spacing['2xl'], // Extend beyond parent padding to reach screen edges
+    marginLeft: -spacing['2xl'], // Extend beyond parent padding on left
+    marginRight: -spacing['2xl'], // Extend beyond parent padding on right
   },
   badgesCarousel: {
     flexDirection: 'row',
