@@ -16,6 +16,7 @@ export type BadgeType =
   | 'task_streak_30'
   | 'task_streak_180'
   | 'task_streak_365'
+  | 'journal_first_500'
   | 'journal_streak_7' 
   | 'journal_streak_14' 
   | 'journal_streak_30' 
@@ -101,6 +102,15 @@ export function getAllBadges(): Badge[] {
       daysRequired: 365,
     },
     // Journal badges
+    {
+      id: 'journal_first_500',
+      name: 'Deep Reflection',
+      description: 'Write your first journal entry with 500+ words',
+      icon: 'document-text',
+      category: 'journal',
+      isStreak: false,
+      daysRequired: 1,
+    },
     {
       id: 'journal_streak_7',
       name: 'Journal Week',
