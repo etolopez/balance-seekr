@@ -406,7 +406,7 @@ export function hasCompletedAllHabitsToday(
  */
 export function calculateEarnedBadges(
   tasks: { done: boolean; completedAt?: string | null }[],
-  journal: { createdAt: string }[],
+  journal: { createdAt: string; content: string }[],
   habits: { id: string }[],
   logs: { habitId: string; date: string; completed: boolean }[]
 ): Badge[] {
