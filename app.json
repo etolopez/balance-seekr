@@ -6,7 +6,11 @@
     "scheme": "balanceseekr",
     "orientation": "portrait",
     "extra": {
-      "apiUrl": "https://balance-seekr-production.up.railway.app"
+      "apiUrl": "https://balance-seekr-production.up.railway.app",
+      "router": {},
+      "eas": {
+        "projectId": "71706518-52e6-49a7-8426-aef323fe4b44"
+      }
     },
     "assetBundlePatterns": [
       "**/*"

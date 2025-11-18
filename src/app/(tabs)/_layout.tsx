@@ -4,6 +4,7 @@ import { View, Platform } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '../../config/theme';
+import { ENABLE_MASTERMINDS } from '../../config/features';
 
 /**
  * Tabs Layout - Main navigation with mindfulness-themed styling
@@ -92,15 +93,17 @@ export default function TabsLayout() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="groups"
-          options={{
-            title: "Masterminds",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="chatbubbles" size={size || 24} color={color} />
-            ),
-          }}
-        />
+        {ENABLE_MASTERMINDS && (
+          <Tabs.Screen
+            name="groups"
+            options={{
+              title: "Masterminds",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="chatbubbles" size={size || 24} color={color} />
+              ),
+            }}
+          />
+        )}
       </Tabs>
     </View>
   );

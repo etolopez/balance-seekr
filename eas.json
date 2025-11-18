@@ -21,6 +21,29 @@
       "ios": {
         "simulator": false
       }
+    },
+    "production-lite": {
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_ENABLE_MASTERMINDS": "false"
+      }
+    },
+    "preview-lite": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_ENABLE_MASTERMINDS": "false"
+      }
     }
   },
   "submit": {
