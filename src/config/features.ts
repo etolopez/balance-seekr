@@ -6,8 +6,15 @@
 
 // Check if Masterminds feature is enabled
 // Defaults to true (enabled) unless explicitly disabled via env var
-export const ENABLE_MASTERMINDS = 
-  process.env.EXPO_PUBLIC_ENABLE_MASTERMINDS !== 'false';
+// The env var must be exactly the string 'false' to disable
+const mastermindsEnv = process.env.EXPO_PUBLIC_ENABLE_MASTERMINDS;
+export const ENABLE_MASTERMINDS = mastermindsEnv !== 'false';
+
+// Debug logging (only in development)
+if (__DEV__) {
+  console.log('[Features] ENABLE_MASTERMINDS:', ENABLE_MASTERMINDS);
+  console.log('[Features] EXPO_PUBLIC_ENABLE_MASTERMINDS env:', mastermindsEnv);
+}
 
 /**
  * Check if a feature is enabled
