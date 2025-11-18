@@ -18,16 +18,26 @@ export default function TabsLayout() {
   // Calculate safe bottom padding for Android navigation buttons
   const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 16) : insets.bottom;
   
-  // SIMPLE CHECK: Hide groups tab if app name contains "Lite" OR enableMasterminds is false
-  const appName = Constants.expoConfig?.name || '';
+  // HARDCODE: Hide groups tab in Lite version - check multiple ways
+  const appName = Constants.expoConfig?.name || Constants.expoConfig?.manifest?.name || '';
   const mastermindsConfig = Constants.expoConfig?.extra?.enableMasterminds;
-  const isLiteVersion = appName.toLowerCase().includes('lite') || mastermindsConfig === false;
+  const slug = Constants.expoConfig?.slug || '';
+  
+  // Hide if: app name contains "lite", slug contains "lite", OR enableMasterminds is explicitly false
+  const isLiteVersion = 
+    appName.toLowerCase().includes('lite') || 
+    slug.toLowerCase().includes('lite') ||
+    mastermindsConfig === false;
+  
   const showMasterminds = !isLiteVersion;
   
-  console.log('[TabsLayout] App Name:', appName);
-  console.log('[TabsLayout] enableMasterminds:', mastermindsConfig);
-  console.log('[TabsLayout] isLiteVersion:', isLiteVersion);
-  console.log('[TabsLayout] showMasterminds:', showMasterminds);
+  // FORCE HIDE if any lite indicator found
+  if (isLiteVersion) {
+    console.log('[TabsLayout] 🚫 LITE VERSION DETECTED - HIDING GROUPS TAB');
+    console.log('[TabsLayout]   App Name:', appName);
+    console.log('[TabsLayout]   Slug:', slug);
+    console.log('[TabsLayout]   enableMasterminds:', mastermindsConfig);
+  }
   
   return (
     <View style={{ flex: 1 }}>
@@ -105,8 +115,9 @@ export default function TabsLayout() {
             ),
           }}
         />
-        {/* Masterminds tab - HIDDEN in lite version */}
-        {showMasterminds && (
+        {/* Masterminds tab - COMPLETELY HIDDEN in lite version */}
+        {/* DO NOT RENDER if isLiteVersion is true */}
+        {!isLiteVersion && (
           <Tabs.Screen
             name="groups"
             options={{
