@@ -116,47 +116,18 @@ export default function TabsLayout() {
           }}
         />
         {/* Masterminds tab - COMPLETELY HIDDEN in lite version */}
-        {/* DO NOT RENDER if isLiteVersion is true - check multiple conditions */}
-        {(() => {
-          // TRIPLE CHECK: app name, slug, config, AND manifest
-          const name1 = Constants.expoConfig?.name || '';
-          const name2 = Constants.expoConfig?.manifest?.name || '';
-          const name3 = Constants.manifest?.name || '';
-          const slug = Constants.expoConfig?.slug || '';
-          const config = Constants.expoConfig?.extra?.enableMasterminds;
-          
-          const nameCheck = name1.toLowerCase().includes('lite') || 
-                           name2.toLowerCase().includes('lite') || 
-                           name3.toLowerCase().includes('lite');
-          const slugCheck = slug.toLowerCase().includes('lite');
-          const configCheck = config === false;
-          const shouldHide = nameCheck || slugCheck || configCheck;
-          
-          console.log('[TabsLayout] 🔍 Tab Visibility Check:');
-          console.log('[TabsLayout]   name1:', name1);
-          console.log('[TabsLayout]   name2:', name2);
-          console.log('[TabsLayout]   name3:', name3);
-          console.log('[TabsLayout]   slug:', slug);
-          console.log('[TabsLayout]   config:', config);
-          console.log('[TabsLayout]   shouldHide:', shouldHide);
-          
-          if (shouldHide) {
-            console.log('[TabsLayout] 🚫 HIDING GROUPS TAB - Lite version detected');
-            return null; // DO NOT RENDER
-          }
-          
-          return (
-            <Tabs.Screen
-              name="groups"
-              options={{
-                title: "Masterminds", // Title shown in tab bar
-                tabBarIcon: ({ color, size }) => (
-                  <Ionicons name="chatbubbles" size={size || 24} color={color} />
-                ),
-              }}
-            />
-          );
-        })()}
+        {/* Only render if NOT lite version */}
+        {showMasterminds && (
+          <Tabs.Screen
+            name="groups"
+            options={{
+              title: "Masterminds",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="chatbubbles" size={size || 24} color={color} />
+              ),
+            }}
+          />
+        )}
       </Tabs>
     </View>
   );
