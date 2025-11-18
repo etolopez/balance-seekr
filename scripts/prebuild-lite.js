@@ -46,6 +46,12 @@ appJson.expo.slug = 'balance-seekr-lite';
 // Modify scheme for lite builds
 appJson.expo.scheme = 'balanceseekrlite';
 
+// CRITICAL: Disable Masterminds in app.json extra field
+if (!appJson.expo.extra) {
+  appJson.expo.extra = {};
+}
+appJson.expo.extra.enableMasterminds = false;
+
 // Write back to app.json
 fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2));
 
@@ -55,6 +61,7 @@ console.log(`   Android Package: ${originalPackage} → ${appJson.expo.android.p
 console.log(`   iOS Bundle ID: ${originalBundleId} → ${appJson.expo.ios.bundleIdentifier}`);
 console.log(`   Slug: ${originalSlug} → ${appJson.expo.slug}`);
 console.log(`   Scheme: ${originalScheme} → ${appJson.expo.scheme}`);
+console.log(`   enableMasterminds: ${appJson.expo.extra?.enableMasterminds} (DISABLED)`);
 
 // Force native code regeneration by removing android/ios folders
 // This ensures the new package names are used
