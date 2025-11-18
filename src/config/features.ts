@@ -10,11 +10,13 @@
 const mastermindsEnv = process.env.EXPO_PUBLIC_ENABLE_MASTERMINDS;
 export const ENABLE_MASTERMINDS = mastermindsEnv !== 'false';
 
-// Debug logging (only in development)
-if (__DEV__) {
-  console.log('[Features] ENABLE_MASTERMINDS:', ENABLE_MASTERMINDS);
-  console.log('[Features] EXPO_PUBLIC_ENABLE_MASTERMINDS env:', mastermindsEnv);
-}
+// ALWAYS log this so we can see what's happening (even in production builds)
+console.log('[Features] ==========================================');
+console.log('[Features] ENABLE_MASTERMINDS:', ENABLE_MASTERMINDS);
+console.log('[Features] EXPO_PUBLIC_ENABLE_MASTERMINDS env:', mastermindsEnv);
+console.log('[Features] typeof env:', typeof mastermindsEnv);
+console.log('[Features] env === "false":', mastermindsEnv === 'false');
+console.log('[Features] ==========================================');
 
 /**
  * Check if a feature is enabled

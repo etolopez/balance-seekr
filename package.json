@@ -5,8 +5,11 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "EXPO_ROUTER_APP_ROOT=src/app npx expo start",
+    "start:lite": "EXPO_PUBLIC_ENABLE_MASTERMINDS=false EXPO_ROUTER_APP_ROOT=src/app npx expo start --clear",
     "android": "EXPO_ROUTER_APP_ROOT=src/app npx expo start --android",
+    "android:lite": "EXPO_PUBLIC_ENABLE_MASTERMINDS=false EXPO_ROUTER_APP_ROOT=src/app npx expo start --android --clear",
     "ios": "EXPO_ROUTER_APP_ROOT=src/app npx expo start --ios",
+    "ios:lite": "EXPO_PUBLIC_ENABLE_MASTERMINDS=false EXPO_ROUTER_APP_ROOT=src/app npx expo start --ios --clear",
     "web": "EXPO_ROUTER_APP_ROOT=src/app npx expo start --web",
     "clean": "rm -rf node_modules package-lock.json yarn.lock .expo .metro",
     "clean:install": "npm run clean && npm install",
