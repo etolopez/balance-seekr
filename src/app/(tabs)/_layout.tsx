@@ -116,18 +116,31 @@ export default function TabsLayout() {
           }}
         />
         {/* Masterminds tab - COMPLETELY HIDDEN in lite version */}
-        {/* DO NOT RENDER if isLiteVersion is true */}
-        {!isLiteVersion && (
-          <Tabs.Screen
-            name="groups"
-            options={{
-              title: "Masterminds",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="chatbubbles" size={size || 24} color={color} />
-              ),
-            }}
-          />
-        )}
+        {/* DO NOT RENDER if isLiteVersion is true - check multiple conditions */}
+        {(() => {
+          // Triple check: app name, slug, and config
+          const nameCheck = (Constants.expoConfig?.name || '').toLowerCase().includes('lite');
+          const slugCheck = (Constants.expoConfig?.slug || '').toLowerCase().includes('lite');
+          const configCheck = Constants.expoConfig?.extra?.enableMasterminds === false;
+          const shouldHide = nameCheck || slugCheck || configCheck;
+          
+          if (shouldHide) {
+            console.log('[TabsLayout] 🚫 HIDING GROUPS TAB - Lite version detected');
+            return null; // DO NOT RENDER
+          }
+          
+          return (
+            <Tabs.Screen
+              name="groups"
+              options={{
+                title: "Masterminds", // Title shown in tab bar
+                tabBarIcon: ({ color, size }) => (
+                  <Ionicons name="chatbubbles" size={size || 24} color={color} />
+                ),
+              }}
+            />
+          );
+        })()}
       </Tabs>
     </View>
   );
