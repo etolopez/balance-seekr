@@ -8,25 +8,25 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		19EAB26ADE4B6A5071FA3750 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE6F3E63C8F1264941C8123 /* ExpoModulesProvider.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		64C7021F5A557EDE78611EB3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 54A3C12C8CF66146C15E4D0B /* PrivacyInfo.xcprivacy */; };
-		8A649BB861AF4793AB68B9A6 /* libPods-BalanceSeekr.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 867B1E6103A892922268A289 /* libPods-BalanceSeekr.a */; };
+		8346EC33BFD35FCE16AC9AA1 /* libPods-BalanceSeekr.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EA937556E76889C292897FB3 /* libPods-BalanceSeekr.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		BBB2634C4EBEB238C5529E19 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A6A4EDC6D8830937EA354265 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		F23498BBCC007BD0A1D22358 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 295AA3DF75C1A03CC6005276 /* ExpoModulesProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		019563965FE11C80B4C62EC3 /* Pods-BalanceSeekr.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BalanceSeekr.release.xcconfig"; path = "Target Support Files/Pods-BalanceSeekr/Pods-BalanceSeekr.release.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* BalanceSeekr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BalanceSeekr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = BalanceSeekr/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = BalanceSeekr/Info.plist; sourceTree = "<group>"; };
-		32F903A79092B48285814F19 /* Pods-BalanceSeekr.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BalanceSeekr.debug.xcconfig"; path = "Target Support Files/Pods-BalanceSeekr/Pods-BalanceSeekr.debug.xcconfig"; sourceTree = "<group>"; };
-		54A3C12C8CF66146C15E4D0B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = BalanceSeekr/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		867B1E6103A892922268A289 /* libPods-BalanceSeekr.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-BalanceSeekr.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		9BE6F3E63C8F1264941C8123 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-BalanceSeekr/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		295AA3DF75C1A03CC6005276 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-BalanceSeekr/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		6C6B6BB6156C0EB61730462A /* Pods-BalanceSeekr.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BalanceSeekr.release.xcconfig"; path = "Target Support Files/Pods-BalanceSeekr/Pods-BalanceSeekr.release.xcconfig"; sourceTree = "<group>"; };
+		A6A4EDC6D8830937EA354265 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = BalanceSeekr/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A8F60B7447E83D9E4DFB9446 /* Pods-BalanceSeekr.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BalanceSeekr.debug.xcconfig"; path = "Target Support Files/Pods-BalanceSeekr/Pods-BalanceSeekr.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = BalanceSeekr/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		EA937556E76889C292897FB3 /* libPods-BalanceSeekr.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-BalanceSeekr.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = BalanceSeekr/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* BalanceSeekr-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "BalanceSeekr-Bridging-Header.h"; path = "BalanceSeekr/BalanceSeekr-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8A649BB861AF4793AB68B9A6 /* libPods-BalanceSeekr.a in Frameworks */,
+				8346EC33BFD35FCE16AC9AA1 /* libPods-BalanceSeekr.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				54A3C12C8CF66146C15E4D0B /* PrivacyInfo.xcprivacy */,
+				A6A4EDC6D8830937EA354265 /* PrivacyInfo.xcprivacy */,
 			);
 			name = BalanceSeekr;
 			sourceTree = "<group>";
@@ -62,7 +62,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				867B1E6103A892922268A289 /* libPods-BalanceSeekr.a */,
+				EA937556E76889C292897FB3 /* libPods-BalanceSeekr.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -81,8 +81,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				A9A56BDB5895E0A74564BC1B /* Pods */,
-				D8F90AF7BB6EDCE8EBE04EAF /* ExpoModulesProviders */,
+				D9E6B99B7478E7B0DAF0180A /* Pods */,
+				91BD4B4B828E61F41EB8AF23 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -97,14 +97,12 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A9A56BDB5895E0A74564BC1B /* Pods */ = {
+		91BD4B4B828E61F41EB8AF23 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				32F903A79092B48285814F19 /* Pods-BalanceSeekr.debug.xcconfig */,
-				019563965FE11C80B4C62EC3 /* Pods-BalanceSeekr.release.xcconfig */,
+				C8DE653FE03DC4BFAAC4962F /* BalanceSeekr */,
 			);
-			name = Pods;
-			path = Pods;
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -116,20 +114,22 @@
 			path = BalanceSeekr/Supporting;
 			sourceTree = "<group>";
 		};
-		D8F90AF7BB6EDCE8EBE04EAF /* ExpoModulesProviders */ = {
+		C8DE653FE03DC4BFAAC4962F /* BalanceSeekr */ = {
 			isa = PBXGroup;
 			children = (
-				EC37A83CC9DADF6A4A7BCEB5 /* BalanceSeekr */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		EC37A83CC9DADF6A4A7BCEB5 /* BalanceSeekr */ = {
-			isa = PBXGroup;
-			children = (
-				9BE6F3E63C8F1264941C8123 /* ExpoModulesProvider.swift */,
+				295AA3DF75C1A03CC6005276 /* ExpoModulesProvider.swift */,
 			);
 			name = BalanceSeekr;
+			sourceTree = "<group>";
+		};
+		D9E6B99B7478E7B0DAF0180A /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				A8F60B7447E83D9E4DFB9446 /* Pods-BalanceSeekr.debug.xcconfig */,
+				6C6B6BB6156C0EB61730462A /* Pods-BalanceSeekr.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "BalanceSeekr" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				514A67E6C640AD047423C975 /* [Expo] Configure project */,
+				EF65243B24E0EA6E79776497 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				FD7A9BF1691888223D4A4F3E /* [CP] Embed Pods Frameworks */,
+				600F08735F98BEFAAEA1E677 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				64C7021F5A557EDE78611EB3 /* PrivacyInfo.xcprivacy in Resources */,
+				BBB2634C4EBEB238C5529E19 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -242,29 +242,27 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		514A67E6C640AD047423C975 /* [Expo] Configure project */ = {
+		600F08735F98BEFAAEA1E677 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			inputFileListPaths = (
-			);
 			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/BalanceSeekr/BalanceSeekr.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-BalanceSeekr/expo-configure-project.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-BalanceSeekr/Pods-BalanceSeekr-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
 			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
+			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-BalanceSeekr/ExpoModulesProvider.swift",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-BalanceSeekr/expo-configure-project.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BalanceSeekr/Pods-BalanceSeekr-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -304,27 +302,29 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BalanceSeekr/Pods-BalanceSeekr-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		FD7A9BF1691888223D4A4F3E /* [CP] Embed Pods Frameworks */ = {
+		EF65243B24E0EA6E79776497 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-BalanceSeekr/Pods-BalanceSeekr-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			inputFileListPaths = (
 			);
-			name = "[CP] Embed Pods Frameworks";
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/BalanceSeekr/BalanceSeekr.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-BalanceSeekr/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
 			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-BalanceSeekr/ExpoModulesProvider.swift",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BalanceSeekr/Pods-BalanceSeekr-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-BalanceSeekr/expo-configure-project.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -334,7 +334,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				19EAB26ADE4B6A5071FA3750 /* ExpoModulesProvider.swift in Sources */,
+				F23498BBCC007BD0A1D22358 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -343,7 +343,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 32F903A79092B48285814F19 /* Pods-BalanceSeekr.debug.xcconfig */;
+			baseConfigurationReference = A8F60B7447E83D9E4DFB9446 /* Pods-BalanceSeekr.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -379,7 +379,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 019563965FE11C80B4C62EC3 /* Pods-BalanceSeekr.release.xcconfig */;
+			baseConfigurationReference = 6C6B6BB6156C0EB61730462A /* Pods-BalanceSeekr.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

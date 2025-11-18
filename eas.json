@@ -31,7 +31,8 @@
       },
       "env": {
         "EXPO_PUBLIC_ENABLE_MASTERMINDS": "false"
-      }
+      },
+      "prebuildCommand": "node scripts/prebuild-lite.js"
     },
     "preview-lite": {
       "distribution": "internal",
@@ -43,7 +44,8 @@
       },
       "env": {
         "EXPO_PUBLIC_ENABLE_MASTERMINDS": "false"
-      }
+      },
+      "prebuildCommand": "node scripts/prebuild-lite.js"
     }
   },
   "submit": {
