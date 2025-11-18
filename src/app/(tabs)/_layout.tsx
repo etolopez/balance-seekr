@@ -18,13 +18,16 @@ export default function TabsLayout() {
   // Calculate safe bottom padding for Android navigation buttons
   const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 16) : insets.bottom;
   
-  // Check feature flag directly from Constants - SIMPLE: if false, hide it
+  // SIMPLE CHECK: Hide groups tab if app name contains "Lite" OR enableMasterminds is false
+  const appName = Constants.expoConfig?.name || '';
   const mastermindsConfig = Constants.expoConfig?.extra?.enableMasterminds;
-  const showMasterminds = mastermindsConfig !== false; // Only hide if explicitly false
+  const isLiteVersion = appName.toLowerCase().includes('lite') || mastermindsConfig === false;
+  const showMasterminds = !isLiteVersion;
   
-  console.log('[TabsLayout] 🔍 Checking Masterminds:');
-  console.log('[TabsLayout]   Constants.expoConfig?.extra?.enableMasterminds:', mastermindsConfig);
-  console.log('[TabsLayout]   showMasterminds:', showMasterminds);
+  console.log('[TabsLayout] App Name:', appName);
+  console.log('[TabsLayout] enableMasterminds:', mastermindsConfig);
+  console.log('[TabsLayout] isLiteVersion:', isLiteVersion);
+  console.log('[TabsLayout] showMasterminds:', showMasterminds);
   
   return (
     <View style={{ flex: 1 }}>
