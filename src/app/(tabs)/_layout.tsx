@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { View, Platform } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { colors, typography } from '../../config/theme';
 import { ENABLE_MASTERMINDS } from '../../config/features';
 
@@ -16,6 +17,14 @@ export default function TabsLayout() {
   
   // Calculate safe bottom padding for Android navigation buttons
   const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 16) : insets.bottom;
+  
+  // Check feature flag directly from Constants (more reliable)
+  const enableMasterminds = Constants.expoConfig?.extra?.enableMasterminds !== false;
+  const showMasterminds = enableMasterminds && ENABLE_MASTERMINDS;
+  
+  console.log('[TabsLayout] enableMasterminds from Constants:', Constants.expoConfig?.extra?.enableMasterminds);
+  console.log('[TabsLayout] ENABLE_MASTERMINDS from features:', ENABLE_MASTERMINDS);
+  console.log('[TabsLayout] showMasterminds:', showMasterminds);
   
   return (
     <View style={{ flex: 1 }}>
@@ -93,7 +102,8 @@ export default function TabsLayout() {
             ),
           }}
         />
-        {ENABLE_MASTERMINDS && (
+        {/* Masterminds tab - only shown if enabled */}
+        {showMasterminds ? (
           <Tabs.Screen
             name="groups"
             options={{
@@ -103,7 +113,7 @@ export default function TabsLayout() {
               ),
             }}
           />
-        )}
+        ) : null}
       </Tabs>
     </View>
   );
