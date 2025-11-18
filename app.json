@@ -8,7 +8,7 @@
     "icon": "./balance-seekr-publishing/app-icon-512.png",
     "extra": {
       "apiUrl": "https://balance-seekr-production.up.railway.app",
-      "enableMasterminds": true,
+      "enableMasterminds": false,
       "router": {},
       "eas": {
         "projectId": "71706518-52e6-49a7-8426-aef323fe4b44"

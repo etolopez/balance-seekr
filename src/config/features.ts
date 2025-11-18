@@ -8,29 +8,40 @@ import Constants from 'expo-constants';
 
 // Check if Masterminds feature is enabled
 // Priority: 1. app.json extra.enableMasterminds, 2. EXPO_PUBLIC_ENABLE_MASTERMINDS env var, 3. default true
-const mastermindsFromExtra = Constants.expoConfig?.extra?.enableMasterminds;
-const mastermindsEnv = process.env.EXPO_PUBLIC_ENABLE_MASTERMINDS;
-
-// If explicitly set in app.json, use that (most reliable)
-// Otherwise check env var (must be exactly 'false' to disable)
-// Default to true if neither is set
-let ENABLE_MASTERMINDS: boolean;
-if (typeof mastermindsFromExtra === 'boolean') {
-  ENABLE_MASTERMINDS = mastermindsFromExtra;
-} else if (mastermindsEnv !== undefined) {
-  ENABLE_MASTERMINDS = mastermindsEnv !== 'false';
-} else {
-  ENABLE_MASTERMINDS = true; // Default enabled
+function getEnableMasterminds(): boolean {
+  try {
+    // Try to get from Constants (most reliable for built apps)
+    const fromExtra = Constants.expoConfig?.extra?.enableMasterminds;
+    if (fromExtra !== undefined && fromExtra !== null) {
+      const value = Boolean(fromExtra);
+      console.log('[Features] ✅ Using app.json extra.enableMasterminds:', fromExtra, '→', value);
+      return value;
+    }
+    
+    // Fallback to env var
+    const fromEnv = process.env.EXPO_PUBLIC_ENABLE_MASTERMINDS;
+    if (fromEnv !== undefined) {
+      const isEnabled = fromEnv !== 'false' && fromEnv !== '0';
+      console.log('[Features] Using EXPO_PUBLIC_ENABLE_MASTERMINDS:', fromEnv, '→', isEnabled);
+      return isEnabled;
+    }
+    
+    // Default to true if not set
+    console.log('[Features] ⚠️ No config found, defaulting to true');
+    return true;
+  } catch (error) {
+    console.error('[Features] ❌ Error reading config:', error);
+    return true; // Default enabled on error
+  }
 }
 
-export { ENABLE_MASTERMINDS };
+export const ENABLE_MASTERMINDS = getEnableMasterminds();
 
-// ALWAYS log this so we can see what's happening (even in production builds)
+// ALWAYS log this so we can see what's happening
 console.log('[Features] ==========================================');
-console.log('[Features] ENABLE_MASTERMINDS:', ENABLE_MASTERMINDS);
-console.log('[Features] From app.json extra:', mastermindsFromExtra);
-console.log('[Features] From env var:', mastermindsEnv);
-console.log('[Features] Final value:', ENABLE_MASTERMINDS);
+console.log('[Features] 🎯 FINAL ENABLE_MASTERMINDS:', ENABLE_MASTERMINDS);
+console.log('[Features] 📦 Constants.expoConfig?.extra:', JSON.stringify(Constants.expoConfig?.extra));
+console.log('[Features] 🔍 enableMasterminds value:', Constants.expoConfig?.extra?.enableMasterminds);
 console.log('[Features] ==========================================');
 
 /**
