@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "scheme": "balanceseekr",
     "orientation": "portrait",
+    "icon": "./balance-seekr-publishing/app-icon-512.png",
     "extra": {
       "apiUrl": "https://balance-seekr-production.up.railway.app",
       "router": {},
