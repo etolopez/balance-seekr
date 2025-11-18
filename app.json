@@ -2,7 +2,7 @@
   "expo": {
     "name": "Balance Seekr",
     "slug": "balance-seekr",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scheme": "balanceseekr",
     "orientation": "portrait",
     "icon": "./balance-seekr-publishing/app-icon-512.png",
