@@ -56,7 +56,11 @@ export class XOAuthService {
    */
   async authenticate(userAddress: string): Promise<XOAuthResult> {
     try {
-      const backendUrl = Constants.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
+      // Get API URL from environment variable or app.json (matching api.service.ts)
+      const envUrl = process.env.EXPO_PUBLIC_API_URL;
+      const constantsUrl = Constants.expoConfig?.extra?.apiUrl;
+      const backendUrl = envUrl || constantsUrl;
+      
       if (!backendUrl) {
         throw new Error('Backend API URL not configured');
       }

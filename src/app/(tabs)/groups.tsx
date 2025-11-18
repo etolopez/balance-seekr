@@ -2899,7 +2899,10 @@ export default function GroupsScreen() {
                       } catch (e) {
                         // Fallback: if it's not JSON, treat it as just the token (legacy)
                         const Constants = await import('expo-constants');
-                        const backendUrl = Constants.default.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
+                        // Get API URL from environment variable or app.json (matching api.service.ts)
+                        const envUrl = process.env.EXPO_PUBLIC_API_URL;
+                        const constantsUrl = Constants.default.expoConfig?.extra?.apiUrl;
+                        const backendUrl = envUrl || constantsUrl;
                         if (!backendUrl) {
                           throw new Error('Backend API URL not configured');
                         }
