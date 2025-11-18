@@ -18,13 +18,13 @@ export default function TabsLayout() {
   // Calculate safe bottom padding for Android navigation buttons
   const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 16) : insets.bottom;
   
-  // Check feature flag directly from Constants (more reliable)
-  const enableMasterminds = Constants.expoConfig?.extra?.enableMasterminds !== false;
-  const showMasterminds = enableMasterminds && ENABLE_MASTERMINDS;
+  // Check feature flag directly from Constants - SIMPLE: if false, hide it
+  const mastermindsConfig = Constants.expoConfig?.extra?.enableMasterminds;
+  const showMasterminds = mastermindsConfig !== false; // Only hide if explicitly false
   
-  console.log('[TabsLayout] enableMasterminds from Constants:', Constants.expoConfig?.extra?.enableMasterminds);
-  console.log('[TabsLayout] ENABLE_MASTERMINDS from features:', ENABLE_MASTERMINDS);
-  console.log('[TabsLayout] showMasterminds:', showMasterminds);
+  console.log('[TabsLayout] 🔍 Checking Masterminds:');
+  console.log('[TabsLayout]   Constants.expoConfig?.extra?.enableMasterminds:', mastermindsConfig);
+  console.log('[TabsLayout]   showMasterminds:', showMasterminds);
   
   return (
     <View style={{ flex: 1 }}>
@@ -102,8 +102,8 @@ export default function TabsLayout() {
             ),
           }}
         />
-        {/* Masterminds tab - only shown if enabled */}
-        {showMasterminds ? (
+        {/* Masterminds tab - HIDDEN in lite version */}
+        {showMasterminds && (
           <Tabs.Screen
             name="groups"
             options={{
@@ -113,7 +113,7 @@ export default function TabsLayout() {
               ),
             }}
           />
-        ) : null}
+        )}
       </Tabs>
     </View>
   );
