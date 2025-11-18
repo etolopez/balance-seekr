@@ -116,8 +116,8 @@ export default function TabsLayout() {
           }}
         />
         {/* Masterminds tab - COMPLETELY HIDDEN in lite version */}
-        {/* Only render if NOT lite version */}
-        {showMasterminds && (
+        {/* Only render if NOT lite version - use href: null to prevent Expo Router from auto-registering */}
+        {showMasterminds ? (
           <Tabs.Screen
             name="groups"
             options={{
@@ -125,6 +125,14 @@ export default function TabsLayout() {
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="chatbubbles" size={size || 24} color={color} />
               ),
+            }}
+          />
+        ) : (
+          // Explicitly exclude groups route in lite version
+          <Tabs.Screen
+            name="groups"
+            options={{
+              href: null, // This prevents the route from being accessible
             }}
           />
         )}
