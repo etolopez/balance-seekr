@@ -1,4 +1,4 @@
-package com.anonymous.solanaseeker
+package com.balanceseekr.app
 
 import android.os.Build
 import android.os.Bundle

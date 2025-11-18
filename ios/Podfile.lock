@@ -1,4 +1,6 @@
 PODS:
+  - EXApplication (7.0.7):
+    - ExpoModulesCore
   - EXConstants (18.0.10):
     - ExpoModulesCore
   - EXImageLoader (6.0.0):
@@ -207,6 +209,8 @@ PODS:
     - ExpoModulesCore
   - ExpoAudio (1.0.14):
     - ExpoModulesCore
+  - ExpoCrypto (15.0.7):
+    - ExpoModulesCore
   - ExpoDevice (8.0.9):
     - ExpoModulesCore
   - ExpoFileSystem (19.0.17):
@@ -259,6 +263,8 @@ PODS:
   - ExpoSecureStore (15.0.7):
     - ExpoModulesCore
   - ExpoSQLite (16.0.9):
+    - ExpoModulesCore
+  - ExpoWebBrowser (15.0.9):
     - ExpoModulesCore
   - EXUpdatesInterface (2.0.0):
     - ExpoModulesCore
@@ -2256,6 +2262,7 @@ PODS:
   - Yoga (0.0.0)
 
 DEPENDENCIES:
+  - EXApplication (from `../node_modules/expo-application/ios`)
   - EXConstants (from `../node_modules/expo-constants/ios`)
   - EXImageLoader (from `../node_modules/expo-image-loader/ios`)
   - EXJSONUtils (from `../node_modules/expo-json-utils/ios`)
@@ -2267,6 +2274,7 @@ DEPENDENCIES:
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - ExpoAudio (from `../node_modules/expo-audio/ios`)
+  - ExpoCrypto (from `../node_modules/expo-crypto/ios`)
   - ExpoDevice (from `../node_modules/expo-device/ios`)
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
@@ -2280,6 +2288,7 @@ DEPENDENCIES:
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
   - ExpoSQLite (from `../node_modules/expo-sqlite/ios`)
+  - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -2368,6 +2377,8 @@ SPEC REPOS:
     - SDWebImageWebPCoder
 
 EXTERNAL SOURCES:
+  EXApplication:
+    :path: "../node_modules/expo-application/ios"
   EXConstants:
     :path: "../node_modules/expo-constants/ios"
   EXImageLoader:
@@ -2390,6 +2401,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-asset/ios"
   ExpoAudio:
     :path: "../node_modules/expo-audio/ios"
+  ExpoCrypto:
+    :path: "../node_modules/expo-crypto/ios"
   ExpoDevice:
     :path: "../node_modules/expo-device/ios"
   ExpoFileSystem:
@@ -2416,6 +2429,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-secure-store/ios"
   ExpoSQLite:
     :path: "../node_modules/expo-sqlite/ios"
+  ExpoWebBrowser:
+    :path: "../node_modules/expo-web-browser/ios"
   EXUpdatesInterface:
     :path: "../node_modules/expo-updates-interface/ios"
   FBLazyVector:
@@ -2569,6 +2584,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  EXApplication: 296622817d459f46b6c5fe8691f4aac44d2b79e7
   EXConstants: fd688cef4e401dcf798a021cfb5d87c890c30ba3
   EXImageLoader: 189e3476581efe3ad4d1d3fb4735b7179eb26f05
   EXJSONUtils: 1d3e4590438c3ee593684186007028a14b3686cd
@@ -2580,6 +2596,7 @@ SPEC CHECKSUMS:
   expo-dev-menu-interface: 600df12ea01efecdd822daaf13cc0ac091775533
   ExpoAsset: 9ba6fbd677fb8e241a3899ac00fa735bc911eadf
   ExpoAudio: 6a923f661e3360a183503fd96728ff9010ae8afd
+  ExpoCrypto: c1fbce112d1b6b79652bbe380b4fd4cc91676595
   ExpoDevice: 148accb4071873d19fba80a2506c58ffa433d620
   ExpoFileSystem: b79eadbda7b7f285f378f95f959cc9313a1c9c61
   ExpoFont: cf9d90ec1d3b97c4f513211905724c8171f82961
@@ -2593,6 +2610,7 @@ SPEC CHECKSUMS:
   ExpoModulesCore: aa1a8e103d41de84baa5d7c6b98314e2230f1eef
   ExpoSecureStore: 9c6571fe3fcb045a671c4011c451546eaaab98fd
   ExpoSQLite: b312b02c8b77ab55951396e6cd13992f8db9215f
+  ExpoWebBrowser: b973e1351fdcf5fec0c400997b1851f5a8219ec3
   EXUpdatesInterface: 5adf50cb41e079c861da6d9b4b954c3db9a50734
   FBLazyVector: e95a291ad2dadb88e42b06e0c5fb8262de53ec12
   hermes-engine: 9f4dfe93326146a1c99eb535b1cb0b857a3cd172
@@ -2676,6 +2694,6 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   Yoga: 5934998fbeaef7845dbf698f698518695ab4cd1a
 
-PODFILE CHECKSUM: ed7733444e23fe9f462a28d73d952f073aac6cd4
+PODFILE CHECKSUM: 01987cd176fc6cd6d2f985fda6a0115d1d280f0e
 
 COCOAPODS: 1.16.2
