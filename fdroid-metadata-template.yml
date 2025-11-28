@@ -7,18 +7,18 @@ Categories:
   - Productivity
 License: MIT
 AuthorName: Roberto Lopez J.
-AuthorEmail: your-email@example.com  # UPDATE THIS
-AuthorWebSite: https://your-website.com  # UPDATE THIS (optional)
-WebSite: https://your-website.com  # UPDATE THIS
+AuthorEmail: simplyeto@example.com  # UPDATE WITH YOUR ACTUAL EMAIL
+AuthorWebSite: https://x.com/simplyeto  # Optional - your website
+WebSite: https://github.com/etolopez/balance-seekr  # App website/repository
 SourceCode: https://github.com/etolopez/balance-seekr
 IssueTracker: https://github.com/etolopez/balance-seekr/issues
 Changelog: https://github.com/etolopez/balance-seekr/releases
-Donate: https://your-donation-link.com  # UPDATE THIS (optional)
-Bitcoin:  # UPDATE THIS (optional)
-Litecoin:  # UPDATE THIS (optional)
-FlattrID:  # UPDATE THIS (optional)
-Liberapay:  # UPDATE THIS (optional)
-OpenCollective:  # UPDATE THIS (optional)
+# Donate: https://your-donation-link.com  # Uncomment and add if you have one
+# Bitcoin:  # Uncomment and add if you accept Bitcoin
+# Litecoin:  # Uncomment and add if you accept Litecoin
+# FlattrID:  # Uncomment and add if you use Flattr
+# Liberapay:  # Uncomment and add if you use Liberapay
+# OpenCollective:  # Uncomment and add if you use OpenCollective
 
 RepoType: git
 Repo: https://github.com/etolopez/balance-seekr.git
