@@ -1,8 +1,6 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-// Add the Google services Gradle plugin
-apply plugin: "com.google.gms.google-services"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
@@ -94,7 +92,7 @@ android {
         applicationId 'com.balanceseekr.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
+        versionCode 1
         versionName "1.0.1"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -157,12 +155,6 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-    
-    // Import the Firebase BoM
-    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
-    
-    // Firebase Analytics
-    implementation("com.google.firebase:firebase-analytics")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
