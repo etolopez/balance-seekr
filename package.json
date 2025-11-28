@@ -1,7 +1,13 @@
 {
   "name": "solana-seeker",
   "version": "1.0.0",
+  "license": "MIT",
   "private": true,
+  "author": {
+    "name": "Roberto Lopez J.",
+    "instagram": "@simplyeto",
+    "x": "@simplyeto"
+  },
   "main": "expo-router/entry",
   "scripts": {
     "start": "EXPO_ROUTER_APP_ROOT=src/app npx expo start",
@@ -13,9 +19,11 @@
     "web": "EXPO_ROUTER_APP_ROOT=src/app npx expo start --web",
     "clean": "rm -rf node_modules package-lock.json yarn.lock .expo .metro",
     "clean:install": "npm run clean && npm install",
-    "start:clean": "npm run clean:install && npm start -- --clear"
+    "start:clean": "npm run clean:install && npm start -- --clear",
+    "eas-build-pre-install": "node scripts/prebuild-lite.js"
   },
   "dependencies": {
+    "@react-native-community/slider": "^5.1.1",
     "@solana-mobile/mobile-wallet-adapter-protocol": "^2.2.5",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
@@ -55,6 +63,7 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@solana-mobile/dapp-store-cli": "^0.15.0",
     "@types/react": "~19.1.10",
     "typescript": "~5.9.2"
   }

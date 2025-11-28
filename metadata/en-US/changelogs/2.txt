@@ -1,0 +1,13 @@
+Initial release of Balance Seekr (v1.0.1):
+
+- Habit tracking and logging with day-of-week scheduling
+- Journal entries with optional encryption support
+- Task management with completion tracking
+- Mastermind groups with Solana payments
+- Badge achievement system
+- X (Twitter) account verification
+- Background hue customization
+- Full Solana Mobile Wallet Adapter integration
+- Breathwork exercises with customizable protocols
+- Daily inspirational phrases
+

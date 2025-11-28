@@ -1,0 +1,16 @@
+Balance Seekr is a comprehensive wellness app that helps you build habits, journal your thoughts, complete tasks, and connect with like-minded individuals through Solana-powered Mastermind groups.
+
+Features:
+- Daily habit tracking with notes and day-of-week scheduling
+- Personal journaling with optional encryption for privacy
+- Task management with completion tracking
+- Mastermind groups with Solana blockchain payments
+- Badge achievement system for motivation
+- X (Twitter) account verification and integration
+- Customizable background color themes
+- Guided breathwork exercises with visual and audio cues
+
+Built with React Native and Expo, featuring full Solana Mobile Wallet Adapter integration for seamless wallet connectivity. The app prioritizes user privacy with optional encryption for sensitive journal entries.
+
+Balance Seekr helps you maintain balance in your life through structured habit formation, mindful reflection, and community connection.
+
