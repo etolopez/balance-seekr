@@ -6,7 +6,8 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "node": "20.18.0"
     },
     "preview": {
       "distribution": "internal",
@@ -15,7 +16,8 @@
       },
       "ios": {
         "simulator": false
-      }
+      },
+      "node": "20.18.0"
     },
     "production": {
       "android": {
@@ -23,7 +25,8 @@
       },
       "ios": {
         "simulator": false
-      }
+      },
+      "node": "20.18.0"
     },
     "production-lite": {
       "android": {
