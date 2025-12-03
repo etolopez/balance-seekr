@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAppStore } from '../../state/store';
 import { playBeep } from '../../audio/sounds';
-import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
+import { colors, typography, spacing, borderRadius, shadows, components, getBackgroundGradient } from '../../config/theme';
 
 
 export default function TasksScreen() {
@@ -14,7 +14,11 @@ export default function TasksScreen() {
   const addTask = useAppStore((s) => s.addTask);
   const toggleTask = useAppStore((s) => s.toggleTask);
   const deleteTask = useAppStore((s) => s.deleteTask);
+  const backgroundHue = useAppStore((s) => s.backgroundHue);
   const [title, setTitle] = useState('');
+  
+  // Get adjusted gradient colors based on hue setting
+  const gradientColors = getBackgroundGradient(backgroundHue);
 
   // Handle task completion with haptics and sound
   const handleToggleTask = (taskId: string) => {
@@ -36,7 +40,7 @@ export default function TasksScreen() {
 
   return (
     <LinearGradient
-      colors={[colors.background.gradient.start, colors.background.gradient.end]}
+      colors={gradientColors}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}

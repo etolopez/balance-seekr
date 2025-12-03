@@ -15,8 +15,16 @@ export default function RootLayout() {
     );
   }
   // Check feature flag directly from Constants
-  const enableMasterminds = Constants.expoConfig?.extra?.enableMasterminds !== false;
+  // IMPORTANT: Only show if explicitly enabled (not just "not false")
+  const enableMasterminds = Constants.expoConfig?.extra?.enableMasterminds === true;
   const showMasterminds = enableMasterminds && ENABLE_MASTERMINDS;
+  
+  // Log for debugging
+  if (!showMasterminds) {
+    console.log('[RootLayout] 🚫 Masterminds disabled');
+    console.log('[RootLayout]   enableMasterminds (extra):', Constants.expoConfig?.extra?.enableMasterminds);
+    console.log('[RootLayout]   ENABLE_MASTERMINDS (feature flag):', ENABLE_MASTERMINDS);
+  }
   
   return (
     <Stack screenOptions={{ headerShown: false }}>

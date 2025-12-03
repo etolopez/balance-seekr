@@ -6,6 +6,8 @@
  * Colors are inspired by nature: soft skies, gentle earth tones, and serene pastels.
  */
 
+import { adjustHue } from '../utils/color';
+
 /**
  * Primary color palette - Soft, calming tones
  */
@@ -102,6 +104,25 @@ export const colors = {
     background: '#1A2F3E',     // Dark blue-gray to match gradient
   },
 };
+
+/**
+ * Get background gradient colors with hue adjustment
+ * @param hueOffset - Hue offset in degrees (0-360), defaults to 0
+ * @returns Array of two hex colors for the gradient [start, end]
+ */
+export function getBackgroundGradient(hueOffset: number = 0): [string, string] {
+  const baseStart = colors.background.gradient.start;
+  const baseEnd = colors.background.gradient.end;
+  
+  if (hueOffset === 0) {
+    return [baseStart, baseEnd];
+  }
+  
+  return [
+    adjustHue(baseStart, hueOffset),
+    adjustHue(baseEnd, hueOffset),
+  ];
+}
 
 /**
  * Typography scale

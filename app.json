@@ -26,7 +26,6 @@
         "backgroundColor": "#000000"
       },
       "package": "com.balanceseekr.app",
-      "versionCode": 2,
       "intentFilters": [
         {
           "action": "VIEW",

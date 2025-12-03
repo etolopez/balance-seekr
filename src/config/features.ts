@@ -12,22 +12,29 @@ function getEnableMasterminds(): boolean {
   try {
     // Try to get from Constants (most reliable for built apps)
     const fromExtra = Constants.expoConfig?.extra?.enableMasterminds;
-    if (fromExtra !== undefined && fromExtra !== null) {
-      const value = Boolean(fromExtra);
-      console.log('[Features] ✅ Using app.json extra.enableMasterminds:', fromExtra, '→', value);
-      return value;
+    
+    // Check if explicitly set to false (most important check for lite builds)
+    if (fromExtra === false) {
+      console.log('[Features] 🚫 Masterminds DISABLED via app.json extra.enableMasterminds: false');
+      return false;
     }
     
-    // Fallback to env var
+    // If explicitly set to true, enable it
+    if (fromExtra === true) {
+      console.log('[Features] ✅ Masterminds ENABLED via app.json extra.enableMasterminds: true');
+      return true;
+    }
+    
+    // Fallback to env var (for development)
     const fromEnv = process.env.EXPO_PUBLIC_ENABLE_MASTERMINDS;
     if (fromEnv !== undefined) {
       const isEnabled = fromEnv !== 'false' && fromEnv !== '0';
-      console.log('[Features] Using EXPO_PUBLIC_ENABLE_MASTERMINDS:', fromEnv, '→', isEnabled);
+      console.log('[Features] Using EXPO_PUBLIC_ENABLE_MASTERMINDS env var:', fromEnv, '→', isEnabled);
       return isEnabled;
     }
     
-    // Default to true if not set
-    console.log('[Features] ⚠️ No config found, defaulting to true');
+    // Default to true if not set (for backward compatibility)
+    console.log('[Features] ⚠️ No explicit config found, defaulting to ENABLED');
     return true;
   } catch (error) {
     console.error('[Features] ❌ Error reading config:', error);

@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
-import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
+import { colors, typography, spacing, borderRadius, shadows, components, getBackgroundGradient } from '../../config/theme';
 import * as Haptics from 'expo-haptics';
 import { playBeep2 } from '../../audio/sounds';
 
@@ -35,6 +35,10 @@ export default function JournalDetail() {
   const journal = useAppStore((s) => s.journal);
   const updateJournal = useAppStore((s) => s.updateJournal);
   const deleteJournal = useAppStore((s) => s.deleteJournal);
+  const backgroundHue = useAppStore((s) => s.backgroundHue);
+  
+  // Get adjusted gradient colors based on hue setting
+  const gradientColors = getBackgroundGradient(backgroundHue);
   const entry = useMemo(() => journal.find(j => j.id === id), [journal, id]);
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(entry?.title ?? '');
@@ -74,7 +78,7 @@ export default function JournalDetail() {
 
   if (!entry) {
     return (
-      <LinearGradient colors={[colors.background.gradient.start, colors.background.gradient.end]} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <LinearGradient colors={gradientColors} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <View style={[styles.content, { alignItems: 'center', justifyContent: 'center', paddingTop: Math.max(insets.top, spacing.xl) + spacing.lg }]}>
           <Text style={[styles.titleInput, { textAlign: 'center' }]}>Entry not found</Text>
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
@@ -86,7 +90,7 @@ export default function JournalDetail() {
   }
 
   return (
-    <LinearGradient colors={[colors.background.gradient.start, colors.background.gradient.end]} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+    <LinearGradient colors={gradientColors} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, spacing.xl) + spacing.lg }]}
@@ -113,7 +117,23 @@ export default function JournalDetail() {
         
         {/* Meta Information */}
         <View style={styles.metaContainer}>
-          <Text style={styles.meta}>{new Date(entry.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Text>
+          <Text style={styles.meta}>
+            {entry.createdAt 
+              ? (() => {
+                  try {
+                    const date = new Date(entry.createdAt);
+                    // Check if date is valid
+                    if (isNaN(date.getTime())) {
+                      return 'Invalid date';
+                    }
+                    return date.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                  } catch (error) {
+                    console.error('[Journal] Error parsing date:', error, { createdAt: entry.createdAt });
+                    return 'Date unavailable';
+                  }
+                })()
+              : 'Date unavailable'}
+          </Text>
           {!isEditing && (
             <Text style={styles.wordCountText}>
               {getWordCount(content)} {getWordCount(content) === 1 ? 'word' : 'words'} • {getCharacterCount(content)} characters

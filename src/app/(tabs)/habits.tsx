@@ -4,8 +4,33 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
-import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
+import { colors, typography, spacing, borderRadius, shadows, components, getBackgroundGradient } from '../../config/theme';
 import { yesterdayYMD, todayYMD } from '../../utils/time';
+
+/**
+ * Format days of week array into readable string
+ * @param daysOfWeek Array of day numbers (0=Sunday, 1=Monday, etc.) or undefined/empty for every day
+ * @returns Formatted string like "Every day", "Only Mondays", "Mon-Tue-Wed", etc.
+ */
+function formatDaysOfWeek(daysOfWeek?: number[]): string {
+  if (!daysOfWeek || daysOfWeek.length === 0) {
+    return 'Every day';
+  }
+  
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const sortedDays = [...daysOfWeek].sort((a, b) => a - b);
+  
+  if (sortedDays.length === 1) {
+    return `Only ${dayNames[sortedDays[0]]}s`;
+  }
+  
+  // Format as "Mon-Tue-Wed" or "Mon, Tue, Wed" for longer lists
+  if (sortedDays.length <= 3) {
+    return sortedDays.map(d => dayNames[d]).join('-');
+  }
+  
+  return sortedDays.map(d => dayNames[d]).join(', ');
+}
 
 export default function HabitsScreen() {
   const insets = useSafeAreaInsets();
@@ -16,7 +41,11 @@ export default function HabitsScreen() {
   const deleteHabit = useAppStore((s) => s.deleteHabit);
   const setTodayHabitLog = useAppStore((s) => s.setTodayHabitLog);
   const getTodayHabitLog = useAppStore((s) => s.getTodayHabitLog);
+  const backgroundHue = useAppStore((s) => s.backgroundHue) ?? 0;
   const [name, setName] = useState('');
+  
+  // Get adjusted gradient colors based on hue setting
+  const gradientColors = getBackgroundGradient(backgroundHue);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalHabitId, setModalHabitId] = useState<string | null>(null);
   const [modalCompleted, setModalCompleted] = useState<boolean>(true);
@@ -24,6 +53,12 @@ export default function HabitsScreen() {
   const [editVisible, setEditVisible] = useState(false);
   const [editHabitId, setEditHabitId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editDaysOfWeek, setEditDaysOfWeek] = useState<number[]>([]);
+  
+  // Day selection modal state
+  const [showDaySelectionModal, setShowDaySelectionModal] = useState(false);
+  const [pendingHabitName, setPendingHabitName] = useState('');
+  const [selectedDays, setSelectedDays] = useState<number[]>([]); // Empty = every day
 
   // Goals
   const weeklyGoal = useAppStore((s) => s.weeklyGoal);
@@ -84,7 +119,7 @@ export default function HabitsScreen() {
 
   return (
     <LinearGradient
-      colors={[colors.background.gradient.start, colors.background.gradient.end]}
+      colors={gradientColors}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -114,13 +149,23 @@ export default function HabitsScreen() {
               style={styles.input}
               returnKeyType="done"
               onSubmitEditing={() => {
-                if (name.trim()) { addHabit(name.trim()); setName(''); }
+                if (name.trim()) {
+                  setPendingHabitName(name.trim());
+                  setSelectedDays([]); // Default to every day
+                  setShowDaySelectionModal(true);
+                }
               }}
             />
           </View>
           <Pressable
             style={styles.addBtn}
-            onPress={() => { if (name.trim()) { addHabit(name.trim()); setName(''); } }}
+            onPress={() => {
+              if (name.trim()) {
+                setPendingHabitName(name.trim());
+                setSelectedDays([]); // Default to every day
+                setShowDaySelectionModal(true);
+              }
+            }}
           >
             <LinearGradient
               colors={[colors.primary.gradient.start, colors.primary.gradient.end]}
@@ -160,11 +205,17 @@ export default function HabitsScreen() {
                         <Text style={styles.statusText}>
                           {isCompleted ? 'Completed today' : isLogged ? 'Not completed' : 'Not logged yet'}
                         </Text>
+                        <Text style={styles.scheduleText}>{formatDaysOfWeek(item.daysOfWeek)}</Text>
                       </View>
                     </View>
                     <View style={styles.cardActions}>
                       <Pressable
-                        onPress={() => { setEditHabitId(item.id); setEditName(item.name); setEditVisible(true); }}
+                        onPress={() => {
+                          setEditHabitId(item.id);
+                          setEditName(item.name);
+                          setEditDaysOfWeek(item.daysOfWeek || []);
+                          setEditVisible(true);
+                        }}
                         style={styles.editBtn}
                       >
                         <Ionicons name="create-outline" size={20} color={colors.primary.main} />
@@ -273,6 +324,43 @@ export default function HabitsScreen() {
                   style={styles.modalInput}
                   autoFocus
                 />
+                <Text style={styles.modalLabel}>Schedule</Text>
+                <View style={styles.daySelectionContainer}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => {
+                    const isSelected = editDaysOfWeek.includes(index);
+                    return (
+                      <Pressable
+                        key={index}
+                        style={[
+                          styles.dayButton,
+                          isSelected && styles.dayButtonSelected
+                        ]}
+                        onPress={() => {
+                          if (isSelected) {
+                            setEditDaysOfWeek(editDaysOfWeek.filter(d => d !== index));
+                          } else {
+                            setEditDaysOfWeek([...editDaysOfWeek, index].sort((a, b) => a - b));
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.dayButtonText,
+                          isSelected && styles.dayButtonTextSelected
+                        ]}>
+                          {day}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <Pressable
+                  style={styles.everyDayButton}
+                  onPress={() => setEditDaysOfWeek([])}
+                >
+                  <Text style={styles.everyDayButtonText}>
+                    {editDaysOfWeek.length === 0 ? '✓ Every day' : 'Set to every day'}
+                  </Text>
+                </Pressable>
               <View style={styles.modalButtonRow}>
                 <Pressable
                   style={styles.modalSecondaryBtn}
@@ -284,8 +372,12 @@ export default function HabitsScreen() {
                   style={styles.modalPrimaryBtn}
                   onPress={() => {
                     if (editHabitId && editName.trim()) {
-                      updateHabit(editHabitId, { name: editName.trim() });
+                      updateHabit(editHabitId, {
+                        name: editName.trim(),
+                        daysOfWeek: editDaysOfWeek.length === 0 ? undefined : editDaysOfWeek
+                      });
                       setEditVisible(false);
+                      setEditDaysOfWeek([]);
                     }
                   }}
                 >
@@ -301,6 +393,93 @@ export default function HabitsScreen() {
               </View>
             </View>
           </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* Day Selection Modal for New Habit */}
+        <Modal visible={showDaySelectionModal} animationType="slide" transparent>
+          <KeyboardAvoidingView 
+            style={{ flex: 1 }} 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <View style={styles.modalWrap}>
+              <View style={styles.modalCard}>
+                <View style={styles.modalHeader}>
+                  <Ionicons name="calendar-outline" size={24} color={colors.primary.main} />
+                  <Text style={styles.modalTitle}>When should this habit appear?</Text>
+                </View>
+                <Text style={styles.modalSubtitle}>Select the days of the week, or leave empty for every day</Text>
+                <View style={styles.daySelectionContainer}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => {
+                    const isSelected = selectedDays.includes(index);
+                    return (
+                      <Pressable
+                        key={index}
+                        style={[
+                          styles.dayButton,
+                          isSelected && styles.dayButtonSelected
+                        ]}
+                        onPress={() => {
+                          if (isSelected) {
+                            setSelectedDays(selectedDays.filter(d => d !== index));
+                          } else {
+                            setSelectedDays([...selectedDays, index].sort((a, b) => a - b));
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.dayButtonText,
+                          isSelected && styles.dayButtonTextSelected
+                        ]}>
+                          {day}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <Pressable
+                  style={styles.everyDayButton}
+                  onPress={() => setSelectedDays([])}
+                >
+                  <Text style={styles.everyDayButtonText}>
+                    {selectedDays.length === 0 ? '✓ Every day' : 'Set to every day'}
+                  </Text>
+                </Pressable>
+                <View style={styles.modalButtonRow}>
+                  <Pressable
+                    style={styles.modalSecondaryBtn}
+                    onPress={() => {
+                      setShowDaySelectionModal(false);
+                      setPendingHabitName('');
+                      setSelectedDays([]);
+                    }}
+                  >
+                    <Text style={styles.modalSecondaryBtnText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.modalPrimaryBtn}
+                    onPress={() => {
+                      if (pendingHabitName.trim()) {
+                        addHabit(pendingHabitName.trim(), selectedDays.length === 0 ? undefined : selectedDays);
+                        setName('');
+                        setShowDaySelectionModal(false);
+                        setPendingHabitName('');
+                        setSelectedDays([]);
+                      }
+                    }}
+                  >
+                    <LinearGradient
+                      colors={[colors.primary.gradient.start, colors.primary.gradient.end]}
+                      style={styles.modalPrimaryBtnGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      <Text style={styles.modalPrimaryBtnText}>Create Habit</Text>
+                    </LinearGradient>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
           </KeyboardAvoidingView>
         </Modal>
 
@@ -1013,5 +1192,68 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     lineHeight: 24,
     marginBottom: spacing.md,
+  },
+  // Day Selection Styles
+  modalLabel: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.primary,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  modalSubtitle: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginBottom: spacing.md,
+    lineHeight: 20,
+  },
+  daySelectionContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  dayButton: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayButtonSelected: {
+    backgroundColor: colors.primary.main,
+    borderColor: colors.primary.main,
+  },
+  dayButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.secondary,
+  },
+  dayButtonTextSelected: {
+    color: colors.text.inverse,
+  },
+  everyDayButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  everyDayButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.text.primary,
+  },
+  scheduleText: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.tertiary,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
   },
 });

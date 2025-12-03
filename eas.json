@@ -1,5 +1,8 @@
 {
-  "cli": { "version": ">= 11.0.0" },
+  "cli": { 
+    "version": ">= 11.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
     "development": {
       "developmentClient": true,
@@ -31,8 +34,7 @@
       },
       "env": {
         "EXPO_PUBLIC_ENABLE_MASTERMINDS": "false"
-      },
-      "prebuildCommand": "node scripts/prebuild-lite.js && npx expo prebuild --clean"
+      }
     },
     "preview-lite": {
       "distribution": "internal",
@@ -44,8 +46,7 @@
       },
       "env": {
         "EXPO_PUBLIC_ENABLE_MASTERMINDS": "false"
-      },
-      "prebuildCommand": "node scripts/prebuild-lite.js && npx expo prebuild --clean"
+      }
     }
   },
   "submit": {

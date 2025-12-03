@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, InteractionManager, Modal, ScrollView, ActivityIndicator, RefreshControl, Image, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { useAppStore } from '../../state/store';
 import { WalletService } from '../../services/wallet.service';
 import { PaymentService } from '../../services/payment.service';
@@ -11,14 +12,30 @@ import { ApiService } from '../../services/api.service';
 import { uploadImageToCloudinary } from '../../services/image.service';
 import { detectSeeker } from '../../services/seeker';
 import { PROGRAM_ID } from '../../config/solana';
-import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
+import { colors, typography, spacing, borderRadius, shadows, components, getBackgroundGradient } from '../../config/theme';
 import { PLATFORM_CREATE_FEE, PLATFORM_PAYMENT_ADDRESS, DEFAULT_JOIN_PAYMENT_ADDRESS, PLATFORM_JOIN_FEE_PERCENTAGE } from '../../config/platform';
+import { ENABLE_MASTERMINDS } from '../../config/features';
 
 /**
  * Groups Screen - Create and manage Mastermind groups
  * Includes wallet verification functionality for Solana wallet integration
  */
 export default function GroupsScreen() {
+  // CRITICAL: Redirect if Masterminds is disabled (Lite version)
+  const mastermindsEnabled = Constants.expoConfig?.extra?.enableMasterminds !== false && ENABLE_MASTERMINDS;
+  
+  useEffect(() => {
+    if (!mastermindsEnabled) {
+      // Redirect to home if Masterminds is disabled
+      router.replace('/(tabs)/');
+    }
+  }, [mastermindsEnabled]);
+  
+  // Return null if Masterminds is disabled (prevents any rendering)
+  if (!mastermindsEnabled) {
+    return null;
+  }
+  
   const insets = useSafeAreaInsets();
   const verifiedAddress = useAppStore((s) => s.verifiedAddress);
   const setVerified = useAppStore((s) => s.setVerified);
@@ -30,6 +47,10 @@ export default function GroupsScreen() {
   const setUsername = useAppStore((s) => s.setUsername);
   const syncXAccount = useAppStore((s) => s.syncXAccount);
   const fetchUserProfile = useAppStore((s) => s.fetchUserProfile);
+  const backgroundHue = useAppStore((s) => s.backgroundHue);
+  
+  // Get adjusted gradient colors based on hue setting
+  const gradientColors = getBackgroundGradient(backgroundHue);
   
   // Refetch user profile when wallet address changes
   useEffect(() => {
@@ -476,7 +497,7 @@ export default function GroupsScreen() {
   // Show verification UI if not verified
   if (!verifiedAddress) {
     return (
-      <LinearGradient colors={[colors.background.gradient.start, colors.background.gradient.end]} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <LinearGradient colors={gradientColors} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <ScrollView 
           style={styles.container}
           contentContainerStyle={[styles.verifyScrollContent, { paddingTop: Math.max(insets.top, spacing.xl) + spacing.lg }]}

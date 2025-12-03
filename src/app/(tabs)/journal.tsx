@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
 import { todayYMD, isoToLocalYMD } from '../../utils/time';
-import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
+import { colors, typography, spacing, borderRadius, shadows, components, getBackgroundGradient } from '../../config/theme';
 import * as Haptics from 'expo-haptics';
 import { playBeep2 } from '../../audio/sounds';
 
@@ -140,8 +140,15 @@ const JOURNAL_PROMPTS = [
 export default function JournalScreen() {
   const insets = useSafeAreaInsets();
   const journal = useAppStore((s) => s.journal);
+  const habits = useAppStore((s) => s.habits);
+  const tasks = useAppStore((s) => s.tasks);
+  const logs = useAppStore((s) => s.logs);
   const addJournal = useAppStore((s) => s.addJournal);
   const updateJournal = useAppStore((s) => s.updateJournal);
+  const backgroundHue = useAppStore((s) => s.backgroundHue);
+  
+  // Get adjusted gradient colors based on hue setting
+  const gradientColors = getBackgroundGradient(backgroundHue);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
@@ -167,9 +174,14 @@ export default function JournalScreen() {
     const startOffset = first.getDay();
     const days = Array.from({ length: lastDay }, (_, i) => i + 1);
     const ym = `${y}-${String(m + 1).padStart(2, '0')}`;
-    const hasEntry = (day: number) => journalByDate.has(`${ym}-${String(day).padStart(2, '0')}`);
+    const hasEntry = (day: number) => {
+      const dateStr = `${ym}-${String(day).padStart(2, '0')}`;
+      return journalByDate.has(dateStr) || 
+             logs.some(log => log.date === dateStr) ||
+             tasks.some(task => task.done); // Show dot if any tasks are done (simplified for now)
+    };
     return { y, m, startOffset, days, ym, hasEntry };
-  }, [currentMonth, journalByDate]);
+  }, [currentMonth, journalByDate, logs, tasks]);
 
   // Filter and sort entries for the selected date (or today if no date selected)
   const selectedDateForEntries = selectedDate || todayYMD();
@@ -185,6 +197,25 @@ export default function JournalScreen() {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
   }, [journal, selectedDateForEntries]);
+
+  // Get habits and tasks for selected date
+  const selectedDateHabits = useMemo(() => {
+    const dateStr = selectedDateForEntries;
+    return logs
+      .filter(log => log.date === dateStr)
+      .map(log => {
+        const habit = habits.find(h => h.id === log.habitId);
+        return habit ? { ...log, habitName: habit.name, completed: log.completed } : null;
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [logs, habits, selectedDateForEntries]);
+
+  const selectedDateTasks = useMemo(() => {
+    // Tasks don't have dates, so we show all tasks that were completed on that day
+    // For now, we'll show all tasks (since tasks are global)
+    // In the future, we could add a date field to tasks
+    return tasks.filter(task => task.done);
+  }, [tasks, selectedDateForEntries]);
 
   // Get section title based on selected date
   const entriesSectionTitle = useMemo(() => {
@@ -204,7 +235,7 @@ export default function JournalScreen() {
 
   return (
     <LinearGradient
-      colors={[colors.background.gradient.start, colors.background.gradient.end]}
+      colors={gradientColors}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -331,6 +362,46 @@ export default function JournalScreen() {
         </View>
 
         <Text style={styles.section}>{entriesSectionTitle}</Text>
+        
+        {/* Habits Section */}
+        {selectedDateHabits.length > 0 && (
+          <>
+            <Text style={styles.subsectionTitle}>Habits</Text>
+            {selectedDateHabits.map((log) => (
+              <View key={log.id} style={styles.habitTaskCard}>
+                <View style={styles.habitTaskHeader}>
+                  <Ionicons 
+                    name={log.completed ? "checkmark-circle" : "close-circle"} 
+                    size={20} 
+                    color={log.completed ? colors.success.main : colors.error.main} 
+                  />
+                  <Text style={styles.habitTaskName}>{log.habitName}</Text>
+                </View>
+                {log.note && (
+                  <Text style={styles.habitTaskNote}>{log.note}</Text>
+                )}
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* Tasks Section */}
+        {selectedDateTasks.length > 0 && (
+          <>
+            <Text style={styles.subsectionTitle}>Tasks</Text>
+            {selectedDateTasks.map((task) => (
+              <View key={task.id} style={styles.habitTaskCard}>
+                <View style={styles.habitTaskHeader}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success.main} />
+                  <Text style={styles.habitTaskName}>{task.title}</Text>
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* Journal Entries Section */}
+        <Text style={styles.subsectionTitle}>Journal Entries</Text>
         {todaysEntries.length === 0 ? (
           <Text style={styles.emptyText}>
             {selectedDate ? `No entries for this date.` : `No entries for today yet.`}
@@ -540,6 +611,38 @@ const styles = StyleSheet.create({
   wordCountText: {
     fontSize: typography.sizes.xs,
     color: colors.text.tertiary,
+    fontStyle: 'italic',
+  },
+  subsectionTitle: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  habitTaskCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  habitTaskHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  habitTaskName: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.medium,
+    color: colors.text.primary,
+    flex: 1,
+  },
+  habitTaskNote: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
     fontStyle: 'italic',
   },
 });

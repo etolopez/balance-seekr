@@ -1,6 +1,12 @@
-# Solana Seeker (Expo + Expo Router)
+# Balance Seekr (formerly Solana Seeker)
 
-Quick start to run on Expo Go. Usable flows: Home (daily phrase), Habits (add/log with notes), Breathwork (timed + visuals), Journal (add/view + grid), Tasks (todo list).
+A Solana-powered mobile app built with Expo + Expo Router. Usable flows: Home (daily phrase), Habits (add/log with notes), Breathwork (timed + visuals), Journal (add/view + grid), Tasks (todo list), and Masterminds (community groups).
+
+## Creator
+
+**Created by:** Roberto Lopez J.  
+**Instagram:** [@simplyeto](https://instagram.com/simplyeto)  
+**X (Twitter):** [@simplyeto](https://x.com/simplyeto)
 
 ## Prereqs
 - Node LTS installed
@@ -78,3 +84,11 @@ npm run start
   - Backend pieces (not included here):
     - Verify the SIWS payload using `@solana/wallet-standard-util`'s `verifySignIn`.
     - Check SGT ownership for the wallet (e.g., Helius `getTokenAccountsByOwnerV2`).
+
+---
+
+## Credits
+
+**Created by:** Roberto Lopez J.  
+**Instagram:** [@simplyeto](https://instagram.com/simplyeto)  
+**X (Twitter):** [@simplyeto](https://x.com/simplyeto)

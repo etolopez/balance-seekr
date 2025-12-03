@@ -81,6 +81,7 @@ export function useHydrateStore() {
       const xHandle = prefs['profile.xHandle'] ?? null;
       const verified = prefs['profile.verified'] === 'true';
       const dataRetentionDays = prefs['data.retentionDays'] ? Number(prefs['data.retentionDays']) : 0;
+      const backgroundHue = prefs['ui.backgroundHue'] ? Number(prefs['ui.backgroundHue']) : 0;
       // Load custom breath presets
       const bpRows = await all<any>('SELECT * FROM breath_presets ORDER BY updatedAt DESC');
       const breathPresets = bpRows.map((r: any) => ({ id: r.id, name: r.name, goal: r.goal, inhale: r.inhale, hold: r.hold, exhale: r.exhale, hold2: r.hold2 ?? 0, shape: r.shape, gradient: [r.grad0, r.grad1] as [string,string], cycles: r.cycles }));
@@ -97,6 +98,7 @@ export function useHydrateStore() {
         ...(xHandle ? { xHandle } : {}),
         verified,
         dataRetentionDays,
+        backgroundHue,
       });
       
       // If wallet is connected, fetch profile from backend

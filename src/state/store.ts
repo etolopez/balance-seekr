@@ -13,6 +13,7 @@ export interface Habit {
   createdAt: string;
   archived?: boolean;
   goalPerDay?: number; // default 1
+  daysOfWeek?: number[]; // Array of day numbers (0=Sunday, 1=Monday, ..., 6=Saturday). If undefined or empty, habit appears every day
 }
 
 export interface HabitLog {
@@ -256,7 +257,7 @@ type State = {
   // habits
   habits: Habit[];
   logs: HabitLog[];
-  addHabit: (name: string) => void;
+  addHabit: (name: string, daysOfWeek?: number[]) => void;
   updateHabit: (id: string, patch: Partial<Habit>) => void;
   deleteHabit: (id: string) => void;
   setTodayHabitLog: (habitId: string, completed: boolean, note?: string) => void;
@@ -303,6 +304,10 @@ type State = {
   dataRetentionDays: number; // 0 = keep all, 30/90/180/365 = keep last N days
   setDataRetentionDays: (days: number) => void;
   performDataCleanup: (includeJournal?: boolean) => Promise<void>;
+  
+  // Background hue customization (0-360 degrees)
+  backgroundHue: number; // Default 0, range 0-360
+  setBackgroundHue: (hue: number) => void;
 
   // goals
   weeklyGoal: string;
@@ -380,8 +385,8 @@ export const useAppStore = create<State>((set, get) => ({
   },
   habits: [],
   logs: [],
-  addHabit: (name: string) => set((s) => {
-    const h = { id: uid(), name, createdAt: nowIso(), goalPerDay: 1 };
+  addHabit: (name: string, daysOfWeek?: number[]) => set((s) => {
+    const h = { id: uid(), name, createdAt: nowIso(), goalPerDay: 1, daysOfWeek: daysOfWeek && daysOfWeek.length > 0 ? daysOfWeek : undefined };
     dbApi.addHabit(h);
     return { habits: [...s.habits, h] };
   }),
@@ -490,6 +495,12 @@ export const useAppStore = create<State>((set, get) => ({
   setDataRetentionDays: (days) => set(() => { 
     dbApi.upsertPref('data.retentionDays', String(days)); 
     return { dataRetentionDays: days }; 
+  }),
+  backgroundHue: 0, // Default: no hue adjustment (0-360 degrees)
+  setBackgroundHue: (hue) => set(() => {
+    const clampedHue = Math.max(0, Math.min(360, hue));
+    dbApi.upsertPref('ui.backgroundHue', String(clampedHue));
+    return { backgroundHue: clampedHue };
   }),
   performDataCleanup: async (includeJournal = false) => {
     const { performCleanup } = await import('../db/cleanup');

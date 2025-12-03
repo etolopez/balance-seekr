@@ -7,7 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
 import * as Haptics from 'expo-haptics';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
+import { colors, typography, spacing, borderRadius, shadows, components, getBackgroundGradient } from '../../config/theme';
+import { adjustHue } from '../../utils/color';
 
 // Breath screen uses playBeep() for phase audio cues
 
@@ -27,6 +28,10 @@ export default function BreathScreen() {
   const breathPresets = useAppStore((s) => s.breathPresets);
   const savePreset = useAppStore((s) => s.saveCurrentCustomAsPreset);
   const removePreset = useAppStore((s) => s.deleteBreathPreset);
+  const backgroundHue = useAppStore((s) => s.backgroundHue) ?? 0;
+  
+  // Get adjusted gradient colors based on hue setting
+  const gradientColors = getBackgroundGradient(backgroundHue);
   const [saveVisible, setSaveVisible] = useState(false);
   const [presetName, setPresetName] = useState('');
   const [presetGoal, setPresetGoal] = useState('Your rhythm');
@@ -200,7 +205,7 @@ export default function BreathScreen() {
 
   return (
     <LinearGradient
-      colors={[colors.breath.background, colors.background.gradient.end]}
+      colors={[adjustHue(colors.breath.background, backgroundHue), gradientColors[1]]}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}

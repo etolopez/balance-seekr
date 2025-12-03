@@ -19,24 +19,28 @@ export default function TabsLayout() {
   const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 16) : insets.bottom;
   
   // HARDCODE: Hide groups tab in Lite version - check multiple ways
-  const appName = Constants.expoConfig?.name || Constants.expoConfig?.manifest?.name || '';
+  const appName = Constants.expoConfig?.name || Constants.expoConfig?.manifest?.name || Constants.manifest?.name || '';
   const mastermindsConfig = Constants.expoConfig?.extra?.enableMasterminds;
   const slug = Constants.expoConfig?.slug || '';
   
   // Hide if: app name contains "lite", slug contains "lite", OR enableMasterminds is explicitly false
+  // IMPORTANT: Check for explicit false, not just falsy values
   const isLiteVersion = 
     appName.toLowerCase().includes('lite') || 
     slug.toLowerCase().includes('lite') ||
-    mastermindsConfig === false;
+    mastermindsConfig === false ||
+    ENABLE_MASTERMINDS === false;
   
-  const showMasterminds = !isLiteVersion;
+  const showMasterminds = !isLiteVersion && ENABLE_MASTERMINDS;
   
   // FORCE HIDE if any lite indicator found
-  if (isLiteVersion) {
+  if (isLiteVersion || !showMasterminds) {
     console.log('[TabsLayout] 🚫 LITE VERSION DETECTED - HIDING GROUPS TAB');
     console.log('[TabsLayout]   App Name:', appName);
     console.log('[TabsLayout]   Slug:', slug);
-    console.log('[TabsLayout]   enableMasterminds:', mastermindsConfig);
+    console.log('[TabsLayout]   enableMasterminds (extra):', mastermindsConfig);
+    console.log('[TabsLayout]   ENABLE_MASTERMINDS (feature flag):', ENABLE_MASTERMINDS);
+    console.log('[TabsLayout]   showMasterminds:', showMasterminds);
   }
   
   return (
@@ -82,7 +86,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="habits"
           options={{
-            title: "Habits & Goals",
+            title: "Habits",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="repeat" size={size || 24} color={color} />
             ),
@@ -116,23 +120,22 @@ export default function TabsLayout() {
           }}
         />
         {/* Masterminds tab - COMPLETELY HIDDEN in lite version */}
-        {/* Only render if NOT lite version - use href: null to prevent Expo Router from auto-registering */}
+        {/* Use href: null to completely hide the route from Expo Router */}
         {showMasterminds ? (
           <Tabs.Screen
             name="groups"
             options={{
-              title: "Masterminds",
+              title: "Minds",
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="chatbubbles" size={size || 24} color={color} />
               ),
             }}
           />
         ) : (
-          // Explicitly exclude groups route in lite version
           <Tabs.Screen
             name="groups"
             options={{
-              href: null, // This prevents the route from being accessible
+              href: null, // This completely hides the tab from the tab bar
             }}
           />
         )}

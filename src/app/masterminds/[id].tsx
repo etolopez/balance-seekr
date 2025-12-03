@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
 import { ApiService } from '../../services/api.service';
-import { colors, typography, spacing, borderRadius, shadows, components } from '../../config/theme';
+import { colors, typography, spacing, borderRadius, shadows, components, getBackgroundGradient } from '../../config/theme';
 
 export default function GroupChat() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -17,7 +17,11 @@ export default function GroupChat() {
   const verifiedAddress = useAppStore((s) => s.verifiedAddress);
   const username = useAppStore((s) => s.username);
   const publicGroups = useAppStore((s) => s.publicGroups);
+  const backgroundHue = useAppStore((s) => s.backgroundHue);
   const group = useMemo(() => groups.find(g => g.id === id), [groups, id]);
+  
+  // Get adjusted gradient colors based on hue setting
+  const gradientColors = getBackgroundGradient(backgroundHue);
   const publicGroup = useMemo(() => publicGroups.find(g => g.id === id || (g as any).apiGroupId === id), [publicGroups, id]);
   const groupData = publicGroup || group;
   
@@ -93,7 +97,7 @@ export default function GroupChat() {
   };
 
   return (
-    <LinearGradient colors={[colors.background.gradient.start, colors.background.gradient.end]} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+    <LinearGradient colors={gradientColors} style={styles.container} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
       <KeyboardAvoidingView 
         style={{ flex: 1 }} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

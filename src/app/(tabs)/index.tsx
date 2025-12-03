@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, Image, Modal, Share, Alert, Dimensions } from "react-native";
+import { StyleSheet, Text, View, Pressable, ScrollView, Image, Modal, Share, Alert, Dimensions, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/store';
 import { todayYMD, getFiveMinuteInterval } from '../../utils/time';
-import { colors, typography, spacing, borderRadius, shadows } from '../../config/theme';
+import { colors, typography, spacing, borderRadius, shadows, getBackgroundGradient } from '../../config/theme';
 import * as Haptics from 'expo-haptics';
 import { playBeep } from '../../audio/sounds';
 import { calculateEarnedBadges, getHighestStreakBadges, getAllBadges, type Badge } from '../../utils/badges';
@@ -61,12 +61,23 @@ export default function HomeScreen() {
   const logs = useAppStore((s) => s.logs);
   const journal = useAppStore((s) => s.journal);
   const getTodayHabitLog = useAppStore((s) => s.getTodayHabitLog);
+  const setTodayHabitLog = useAppStore((s) => s.setTodayHabitLog);
+  const backgroundHue = useAppStore((s) => s.backgroundHue);
+  
+  // Get adjusted gradient colors based on hue setting
+  const gradientColors = getBackgroundGradient(backgroundHue);
   
   const [selectedCategory, setSelectedCategory] = useState<GoalCategory>('main');
   const [quoteInterval, setQuoteInterval] = useState(getFiveMinuteInterval());
   const [showBadgesModal, setShowBadgesModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+  
+  // Habit modal state for home page
+  const [showHabitModal, setShowHabitModal] = useState(false);
+  const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
+  const [habitModalCompleted, setHabitModalCompleted] = useState<boolean>(true);
+  const [habitModalNote, setHabitModalNote] = useState('');
   
   // Calculate earned badges (now async, so we use state)
   const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
@@ -228,7 +239,7 @@ export default function HomeScreen() {
   
   return (
     <LinearGradient
-      colors={[colors.background.gradient.start, colors.background.gradient.end]}
+      colors={gradientColors}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -385,26 +396,54 @@ export default function HomeScreen() {
                   const isMissed = todayLog?.completed === false;
                   const isNotLogged = todayLog === undefined;
                   
+                  // Check if habit should appear today based on daysOfWeek
+                  const todayDate = new Date();
+                  const dayOfWeek = todayDate.getDay(); // 0=Sunday, 1=Monday, etc.
+                  const shouldShowToday = !habit.daysOfWeek || habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(dayOfWeek);
+                  
+                  // Don't show habit if it's not scheduled for today
+                  if (!shouldShowToday) return null;
+                  
+                  const handleHabitPress = () => {
+                    const existingLog = getTodayHabitLog(habit.id);
+                    setSelectedHabitId(habit.id);
+                    setHabitModalNote(existingLog?.note || '');
+                    if (existingLog) {
+                      setHabitModalCompleted(existingLog.completed);
+                    } else {
+                      setHabitModalCompleted(true);
+                    }
+                    setShowHabitModal(true);
+                  };
+                  
                   return (
-                    <View 
-                      key={habit.id} 
+                    <Pressable
+                      key={habit.id}
+                      onPress={handleHabitPress}
                       style={[
                         styles.habitItem,
                         { backgroundColor: getHabitColor(index) }
                       ]}
                     >
                       <Text style={styles.habitText}>{habit.name}</Text>
-                      {/* Status indicator overlay in top right corner */}
-                      <View style={styles.habitStatusIndicator}>
+                      {/* Completion button */}
+                      <Pressable
+                        style={[
+                          styles.habitCompletionButton,
+                          isCompleted && styles.habitCompletionButtonCompleted
+                        ]}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleHabitPress();
+                        }}
+                      >
                         {isCompleted ? (
-                          <Ionicons name="checkmark-circle" size={24} color={colors.success.main} />
-                        ) : isMissed ? (
-                          <Ionicons name="close-circle" size={24} color={colors.error.main} />
+                          <Ionicons name="checkmark-circle" size={24} color="#00FF88" />
                         ) : (
-                          <Ionicons name="ellipse" size={20} color={colors.text.tertiary} />
+                          <Ionicons name="ellipse-outline" size={24} color={colors.text.primary} />
                         )}
-                      </View>
-                    </View>
+                      </Pressable>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -645,6 +684,92 @@ export default function HomeScreen() {
             </View>
           </Modal>
 
+          {/* Habit Completion Modal */}
+          <Modal
+            visible={showHabitModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowHabitModal(false)}
+          >
+            <KeyboardAvoidingView 
+              style={{ flex: 1 }} 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    {habitModalCompleted ? 'How did you feel after?' : 'What did you do instead?'}
+                  </Text>
+                  <Pressable
+                    style={styles.modalCloseBtn}
+                    onPress={() => setShowHabitModal(false)}
+                  >
+                    <Ionicons name="close" size={24} color={colors.text.secondary} />
+                  </Pressable>
+                </View>
+                <View style={styles.modalBody}>
+                  <View style={styles.modalButtonRow}>
+                    <Pressable
+                      style={[styles.habitModalToggleBtn, habitModalCompleted && styles.habitModalToggleBtnActive]}
+                      onPress={() => setHabitModalCompleted(true)}
+                    >
+                      <Text style={[styles.habitModalToggleText, habitModalCompleted && styles.habitModalToggleTextActive]}>
+                        Completed
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.habitModalToggleBtn, !habitModalCompleted && styles.habitModalToggleBtnActive]}
+                      onPress={() => setHabitModalCompleted(false)}
+                    >
+                      <Text style={[styles.habitModalToggleText, !habitModalCompleted && styles.habitModalToggleTextActive]}>
+                        Not Completed
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    placeholder={habitModalCompleted ? 'e.g., Calm, focused...' : 'e.g., Took a walk, meetings...'}
+                    placeholderTextColor={colors.text.tertiary}
+                    value={habitModalNote}
+                    onChangeText={setHabitModalNote}
+                    style={styles.modalInput}
+                    multiline
+                    textAlignVertical="top"
+                  />
+                  <View style={styles.modalButtonRow}>
+                    <Pressable
+                      style={styles.modalSecondaryBtn}
+                      onPress={() => setShowHabitModal(false)}
+                    >
+                      <Text style={styles.modalSecondaryBtnText}>Cancel</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.modalPrimaryBtn}
+                      onPress={async () => {
+                        if (selectedHabitId) {
+                          await setTodayHabitLog(selectedHabitId, habitModalCompleted, habitModalNote.trim() || undefined);
+                          setShowHabitModal(false);
+                          setSelectedHabitId(null);
+                          setHabitModalNote('');
+                        }
+                      }}
+                    >
+                      <LinearGradient
+                        colors={[colors.primary.gradient.start, colors.primary.gradient.end]}
+                        style={styles.modalPrimaryBtnGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <Text style={styles.modalPrimaryBtnText}>Save</Text>
+                      </LinearGradient>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            </View>
+            </KeyboardAvoidingView>
+          </Modal>
+
           {/* Daily Quote Section */}
           <View style={styles.quoteCard}>
             <Ionicons name="sparkles" size={20} color={colors.text.tertiary} style={styles.quoteIcon} />
@@ -746,7 +871,8 @@ export default function HomeScreen() {
           {/* Settings Button */}
           <Link href="/settings" asChild>
             <Pressable style={styles.settingsBtn}>
-              <Ionicons name="construct-outline" size={20} color={colors.text.secondary} />
+              <Ionicons name="construct-outline" size={22} color="#1A1A1A" />
+              <Text style={styles.settingsBtnText}>Settings/Extras</Text>
             </Pressable>
           </Link>
         </View>
@@ -773,18 +899,27 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   settingsBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(244, 208, 63, 0.6)', // Softer, more readable yellow with transparency
+    borderWidth: 2,
+    borderColor: 'rgba(230, 194, 0, 0.5)', // Darker yellow border with transparency
     overflow: 'hidden',
     marginTop: spacing.lg,
     alignSelf: 'center',
-    ...shadows.sm,
+    minWidth: 160, // Ensure button has minimum width
+    ...shadows.md,
+  },
+  settingsBtnText: {
+    fontSize: typography.sizes.base,
+    color: '#1A1A1A', // Dark text for high contrast on yellow
+    fontWeight: typography.weights.semibold,
+    letterSpacing: 0.3,
   },
   logoContainer: {
     marginBottom: spacing.xs,
@@ -948,7 +1083,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '90%',
-    paddingBottom: spacing.xl,
+  },
+  modalBody: {
+    padding: spacing.lg,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1186,20 +1323,38 @@ const styles = StyleSheet.create({
   },
   habitItem: {
     padding: spacing.md,
-    paddingRight: spacing.xl + spacing.md, // Extra padding on right for icon
+    paddingRight: spacing.xl + spacing.md, // Extra padding on right for button
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.25)',
-    overflow: 'visible', // Changed to 'visible' so icon can show outside bounds if needed
+    overflow: 'visible',
     ...shadows.sm,
     position: 'relative',
-    minHeight: 50, // Ensure enough height for icon
+    minHeight: 60, // Increased height for bigger button
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   habitText: {
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.medium,
     color: colors.text.primary,
     flex: 1,
+  },
+  habitCompletionButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)', // White background for contrast
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.md,
+  },
+  habitCompletionButtonCompleted: {
+    backgroundColor: '#00FF88', // Bright green when completed
+    borderColor: '#00FF88',
   },
   taskItem: {
     padding: spacing.md,
@@ -1292,6 +1447,83 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.text.secondary,
     marginTop: spacing.xs,
+  },
+  // Habit Modal Styles
+  habitModalToggleBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  habitModalToggleBtnActive: {
+    backgroundColor: colors.primary.main,
+    borderColor: colors.primary.main,
+  },
+  habitModalToggleText: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.primary, // Use primary text color for better visibility
+  },
+  habitModalToggleTextActive: {
+    color: colors.text.inverse,
+    fontWeight: typography.weights.bold,
+  },
+  modalInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: typography.sizes.base,
+    color: colors.text.primary,
+    minHeight: 100,
+    marginBottom: spacing.lg,
+    marginTop: spacing.sm,
+  },
+  modalButtonRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  modalPrimaryBtn: {
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    flex: 1,
+    ...shadows.sm,
+  },
+  modalPrimaryBtnGradient: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalPrimaryBtnText: {
+    color: colors.text.inverse,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.base,
+  },
+  modalSecondaryBtn: {
+    borderWidth: 2,
+    borderColor: colors.primary.main,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.secondary,
+  },
+  modalSecondaryBtnText: {
+    color: colors.primary.main,
+    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.base,
   },
 });
 

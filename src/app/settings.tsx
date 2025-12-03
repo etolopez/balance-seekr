@@ -1,11 +1,12 @@
-import { StyleSheet, Text, View, Switch, Pressable, ScrollView, Alert } from "react-native";
+import { StyleSheet, Text, View, Switch, Pressable, ScrollView, Alert, Linking, Clipboard } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../state/store';
-import { colors, typography, spacing, borderRadius, shadows } from '../config/theme';
+import { colors, typography, spacing, borderRadius, shadows, getBackgroundGradient } from '../config/theme';
 import { useState } from 'react';
+import Slider from '@react-native-community/slider';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -17,7 +18,12 @@ export default function SettingsScreen() {
   const dataRetentionDays = useAppStore((s) => s.dataRetentionDays);
   const setDataRetentionDays = useAppStore((s) => s.setDataRetentionDays);
   const performDataCleanup = useAppStore((s) => s.performDataCleanup);
+  const backgroundHue = useAppStore((s) => s.backgroundHue);
+  const setBackgroundHue = useAppStore((s) => s.setBackgroundHue);
   const [isCleaning, setIsCleaning] = useState(false);
+  
+  // Get adjusted gradient colors for preview
+  const gradientColors = getBackgroundGradient(backgroundHue);
   
   const retentionOptions: { label: string; days: number }[] = [
     { label: 'Keep All Data', days: 0 },
@@ -53,7 +59,7 @@ export default function SettingsScreen() {
   };
   return (
     <LinearGradient
-      colors={[colors.background.gradient.start, colors.background.gradient.end]}
+      colors={gradientColors}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -147,6 +153,108 @@ export default function SettingsScreen() {
               </Text>
             </Pressable>
           )}
+        </View>
+        
+        {/* Background Hue Customization Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Background Color</Text>
+          <Text style={styles.sectionDescription}>
+            Adjust the hue of the background gradient to match your preference.
+          </Text>
+          
+          <View style={styles.hueSliderContainer}>
+            <View style={styles.huePreview}>
+              <LinearGradient
+                colors={gradientColors}
+                style={styles.huePreviewGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              />
+            </View>
+            <View style={styles.sliderRow}>
+              <Text style={styles.sliderLabel}>Hue: {Math.round(backgroundHue)}°</Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={360}
+                value={backgroundHue}
+                onValueChange={setBackgroundHue}
+                minimumTrackTintColor={colors.primary.main}
+                maximumTrackTintColor={colors.border.medium}
+                thumbTintColor={colors.primary.main}
+                step={1}
+              />
+            </View>
+            <Pressable
+              style={styles.resetHueButton}
+              onPress={() => setBackgroundHue(0)}
+            >
+              <Text style={styles.resetHueButtonText}>Reset to Default</Text>
+            </Pressable>
+          </View>
+        </View>
+        
+        {/* About Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About Balance Seekr</Text>
+          
+          <Text style={styles.aboutQuote}>
+            "This is an app created to help you organize your life and goals so you're more in tune with what you want. I cannot promise a life change if you're not willing to take the steps necessary to get there, but I can give you the tools to walk along side you. I hope this brings you more clarity to your day-to-day and helps you elevate the details that makes life worth living. Live in balance, find rest when you can, and keep going. You are loved."
+          </Text>
+          
+          <Text style={styles.aboutAuthor}>— Roberto</Text>
+          
+          <View style={styles.aboutCreator}>
+            <Text style={styles.aboutCreatorText}>App created by Roberto Lopez J.</Text>
+          </View>
+          
+          <View style={styles.socialLinks}>
+            <Pressable
+              style={styles.socialLink}
+              onPress={() => Linking.openURL('https://x.com/simplyeto')}
+            >
+              <Ionicons name="logo-twitter" size={20} color={colors.text.inverse} />
+              <Text style={styles.socialLinkText}>@simplyeto</Text>
+            </Pressable>
+            
+            <Pressable
+              style={styles.socialLink}
+              onPress={() => Linking.openURL('https://www.instagram.com/simplyeto')}
+            >
+              <Ionicons name="logo-instagram" size={20} color={colors.text.inverse} />
+              <Text style={styles.socialLinkText}>@simplyeto</Text>
+            </Pressable>
+            
+            <Pressable
+              style={styles.socialLink}
+              onPress={() => Linking.openURL('https://www.youtube.com/@SimplyEto')}
+            >
+              <Ionicons name="logo-youtube" size={20} color={colors.text.inverse} />
+              <Text style={styles.socialLinkText}>YouTube</Text>
+            </Pressable>
+          </View>
+          
+          {/* Donation Section */}
+          <View style={styles.donationSection}>
+            <Text style={styles.donationText}>
+              This is a free app created by one person, so, if you'd like to donate, you can do it here:
+            </Text>
+            <Pressable
+              style={styles.donateButton}
+              onPress={() => {
+                const solanaAddress = '66FTEkkqvKa4QMMRXaryf2oGmknTFbyLQrmKRK6qAJkC';
+                Clipboard.setString(solanaAddress);
+                Alert.alert(
+                  'Address Copied!',
+                  `Solana address copied to clipboard:\n${solanaAddress}\n\nYou can now paste it in your wallet to send SOL or USDC.`,
+                  [{ text: 'OK' }]
+                );
+              }}
+            >
+              <Ionicons name="wallet-outline" size={18} color={colors.text.inverse} />
+              <Text style={styles.donateButtonText}>Donate with Solana/USDC</Text>
+            </Pressable>
+          </View>
         </View>
         
         <Pressable style={styles.reset} onPress={resetAll}>
@@ -319,5 +427,122 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     fontWeight: typography.weights.bold,
     fontSize: typography.sizes.base,
+  },
+  // Hue Slider Styles
+  hueSliderContainer: {
+    gap: spacing.md,
+  },
+  huePreview: {
+    height: 60,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...shadows.sm,
+  },
+  huePreviewGradient: {
+    flex: 1,
+    width: '100%',
+  },
+  sliderRow: {
+    gap: spacing.sm,
+  },
+  sliderLabel: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.primary,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  resetHueButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  resetHueButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.text.secondary,
+  },
+  // About Section Styles
+  aboutQuote: {
+    fontSize: typography.sizes.base,
+    color: colors.text.primary,
+    lineHeight: 24,
+    marginBottom: spacing.md,
+    fontStyle: 'italic',
+  },
+  aboutAuthor: {
+    fontSize: typography.sizes.base,
+    color: colors.text.secondary,
+    fontWeight: typography.weights.medium,
+    marginBottom: spacing.lg,
+    textAlign: 'right',
+  },
+  aboutCreator: {
+    marginBottom: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  aboutCreatorText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+  },
+  socialLinks: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  socialLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  socialLinkText: {
+    fontSize: typography.sizes.base,
+    color: colors.text.inverse,
+    fontWeight: typography.weights.medium,
+  },
+  donationSection: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    gap: spacing.md,
+  },
+  donationText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  donateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.success.main,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    ...shadows.sm,
+  },
+  donateButtonText: {
+    fontSize: typography.sizes.base,
+    color: colors.text.inverse,
+    fontWeight: typography.weights.semibold,
   },
 });

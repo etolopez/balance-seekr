@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "293050776450",
+    "project_id": "balance-seekr",
+    "storage_bucket": "balance-seekr.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:293050776450:android:741af8989727903a7cad9b",
+        "android_client_info": {
+          "package_name": "com.balanceseekr.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvq-CMVY-SlwcVVCzeaw7a0_QLk-BJfZ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
